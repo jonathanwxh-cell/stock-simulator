@@ -1,5 +1,6 @@
 import type { GameState, SaveMetadata } from './types';
 import { openDB, type DBSchema, type IDBPDatabase } from 'idb';
+import { z } from 'zod';
 
 const SAVE_SLOTS_KEY = 'marketmaster_save_slots';
 const AUTO_SAVE_KEY = 'marketmaster_autosave';
@@ -87,7 +88,6 @@ function stripLargeData(state: GameState): Omit<GameState, 'stocks' | 'transacti
     updatedAt: state.updatedAt.toISOString() as unknown as Date,
     stocks: state.stocks.map(s => ({
       ...s,
-      currentDate: undefined,
       priceHistory: [],
     })),
     transactionHistory: [],
@@ -111,6 +111,47 @@ function stripLargeData(state: GameState): Omit<GameState, 'stocks' | 'transacti
 }
 
 import type { Stock } from './types';
+
+// Loose schema for imported saves. We don't try to fully model every nested
+// shape — just the essentials needed to load a game without crashing on
+// access. Anything else falls through and is treated as best-effort data.
+const ImportSaveSchema = z.object({
+  playerName: z.string(),
+  difficulty: z.enum(['easy', 'normal', 'hard', 'expert']),
+  currentTurn: z.number().int().nonnegative(),
+  currentDate: z.union([z.string(), z.date()]),
+  cash: z.number(),
+  portfolio: z.record(z.string(), z.object({
+    stockId: z.string(),
+    shares: z.number(),
+    avgCost: z.number(),
+  })),
+  shortPositions: z.record(z.string(), z.object({
+    stockId: z.string(),
+    shares: z.number(),
+    entryPrice: z.number(),
+    marginUsed: z.number(),
+  })),
+  limitOrders: z.array(z.object({
+    id: z.string(),
+    stockId: z.string(),
+    type: z.enum(['buy', 'sell']),
+    shares: z.number(),
+    targetPrice: z.number(),
+    placedTurn: z.number(),
+  })),
+  marginUsed: z.number(),
+  stocks: z.array(z.object({
+    id: z.string(),
+    ticker: z.string(),
+    name: z.string(),
+    sector: z.string(),
+    currentPrice: z.number(),
+  }).passthrough()),
+  isGameOver: z.boolean(),
+  createdAt: z.union([z.string(), z.date()]),
+  updatedAt: z.union([z.string(), z.date()]),
+}).passthrough();
 
 function reviveDates(state: GameState): GameState {
   return {
@@ -362,12 +403,22 @@ export function exportSave(slot: 1 | 2 | 3): string {
 }
 
 export function importSave(json: string): GameState | null {
+  let parsed: unknown;
   try {
-    const parsed = JSON.parse(json) as GameState;
-    return reviveDates(parsed);
+    parsed = JSON.parse(json);
   } catch {
     return null;
   }
+
+  // Schema-validate before treating it as a GameState. This prevents corrupt
+  // or malicious imports from crashing the app on first access.
+  const result = ImportSaveSchema.safeParse(parsed);
+  if (!result.success) {
+    console.warn('Save import rejected — schema validation failed:', result.error.issues);
+    return null;
+  }
+
+  return reviveDates(result.data as unknown as GameState);
 }
 
 export function loadSettings(): { soundEnabled: boolean; musicEnabled: boolean; animationSpeed: 'slow' | 'normal' | 'fast'; showTutorials: boolean } {
