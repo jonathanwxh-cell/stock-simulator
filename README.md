@@ -2,6 +2,8 @@
 
 A turn-based stock market simulation game built with React, TypeScript, and Vite.
 
+**▶ Play it live: [stocksim.alyoechosys.dev](https://stocksim.alyoechosys.dev)**
+
 Trade 60 fictional stocks across 12 sectors, react to randomly generated market events, manage margin and short positions, and try to multiply your starting capital before time runs out.
 
 ## Features
