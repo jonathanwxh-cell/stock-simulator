@@ -85,7 +85,10 @@ export function simulateTurn(gameState: GameState): GameState {
     newState.isGameOver = true;
     newState.finalGrade = calculateGrade(newState);
     newState.finalRank = getRankTitle(newState.finalGrade);
-  } else if (netWorth <= 0 && newState.cash <= 0) {
+  } else if (netWorth <= 0) {
+    // Bankruptcy: net worth wiped out (e.g., short squeeze, levered loss).
+    // Cash alone isn't a sufficient signal — short liability can sink net worth
+    // while cash is still positive (margin held it).
     newState.isGameOver = true;
     newState.finalGrade = 'F';
     newState.finalRank = getRankTitle('F');
@@ -214,6 +217,14 @@ function payDividends(state: GameState) {
     const cost = quarterlyDiv * short.shares;
     state.cash -= cost;
     state.cash = Math.round(state.cash * 100) / 100;
+    // Log so player can reconcile cash drift
+    state.transactionHistory.push({
+      id: `short_div_${Date.now()}_${stockId}`,
+      date: new Date(state.currentDate), turn: state.currentTurn,
+      stockId, type: 'dividend', shares: -short.shares,
+      price: Math.round(quarterlyDiv * 100) / 100,
+      total: -Math.round(cost * 100) / 100, fee: 0,
+    });
   }
 }
 
