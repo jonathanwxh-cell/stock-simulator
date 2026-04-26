@@ -249,8 +249,12 @@ export function executeCover(
 
   const pos = newState.shortPositions[stockId];
   const marginRelease = (pos.marginUsed / pos.shares) * shares;
+  // Short PnL: profit when entryPrice > currentPrice (price went down).
+  // Cash flow: receive back the margin we posted, plus realized PnL, minus fee.
+  // (Original short proceeds were never credited to cash — they net out via PnL here.)
+  const pnl = (pos.entryPrice - stock.currentPrice) * shares;
 
-  newState.cash += marginRelease - coverCost - fee;
+  newState.cash += marginRelease + pnl - fee;
   newState.cash = Math.round(newState.cash * 100) / 100;
   newState.marginUsed = Math.round((newState.marginUsed - marginRelease) * 100) / 100;
   recordFee(newState, fee, stockId);
@@ -258,8 +262,6 @@ export function executeCover(
   pos.shares -= shares;
   pos.marginUsed = Math.round((pos.marginUsed - marginRelease) * 100) / 100;
   if (pos.shares <= 0) delete newState.shortPositions[stockId];
-
-  // PnL reflected in margin release vs cover cost
 
   const transaction: Transaction = {
     id: `txn_${Date.now()}_${stockId}_cover`,
