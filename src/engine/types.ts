@@ -84,7 +84,6 @@ export interface NewsEvent {
   impact: 'positive' | 'negative' | 'neutral';
   magnitude: number;
   affectedStocks: string[];
-  expiresAt: number;
 }
 
 export interface ActiveScenario {
