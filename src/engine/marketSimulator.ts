@@ -3,9 +3,8 @@ import { DIFFICULTY_CONFIGS, SCENARIO_FREQUENCY_MAP, calcBrokerFee } from './con
 import { generateScenario, generateNewsEvent } from './scenarioGenerator';
 import { calculateGrade } from './gameState';
 
-let nextNewsId = 1;
 function genNewsId(): string {
-  return `news_${nextNewsId++}_${Date.now()}`;
+  return `news_${crypto.randomUUID()}`;
 }
 
 export function simulateTurn(gameState: GameState): GameState {
@@ -85,7 +84,9 @@ export function simulateTurn(gameState: GameState): GameState {
     newState.isGameOver = true;
     newState.finalGrade = calculateGrade(newState);
     newState.finalRank = getRankTitle(newState.finalGrade);
-  } else if (netWorth <= 0 && newState.cash <= 0) {
+  } else if (netWorth <= 0) {
+    // Wiped out — covers short squeezes where cash is positive but
+    // short liability exceeds total assets.
     newState.isGameOver = true;
     newState.finalGrade = 'F';
     newState.finalRank = getRankTitle('F');
@@ -97,11 +98,15 @@ export function simulateTurn(gameState: GameState): GameState {
 
 function executeLimitOrders(state: GameState) {
   const config = DIFFICULTY_CONFIGS[state.difficulty];
-  const executed: string[] = [];
+  const consumed: string[] = [];
 
   for (const order of state.limitOrders) {
     const stock = state.stocks.find(s => s.id === order.stockId);
-    if (!stock) continue;
+    if (!stock) {
+      // Stock no longer exists — drop the order.
+      consumed.push(order.id);
+      continue;
+    }
 
     let shouldExecute = false;
     if (order.type === 'buy' && stock.currentPrice <= order.targetPrice) shouldExecute = true;
@@ -129,8 +134,9 @@ function executeLimitOrders(state: GameState) {
           stockId: order.stockId, type: 'limit_buy', shares: order.shares,
           price: Math.round(stock.currentPrice * 100) / 100, total: Math.round(total * 100) / 100, fee,
         });
-        executed.push(order.id);
       }
+      // Whether executed or not, the trigger fired — don't leave a zombie in the queue.
+      consumed.push(order.id);
     } else {
       const pos = state.portfolio[order.stockId];
       if (pos && pos.shares >= order.shares) {
@@ -143,12 +149,13 @@ function executeLimitOrders(state: GameState) {
           stockId: order.stockId, type: 'limit_sell', shares: order.shares,
           price: Math.round(stock.currentPrice * 100) / 100, total: Math.round(total * 100) / 100, fee,
         });
-        executed.push(order.id);
       }
+      // Same logic — trigger fired; consume the order regardless.
+      consumed.push(order.id);
     }
   }
 
-  state.limitOrders = state.limitOrders.filter(o => !executed.includes(o.id));
+  state.limitOrders = state.limitOrders.filter(o => !consumed.includes(o.id));
 }
 
 function maybeStockSplit(state: GameState) {
@@ -177,7 +184,7 @@ function maybeStockSplit(state: GameState) {
   }
 
   state.transactionHistory.push({
-    id: `split_${Date.now()}_${stock.id}`,
+    id: `split_${crypto.randomUUID()}`,
     date: new Date(state.currentDate), turn: state.currentTurn,
     stockId: stock.id, type: 'split', shares: splitRatio,
     price: Math.round(stock.currentPrice * 100) / 100,
@@ -197,7 +204,7 @@ function payDividends(state: GameState) {
     state.totalDividendsReceived = Math.round((state.totalDividendsReceived + totalDividend) * 100) / 100;
 
     state.transactionHistory.push({
-      id: `div_${Date.now()}_${stockId}`,
+      id: `div_${crypto.randomUUID()}`,
       date: new Date(state.currentDate), turn: state.currentTurn,
       stockId, type: 'dividend', shares: position.shares,
       price: Math.round(quarterlyDiv * 100) / 100,
@@ -205,7 +212,8 @@ function payDividends(state: GameState) {
     });
   }
 
-  // Short sellers pay dividends
+  // Short sellers pay dividends — record the negative dividend so the player
+  // can reconcile cash drift.
   for (const [stockId, short] of Object.entries(state.shortPositions)) {
     if (short.shares <= 0) continue;
     const stock = state.stocks.find(s => s.id === stockId);
@@ -214,6 +222,14 @@ function payDividends(state: GameState) {
     const cost = quarterlyDiv * short.shares;
     state.cash -= cost;
     state.cash = Math.round(state.cash * 100) / 100;
+
+    state.transactionHistory.push({
+      id: `div_short_${crypto.randomUUID()}`,
+      date: new Date(state.currentDate), turn: state.currentTurn,
+      stockId, type: 'dividend', shares: short.shares,
+      price: Math.round(-quarterlyDiv * 100) / 100,
+      total: Math.round(-cost * 100) / 100, fee: 0,
+    });
   }
 }
 
@@ -226,7 +242,7 @@ function chargeMarginInterest(state: GameState) {
   state.cash = Math.round(state.cash * 100) / 100;
   state.totalFeesPaid = Math.round((state.totalFeesPaid + interest) * 100) / 100;
   state.transactionHistory.push({
-    id: `margin_int_${Date.now()}`,
+    id: `margin_int_${crypto.randomUUID()}`,
     date: new Date(state.currentDate), turn: state.currentTurn,
     stockId: '__margin__', type: 'fee', shares: 0, price: 0,
     total: interest, fee: interest,
@@ -253,7 +269,7 @@ function checkMarginCall(state: GameState) {
       state.cash = Math.round(state.cash * 100) / 100;
       state.marginUsed = Math.round((state.marginUsed - short.marginUsed) * 100) / 100;
       state.transactionHistory.push({
-        id: `margin_call_${Date.now()}_${stockId}`,
+        id: `margin_call_${crypto.randomUUID()}`,
         date: new Date(state.currentDate), turn: state.currentTurn,
         stockId, type: 'margin_call', shares: short.shares,
         price: Math.round(stock.currentPrice * 100) / 100,
