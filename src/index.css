@@ -1,0 +1,284 @@
+@import '@fontsource/inter/400.css';
+@import '@fontsource/inter/500.css';
+@import '@fontsource/inter/600.css';
+@import '@fontsource/inter/700.css';
+@import '@fontsource/space-grotesk/400.css';
+@import '@fontsource/space-grotesk/500.css';
+@import '@fontsource/space-grotesk/600.css';
+@import '@fontsource/space-grotesk/700.css';
+@import '@fontsource/jetbrains-mono/400.css';
+@import '@fontsource/jetbrains-mono/500.css';
+@import '@fontsource/jetbrains-mono/600.css';
+@import '@fontsource/jetbrains-mono/700.css';
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Core Colors */
+    --void: #09090B;
+    --surface-0: #0F1117;
+    --surface-1: #161922;
+    --surface-2: #1E2230;
+    --border: #2A3045;
+    --border-hover: #3D4563;
+
+    /* Text Colors */
+    --text-primary: #E8EDF5;
+    --text-secondary: #8892A8;
+    --text-muted: #4A5168;
+
+    /* Semantic Accents */
+    --profit-green: #22C55E;
+    --profit-bright: #4ADE80;
+    --loss-red: #EF4444;
+    --loss-bright: #F87171;
+    --neutral-amber: #F59E0B;
+    --info-blue: #3B82F6;
+    --purple: #A855F7;
+
+    /* Sector Colors */
+    --sector-tech: #06B6D4;
+    --sector-health: #F472B6;
+    --sector-energy: #F59E0B;
+    --sector-finance: #6366F1;
+    --sector-consumer: #EC4899;
+    --sector-industrial: #8B5CF6;
+
+    /* shadcn compatibility */
+    --background: 240 6% 4%;
+    --foreground: 220 20% 94%;
+    --card: 228 18% 7%;
+    --card-foreground: 220 20% 94%;
+    --popover: 228 18% 7%;
+    --popover-foreground: 220 20% 94%;
+    --primary: 142 71% 45%;
+    --primary-foreground: 0 0% 0%;
+    --secondary: 225 14% 11%;
+    --secondary-foreground: 220 20% 94%;
+    --muted: 225 14% 11%;
+    --muted-foreground: 222 12% 47%;
+    --accent: 225 14% 11%;
+    --accent-foreground: 220 20% 94%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 98%;
+    --border-shadcn: 222 18% 22%;
+    --input: 222 18% 22%;
+    --ring: 142 71% 45%;
+    --radius: 0.5rem;
+  }
+
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    scroll-behavior: smooth;
+  }
+
+  body {
+    background-color: var(--void);
+    color: var(--text-primary);
+    font-family: 'Inter', system-ui, sans-serif;
+    overflow-x: hidden;
+  }
+
+  /* Custom Scrollbar */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: var(--border);
+    border-radius: 3px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--border-hover);
+  }
+
+  /* Firefox scrollbar */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+  }
+
+  /* Tabular numbers for numeric elements */
+  .tabular-nums {
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Focus ring */
+  *:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.4);
+  }
+
+  /* Reduced motion */
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}
+
+@layer components {
+  /* Gradient Utilities */
+  .hero-gradient {
+    background: linear-gradient(180deg, #09090B 0%, #0F1117 100%);
+  }
+
+  .card-gradient {
+    background: linear-gradient(135deg, #0F1117 0%, #161922 100%);
+  }
+
+  .success-gradient {
+    background: linear-gradient(135deg, #22C55E 0%, #16A34A 100%);
+  }
+
+  .danger-gradient {
+    background: linear-gradient(135deg, #EF4444 0%, #DC2626 100%);
+  }
+
+  .profit-glow {
+    background: radial-gradient(circle, rgba(34, 197, 94, 0.15) 0%, transparent 70%);
+  }
+
+  .loss-glow {
+    background: radial-gradient(circle, rgba(239, 68, 68, 0.15) 0%, transparent 70%);
+  }
+
+  .ambient-glow {
+    background:
+      radial-gradient(ellipse at 30% 20%, rgba(34, 197, 94, 0.06) 0%, transparent 60%),
+      radial-gradient(ellipse at 70% 80%, rgba(168, 85, 247, 0.04) 0%, transparent 50%);
+  }
+
+  /* Font classes */
+  .font-display {
+    font-family: 'Space Grotesk', 'Inter', sans-serif;
+  }
+
+  .font-mono-data {
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  /* Glassmorphism */
+  .glass {
+    background: rgba(15, 17, 23, 0.8);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+  }
+}
+
+@layer utilities {
+  /* Animation Keyframes */
+  @keyframes pulse-glow {
+    0%, 100% {
+      box-shadow: 0 0 0 0 rgba(34, 197, 94, 0);
+    }
+    50% {
+      box-shadow: 0 0 0 12px rgba(34, 197, 94, 0);
+    }
+    40% {
+      box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.3);
+    }
+  }
+
+  .animate-pulse-glow {
+    animation: pulse-glow 2s infinite;
+  }
+
+  @keyframes price-flash-up {
+    0% {
+      color: var(--profit-bright);
+      background-color: rgba(34, 197, 94, 0.1);
+    }
+    100% {
+      color: var(--profit-green);
+      background-color: transparent;
+    }
+  }
+
+  .animate-price-flash-up {
+    animation: price-flash-up 0.8s ease-out forwards;
+  }
+
+  @keyframes price-flash-down {
+    0% {
+      color: var(--loss-bright);
+      background-color: rgba(239, 68, 68, 0.1);
+    }
+    100% {
+      color: var(--loss-red);
+      background-color: transparent;
+    }
+  }
+
+  .animate-price-flash-down {
+    animation: price-flash-down 0.8s ease-out forwards;
+  }
+
+  @keyframes confetti-fall {
+    0% {
+      transform: translateY(-100%) rotate(0deg);
+      opacity: 1;
+    }
+    100% {
+      transform: translateY(100vh) rotate(720deg);
+      opacity: 0;
+    }
+  }
+
+  .animate-confetti-fall {
+    animation: confetti-fall 3s ease-out forwards;
+  }
+
+  @keyframes shimmer {
+    0% {
+      background-position: -200% 0;
+    }
+    100% {
+      background-position: 200% 0;
+    }
+  }
+
+  .animate-shimmer {
+    background: linear-gradient(
+      90deg,
+      transparent 0%,
+      rgba(255, 255, 255, 0.05) 50%,
+      transparent 100%
+    );
+    background-size: 200% 100%;
+    animation: shimmer 2s infinite;
+  }
+
+  @keyframes float-up {
+    0% {
+      transform: translateY(0) translateX(0);
+      opacity: 0;
+    }
+    10% {
+      opacity: 0.15;
+    }
+    90% {
+      opacity: 0.15;
+    }
+    100% {
+      transform: translateY(-100vh) translateX(30px);
+      opacity: 0;
+    }
+  }
+
+  .animate-float-up {
+    animation: float-up 20s linear infinite;
+  }
+}
