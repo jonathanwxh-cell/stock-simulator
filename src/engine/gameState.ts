@@ -79,15 +79,21 @@ export function canCover(state: GameState, stockId: string, shares: number): boo
   if (pos.shares < shares) return false;
   const stock = state.stocks.find(s => s.id === stockId);
   if (!stock) return false;
-  const cost = stock.currentPrice * shares;
-  const fee = calcBrokerFee(cost, DIFFICULTY_CONFIGS[state.difficulty]);
-  return state.cash >= cost + fee;
+  const config = DIFFICULTY_CONFIGS[state.difficulty];
+  const coverCost = stock.currentPrice * shares;
+  const fee = calcBrokerFee(coverCost, config);
+  // What actually moves cash on cover: margin release + PnL - fee.
+  // PnL is positive when price fell below entry.
+  const marginRelease = (pos.marginUsed / pos.shares) * shares;
+  const pnl = (pos.entryPrice - stock.currentPrice) * shares;
+  const cashDelta = marginRelease + pnl - fee;
+  return state.cash + cashDelta >= 0;
 }
 
 function recordFee(newState: GameState, fee: number, stockId: string) {
   newState.totalFeesPaid = Math.round((newState.totalFeesPaid + fee) * 100) / 100;
   newState.transactionHistory.push({
-    id: `fee_${Date.now()}_${stockId}`,
+    id: `fee_${crypto.randomUUID()}`,
     date: new Date(newState.currentDate),
     turn: newState.currentTurn,
     stockId,
@@ -132,7 +138,7 @@ export function executeBuy(
   }
 
   const transaction: Transaction = {
-    id: `txn_${Date.now()}_${stockId}_buy`,
+    id: `txn_${crypto.randomUUID()}`,
     date: new Date(state.currentDate),
     turn: state.currentTurn,
     stockId,
@@ -170,7 +176,7 @@ export function executeSell(
   if (position.shares === 0) delete newState.portfolio[stockId];
 
   const transaction: Transaction = {
-    id: `txn_${Date.now()}_${stockId}_sell`,
+    id: `txn_${crypto.randomUUID()}`,
     date: new Date(state.currentDate),
     turn: state.currentTurn,
     stockId,
@@ -215,12 +221,12 @@ export function executeShort(
       stockId,
       shares,
       entryPrice: Math.round(stock.currentPrice * 100) / 100,
-      marginUsed: marginReq,
+      marginUsed: Math.round(marginReq * 100) / 100,
     };
   }
 
   const transaction: Transaction = {
-    id: `txn_${Date.now()}_${stockId}_short`,
+    id: `txn_${crypto.randomUUID()}`,
     date: new Date(state.currentDate),
     turn: state.currentTurn,
     stockId,
@@ -249,8 +255,12 @@ export function executeCover(
 
   const pos = newState.shortPositions[stockId];
   const marginRelease = (pos.marginUsed / pos.shares) * shares;
+  // PnL on the closed shares: positive when price fell below entry.
+  // Short proceeds were never credited at open time, so cover must include the
+  // full price-difference here (matching the margin-call path's accounting).
+  const pnl = (pos.entryPrice - stock.currentPrice) * shares;
 
-  newState.cash += marginRelease - coverCost - fee;
+  newState.cash += marginRelease + pnl - fee;
   newState.cash = Math.round(newState.cash * 100) / 100;
   newState.marginUsed = Math.round((newState.marginUsed - marginRelease) * 100) / 100;
   recordFee(newState, fee, stockId);
@@ -259,10 +269,8 @@ export function executeCover(
   pos.marginUsed = Math.round((pos.marginUsed - marginRelease) * 100) / 100;
   if (pos.shares <= 0) delete newState.shortPositions[stockId];
 
-  // PnL reflected in margin release vs cover cost
-
   const transaction: Transaction = {
-    id: `txn_${Date.now()}_${stockId}_cover`,
+    id: `txn_${crypto.randomUUID()}`,
     date: new Date(state.currentDate),
     turn: state.currentTurn,
     stockId,
@@ -286,6 +294,8 @@ export function placeLimitOrder(
 ): { state: GameState; transaction: Transaction } {
   const config = DIFFICULTY_CONFIGS[state.difficulty];
   if (state.limitOrders.length >= config.maxLimitOrders) throw new Error('Max limit orders reached');
+  if (targetPrice <= 0) throw new Error('Target price must be positive');
+  if (shares <= 0) throw new Error('Shares must be positive');
   if (type === 'sell' && !canSell(state, stockId, shares)) throw new Error('Insufficient shares');
   if (type === 'buy') {
     const cost = targetPrice * shares;
@@ -298,7 +308,7 @@ export function placeLimitOrder(
   recordFee(newState, fee, stockId);
 
   const order: LimitOrder = {
-    id: `lo_${Date.now()}_${stockId}`,
+    id: `lo_${crypto.randomUUID()}`,
     stockId,
     type,
     shares,
