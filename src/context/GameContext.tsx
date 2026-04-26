@@ -16,6 +16,12 @@ import {
   saveSettings,
   initSaveSystem,
 } from '../engine';
+import {
+  playBuy, playSell, playShort, playCover,
+  playDividend, playBankrupt, playGameOver,
+  playTurn, playMarginCall,
+  playLevelUp, playClick, playError,
+} from '../engine/audioEngine';
 
 interface GameContextType {
   gameState: GameState | null;
@@ -85,17 +91,19 @@ export function GameProvider({ children }: { children: ReactNode }) {
     previousScreen: 'title',
   });
 
+  const soundEnabled = state.settings.soundEnabled;
+
   const newGame = useCallback((name: string, difficulty: Difficulty) => {
     const game = createNewGame(name, difficulty);
     dispatch({ type: 'SET_GAME_STATE', payload: game });
     dispatch({ type: 'SET_SCREEN', payload: 'game' });
+    if (soundEnabled) playLevelUp();
     autoSave(game).catch(() => {});
-  }, []);
+  }, [soundEnabled]);
 
   const loadGame = useCallback(async (slot: 1 | 2 | 3 | 'auto') => {
     const loaded = await loadGameEngine(slot);
     if (loaded) {
-      // Backfill missing fields from older saves
       const migrated = {
         ...loaded,
         shortPositions: loaded.shortPositions || {},
@@ -107,8 +115,9 @@ export function GameProvider({ children }: { children: ReactNode }) {
       };
       dispatch({ type: 'SET_GAME_STATE', payload: migrated });
       dispatch({ type: 'SET_SCREEN', payload: migrated.isGameOver ? 'game-over' : 'game' });
+      if (soundEnabled && !migrated.isGameOver) playLevelUp();
     }
-  }, []);
+  }, [soundEnabled]);
 
   const saveGame = useCallback((slot: 1 | 2 | 3 | 'auto') => {
     if (state.gameState) {
@@ -118,57 +127,91 @@ export function GameProvider({ children }: { children: ReactNode }) {
 
   const advanceTurn = useCallback(() => {
     if (!state.gameState || state.gameState.isGameOver) return;
+    const prev = state.gameState;
     const newState = simulateTurn(state.gameState);
     dispatch({ type: 'UPDATE_GAME_STATE', payload: newState });
     dispatch({ type: 'SET_SCREEN', payload: 'next-turn' });
     autoSave(newState).catch(() => {});
-  }, [state.gameState]);
+
+    if (!soundEnabled) return;
+    playTurn();
+
+    // Check for special events this turn
+    const hadDividend = newState.transactionHistory.length > prev.transactionHistory.length &&
+      newState.transactionHistory[newState.transactionHistory.length - 1]?.type === 'dividend';
+    if (hadDividend) setTimeout(() => playDividend(), 300);
+
+    const hadBankrupt = newState.stocks.some((s, i) => s.currentPrice === 0 && prev.stocks[i]?.currentPrice > 0);
+    if (hadBankrupt) setTimeout(() => playBankrupt(), 500);
+
+    const hadMarginCall = newState.transactionHistory.length > prev.transactionHistory.length &&
+      newState.transactionHistory.slice(prev.transactionHistory.length).some(t => t.type === 'margin_call');
+    if (hadMarginCall) setTimeout(() => playMarginCall(), 400);
+
+    if (newState.isGameOver) setTimeout(() => playGameOver(), 800);
+  }, [state.gameState, soundEnabled]);
 
   const buyStock = useCallback((stockId: string, shares: number) => {
     if (!state.gameState) return;
     try {
       const result = executeBuy(state.gameState, stockId, shares);
       dispatch({ type: 'UPDATE_GAME_STATE', payload: result.state });
-    } catch {}
-  }, [state.gameState]);
+      if (soundEnabled) playBuy();
+    } catch {
+      if (soundEnabled) playError();
+    }
+  }, [state.gameState, soundEnabled]);
 
   const sellStock = useCallback((stockId: string, shares: number) => {
     if (!state.gameState) return;
     try {
       const result = executeSell(state.gameState, stockId, shares);
       dispatch({ type: 'UPDATE_GAME_STATE', payload: result.state });
-    } catch {}
-  }, [state.gameState]);
+      if (soundEnabled) playSell();
+    } catch {
+      if (soundEnabled) playError();
+    }
+  }, [state.gameState, soundEnabled]);
 
   const shortStock = useCallback((stockId: string, shares: number) => {
     if (!state.gameState) return;
     try {
       const result = executeShort(state.gameState, stockId, shares);
       dispatch({ type: 'UPDATE_GAME_STATE', payload: result.state });
-    } catch {}
-  }, [state.gameState]);
+      if (soundEnabled) playShort();
+    } catch {
+      if (soundEnabled) playError();
+    }
+  }, [state.gameState, soundEnabled]);
 
   const coverStock = useCallback((stockId: string, shares: number) => {
     if (!state.gameState) return;
     try {
       const result = executeCover(state.gameState, stockId, shares);
       dispatch({ type: 'UPDATE_GAME_STATE', payload: result.state });
-    } catch {}
-  }, [state.gameState]);
+      if (soundEnabled) playCover();
+    } catch {
+      if (soundEnabled) playError();
+    }
+  }, [state.gameState, soundEnabled]);
 
   const placeOrder = useCallback((stockId: string, type: 'buy' | 'sell', shares: number, targetPrice: number) => {
     if (!state.gameState) return;
     try {
       const result = placeLimitOrder(state.gameState, stockId, type, shares, targetPrice);
       dispatch({ type: 'UPDATE_GAME_STATE', payload: result.state });
-    } catch {}
-  }, [state.gameState]);
+      if (soundEnabled) playClick();
+    } catch {
+      if (soundEnabled) playError();
+    }
+  }, [state.gameState, soundEnabled]);
 
   const cancelOrder = useCallback((orderId: string) => {
     if (!state.gameState) return;
     const newState = cancelLimitOrder(state.gameState, orderId);
     dispatch({ type: 'UPDATE_GAME_STATE', payload: newState });
-  }, [state.gameState]);
+    if (soundEnabled) playClick();
+  }, [state.gameState, soundEnabled]);
 
   const navigateTo = useCallback((screen: Screen) => {
     dispatch({ type: 'SET_SCREEN', payload: screen });
