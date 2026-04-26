@@ -1,8 +1,9 @@
-import type { Sector, ActiveScenario, NewsEvent, GameState, Difficulty } from './types';
+import type { Sector, ActiveScenario, NewsEvent, GameState } from './types';
+import { DIFFICULTY_CONFIGS } from './config';
+import { getNetWorth } from './marketSimulator';
 
-let nextId = 1;
 function genId(prefix: string): string {
-  return `${prefix}_${nextId++}_${Date.now()}`;
+  return `${prefix}_${crypto.randomUUID()}`;
 }
 
 interface NewsTemplate {
@@ -30,8 +31,14 @@ function pickRandom<T>(arr: T[]): T {
 }
 
 function pickRandomN<T>(arr: T[], n: number): T[] {
-  const shuffled = [...arr].sort(() => rng() - 0.5);
-  return shuffled.slice(0, n);
+  // Fisher-Yates partial shuffle: produces a uniformly random sample of size n.
+  const copy = [...arr];
+  const k = Math.min(n, copy.length);
+  for (let i = 0; i < k; i++) {
+    const j = i + Math.floor(rng() * (copy.length - i));
+    [copy[i], copy[j]] = [copy[j], copy[i]];
+  }
+  return copy.slice(0, k);
 }
 
 function getStocksBySector(state: GameState, sector: Sector | 'all'): string[] {
@@ -664,28 +671,13 @@ export function generateNewsEvent(
     impact,
     magnitude,
     affectedStocks,
-    expiresAt: gameState.currentTurn + randInt(2, 6),
   };
 }
 
 function getNetWorthRatio(state: GameState): number {
-  const config = getGameConfig(state);
+  const config = DIFFICULTY_CONFIGS[state.difficulty];
   const goal = config.startingCash * config.goalMultiplier;
-  const cash = state.cash;
-  const portfolioValue = Object.values(state.portfolio).reduce((sum, pos) => {
-    const stock = state.stocks.find(s => s.id === pos.stockId);
-    return sum + (stock ? stock.currentPrice * pos.shares : 0);
-  }, 0);
-  const netWorth = cash + portfolioValue;
-  return netWorth / goal;
-}
-
-function getGameConfig(state: GameState): { startingCash: number; goalMultiplier: number } {
-  const configs: Record<Difficulty, { startingCash: number; goalMultiplier: number }> = {
-    easy: { startingCash: 50000, goalMultiplier: 3 },
-    normal: { startingCash: 25000, goalMultiplier: 5 },
-    hard: { startingCash: 10000, goalMultiplier: 10 },
-    expert: { startingCash: 5000, goalMultiplier: 20 },
-  };
-  return configs[state.difficulty];
+  // Use the canonical net-worth calculation that accounts for short
+  // liability and margin used — not just cash + long portfolio.
+  return getNetWorth(state) / goal;
 }
