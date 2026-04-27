@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+import { unwrap } from './_helpers';
 import { createNewGame, executeBuy, placeLimitOrder, cancelLimitOrder } from '../gameState';
 import { simulateTurn } from '../marketSimulator';
 import { DIFFICULTY_CONFIGS } from '../config';
@@ -24,7 +25,7 @@ describe('Limit orders', () => {
   it('buy limit triggers when price ≤ target', () => {
     let state = createNewGame('Test', 'normal');
     state = withPrice(state, stockId, 100);
-    { const r = placeLimitOrder(state, stockId, 'buy', 5, 100); if (!r.ok) throw new Error(r.reason); state = r.state; }
+    state = unwrap(state, s => placeLimitOrder(s, stockId, 'buy', 5, 100));
 
     state = withPrice(state, stockId, 80);
     state = simulateTurn(state);
@@ -36,9 +37,9 @@ describe('Limit orders', () => {
   it('sell limit triggers when price ≥ target', () => {
     let state = createNewGame('Test', 'normal');
     state = withPrice(state, stockId, 100);
-    { const r = executeBuy(state, stockId, 10); if (!r.ok) throw new Error(r.reason); state = r.state; }
+    state = unwrap(state, s => executeBuy(s, stockId, 10));
 
-    { const r = placeLimitOrder(state, stockId, 'sell', 5, 110); if (!r.ok) throw new Error(r.reason); state = r.state; }
+    state = unwrap(state, s => placeLimitOrder(s, stockId, 'sell', 5, 110));
 
     state = withPrice(state, stockId, 120);
     state = simulateTurn(state);
@@ -75,7 +76,7 @@ describe('Limit orders', () => {
   it('sell limit consumed even when shares insufficient', () => {
     let state = createNewGame('Test', 'normal');
     state = withPrice(state, stockId, 100);
-    { const r = executeBuy(state, stockId, 2); if (!r.ok) throw new Error(r.reason); state = r.state; }
+    state = unwrap(state, s => executeBuy(s, stockId, 2));
 
     // Directly insert sell order for more shares than held
     const order: LimitOrder = {
@@ -98,7 +99,7 @@ describe('Limit orders', () => {
   it('order for nonexistent stock is consumed silently', () => {
     let state = createNewGame('Test', 'normal');
     state = withPrice(state, stockId, 100);
-    { const r = placeLimitOrder(state, stockId, 'buy', 5, 90); if (!r.ok) throw new Error(r.reason); state = r.state; }
+    state = unwrap(state, s => placeLimitOrder(s, stockId, 'buy', 5, 90));
 
     state.stocks = state.stocks.filter(s => s.id !== stockId);
     state = simulateTurn(state);
@@ -133,7 +134,7 @@ describe('Limit orders', () => {
     for (let i = 0; i < config.maxLimitOrders; i++) {
       const sid = state.stocks[i % state.stocks.length].id;
       state = withPrice(state, sid, 50);
-      { const r = placeLimitOrder(state, sid, 'buy', 1, 40); if (!r.ok) throw new Error(r.reason); state = r.state; }
+      state = unwrap(state, s => placeLimitOrder(s, sid, 'buy', 1, 40));
     }
 
     const r = placeLimitOrder(state, stockId, 'buy', 1, 40);
@@ -144,8 +145,8 @@ describe('Limit orders', () => {
   it('cancelLimitOrder removes the right one', () => {
     let state = createNewGame('Test', 'normal');
     state = withPrice(state, stockId, 100);
-    { const r = placeLimitOrder(state, stockId, 'buy', 5, 90); if (!r.ok) throw new Error(r.reason); state = r.state; }
-    { const r = placeLimitOrder(state, stockId, 'buy', 10, 80); if (!r.ok) throw new Error(r.reason); state = r.state; }
+    state = unwrap(state, s => placeLimitOrder(s, stockId, 'buy', 5, 90));
+    state = unwrap(state, s => placeLimitOrder(s, stockId, 'buy', 10, 80));
 
     const firstId = state.limitOrders[0].id;
     state = cancelLimitOrder(state, firstId);
@@ -161,13 +162,13 @@ describe('Limit orders', () => {
 
     // Buy shares in msft at a known price
     state = withPrice(state, msft, 50);
-    { const r = executeBuy(state, msft, 5); if (!r.ok) throw new Error(r.reason); state = r.state; }
+    state = unwrap(state, s => executeBuy(s, msft, 5));
 
     // Place orders with extreme targets so random walk can't un-trigger
     state = withPrice(state, aapl, 50);
     state = withPrice(state, msft, 50);
-    { const r = placeLimitOrder(state, aapl, 'buy', 2, 500); if (!r.ok) throw new Error(r.reason); state = r.state; }   // target well above price
-    { const r = placeLimitOrder(state, msft, 'sell', 2, 1); if (!r.ok) throw new Error(r.reason); state = r.state; }    // target well below price
+    state = unwrap(state, s => placeLimitOrder(s, aapl, 'buy', 2, 500));   // target well above price
+    state = unwrap(state, s => placeLimitOrder(s, msft, 'sell', 2, 1));    // target well below price
 
     // Set prices that will definitely trigger both
     state = withPrice(state, aapl, 10);   // well below 500 target

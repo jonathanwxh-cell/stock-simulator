@@ -1,5 +1,9 @@
 # Changelog
 
+All notable changes to this project are documented here. Format follows
+[Keep a Changelog](https://keepachangelog.com/), and this project adheres to
+[Semantic Versioning](https://semver.org/).
+
 ## [1.4.0] — 2026-04-27
 
 ### Added
@@ -216,7 +220,9 @@ Engine correctness pass. No breaking changes; existing saves load unchanged.
 Initial commit. Turn-based stock market sim — 60 stocks across 12 sectors,
 4 difficulty levels, margin trading, short selling, 600+ market events.
 
+[1.5.0]: https://github.com/jonathanwxh-cell/stock-simulator/compare/v1.4.0...v1.5.0
 [1.4.0]: https://github.com/jonathanwxh-cell/stock-simulator/compare/v1.3.0...v1.4.0
+[1.2.2]: https://github.com/jonathanwxh-cell/stock-simulator/compare/v1.2.1...v1.2.2
 [1.3.0]: https://github.com/jonathanwxh-cell/stock-simulator/compare/v1.2.1...v1.3.0
 [1.2.1]: https://github.com/jonathanwxh-cell/stock-simulator/compare/v1.2.0...v1.2.1
 [1.2.0]: https://github.com/jonathanwxh-cell/stock-simulator/compare/v1.1.0...v1.2.0

@@ -13,17 +13,21 @@ src/
 ├── engine/          # Pure game logic — ZERO DOM/React imports
 │   ├── types.ts          # All TypeScript interfaces
 │   ├── config.ts         # Difficulty configs, sector definitions, constants
+│   ├── rng.ts            # RNG interface + MathRandomRNG + SeededRNG (mulberry32)
 │   ├── gameState.ts      # Trade execution (buy/sell/short/cover), limit orders, game creation
 │   ├── marketSimulator.ts # Turn simulation: price calc, margin calls, dividends, splits
 │   ├── scenarioGenerator.ts # News events and market scenarios
+│   ├── stockData.ts      # Thin loader for data/stocks.json (26 lines)
+│   ├── cloneState.ts     # Deep clone utility (shared by engine functions)
+│   ├── saveSystem.ts     # Save/load system (IndexedDB, 3 slots + auto)
 │   ├── leaderboard.ts    # High score tracking (IndexedDB)
-│   ├── save.ts           # Save/load system (IndexedDB, 3 slots + auto)
-│   ├── clone.ts          # Deep clone utility (shared by engine functions)
-│   ├── data/             # Static data (news-templates.json)
-│   └── __tests__/        # Vitest test suite (41 tests, 5 files)
+│   ├── index.ts          # Barrel export for all engine modules
+│   ├── data/
+│   │   ├── news-templates.json   # Sector-specific news headlines + descriptions
+│   │   └── stocks.json           # 60 stock definitions (pure data, no logic)
+│   └── __tests__/        # Vitest test suite (50 tests, 6 files)
 ├── hooks/           # Custom React hooks
 │   ├── useAudio.ts       # Audio controls (volume, mute, unlock)
-│   └── useTheme.ts       # Dark/light mode persistence
 ├── lib/             # Shared utilities (cn, etc.)
 └── pages/           # Route-level components
     ├── TitleScreen.tsx
@@ -57,6 +61,44 @@ User action → GameContext callback → engine pure function → dispatch(UPDAT
 - **Save system** uses IndexedDB (via `idb` library). 3 manual slots + auto-save.
 - **Settings** persisted to localStorage separately.
 
+## Randomness
+
+All randomness in the engine goes through a `RNG` interface (`src/engine/rng.ts`). This enables deterministic replay and reproducible tests.
+
+**Interface:**
+```ts
+export interface RNG {
+  next(): number;              // [0, 1)
+  int(min: number, max: number): number;   // inclusive
+  range(min: number, max: number): number; // continuous
+  pick<T>(arr: T[]): T;
+  pickN<T>(arr: T[], n: number): T[];      // Fisher-Yates partial
+}
+```
+
+**Two backends:**
+- `MathRandomRNG` — wraps `Math.random()`, default for production
+- `SeededRNG(seed)` — mulberry32, deterministic. Same seed → same sequence.
+
+**Injection pattern:** Functions that need randomness accept an optional `rng?: RNG` parameter, defaulting to a shared `MathRandomRNG` instance. This keeps existing call sites unchanged in production:
+
+```ts
+// Production — works exactly as before
+simulateTurn(state);
+
+// Tests — deterministic
+simulateTurn(state, new SeededRNG(42));
+```
+
+**Functions that accept RNG:**
+- `simulateTurn(state, rng?)` — orchestrates all per-turn randomness
+- `generateScenario(state, rng?)` — scenario type, events, sector effects
+- `generateNewsEvent(state, sector?, impact?, rng?)` — news template selection
+
+**No `Math.random()` calls exist in the engine** outside of `rng.ts` (the `MathRandomRNG` class). This is verified by: `grep -rn "Math\.random" src/engine/ --include="*.ts" | grep -v rng.ts`.
+
+**Using seeded RNG for debugging:** To replay a specific game sequence, pass the same seed to every `simulateTurn` call. The seed and call count are accessible via `rng.getSeed()` and `rng.getCallCount()`.
+
 ## Audio System
 
 Two independent modules:
@@ -81,7 +123,7 @@ Both gated by `settings.soundEnabled` / `settings.musicEnabled`. Audio context r
 
 **New news event:** Add a template to `src/engine/data/news-templates.json` under the relevant sector. Templates use `{company}` and `{sector}` placeholders. The scenario generator picks from these based on sector and difficulty.
 
-**New stock:** Add an entry to the `INITIAL_STOCKS` array in `config.ts`. Required fields: `id`, `ticker`, `name`, `sector`, `currentPrice`, `basePrice`, `dividendYield`, `volatility`, `beta`.
+**New stock:** Add an entry to `src/engine/data/stocks.json`. Required fields: `id`, `ticker`, `name`, `sector`, `basePrice`, `dividendYield`, `volatility`, `beta`. The loader in `stockData.ts` adds `currentPrice`, `splitMultiplier`, and `priceHistory` at load time.
 
 **New sector:** Add to `SECTOR_COLORS`, `SECTOR_LABELS`, `SECTOR_EFFECTS` in `config.ts`, and add the `Sector` union type in `types.ts`. Then add stocks and news templates for it.
 

@@ -59,7 +59,7 @@ describe('Scenario generator', () => {
 
     // When struggling, positive should be majority (> 40%)
     const ratio = positiveCount / runs;
-    expect(ratio).toBeGreaterThan(0.3);
+    expect(ratio).toBeGreaterThan(0.4);
   });
 
   it('generateNewsEvent returns a valid event with headline', () => {
