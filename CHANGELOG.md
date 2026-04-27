@@ -4,6 +4,12 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.5.5] — 2026-04-27
+
+### Fixed
+
+- Replaced corrupt MP3 files in `public/audio/music/`. The originals were not valid MP3s (raw non-audio data with the wrong extension), causing all `playTrack` attempts to silently reject with `NotSupportedError`. All audio code from v1.5.0–v1.5.4 was correct — the input was wrong.
+
 ## [1.5.4] — 2026-04-27
 
 ### Fixed
@@ -280,6 +286,7 @@ Initial commit. Turn-based stock market sim — 60 stocks across 12 sectors,
 4 difficulty levels, margin trading, short selling, 600+ market events.
 
 [1.5.4]: https://github.com/jonathanwxh-cell/stock-simulator/compare/v1.5.3...v1.5.4
+[1.5.5]: https://github.com/jonathanwxh-cell/stock-simulator/compare/v1.5.4...v1.5.5
 [1.5.3]: https://github.com/jonathanwxh-cell/stock-simulator/compare/v1.5.2...v1.5.3
 [1.5.2]: https://github.com/jonathanwxh-cell/stock-simulator/compare/v1.5.1...v1.5.2
 [1.5.1]: https://github.com/jonathanwxh-cell/stock-simulator/compare/v1.5.0...v1.5.1
