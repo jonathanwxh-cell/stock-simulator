@@ -1,4 +1,4 @@
-import { createContext, useContext, useReducer, useCallback, type ReactNode } from 'react';
+import { createContext, useContext, useReducer, useCallback, useEffect, type ReactNode } from 'react';
 import type { GameState, Difficulty, Screen, GameSettings } from '../engine/types';
 import {
   createNewGame,
@@ -16,12 +16,8 @@ import {
   saveSettings,
   initSaveSystem,
 } from '../engine';
-import {
-  playBuy, playSell, playShort, playCover,
-  playDividend, playBankrupt, playGameOver,
-  playTurn, playMarginCall,
-  playLevelUp, playClick, playError,
-} from '../engine/audioEngine';
+import { playTitleMusic, playGameplayMusic, stopAllMusic } from '../engine/musicEngine';
+import { playBuy, playSell, playShort, playCover, playDividend, playBankrupt, playGameOver, playTurn, playMarginCall, playClick, playError } from '../engine/audioEngine';
 
 interface GameContextType {
   gameState: GameState | null;
@@ -97,7 +93,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
     const game = createNewGame(name, difficulty);
     dispatch({ type: 'SET_GAME_STATE', payload: game });
     dispatch({ type: 'SET_SCREEN', payload: 'game' });
-    if (soundEnabled) playLevelUp();
+    if (soundEnabled) playTurn();
     autoSave(game).catch(() => {});
   }, [soundEnabled]);
 
@@ -115,7 +111,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
       };
       dispatch({ type: 'SET_GAME_STATE', payload: migrated });
       dispatch({ type: 'SET_SCREEN', payload: migrated.isGameOver ? 'game-over' : 'game' });
-      if (soundEnabled && !migrated.isGameOver) playLevelUp();
+      if (soundEnabled && !migrated.isGameOver) playTurn();
     }
   }, [soundEnabled]);
 
@@ -238,6 +234,16 @@ export function GameProvider({ children }: { children: ReactNode }) {
     placeOrder, cancelOrder,
     navigateTo, goBack, updateSettings, resetGame,
   };
+
+  useEffect(() => {
+    if (state.screen === 'title') {
+      playTitleMusic();
+    } else if (state.screen === 'game') {
+      playGameplayMusic();
+    } else if (state.screen === 'game-over') {
+      stopAllMusic();
+    }
+  }, [state.screen]);
 
   return (
     <GameContext.Provider value={value}>
