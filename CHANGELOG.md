@@ -4,6 +4,40 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versioning follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.1] — 2026-04-28
+
+### Fixed
+
+- **`musicEnabled` toggle is inert.** The music useEffect now gates on
+  `state.settings.musicEnabled`. Toggling music off stops within 100 ms;
+  toggling back on resumes the correct track for the current screen.
+  Reloading with music off → no music plays.
+- **`hadDividend` detection missed non-last transactions.** Now uses
+  `.some()` on the new-transaction slice instead of only checking the last
+  element. A turn producing dividend → margin_call now plays both sounds.
+- **`hadBankrupt` index-based matching was fragile.** Now matches by
+  `stock.id` instead of assuming both arrays are in identical order.
+  Robust to future array reordering.
+- **AudioUnlock played unsolicited click on first tap.** Now calls
+  `unlockAudio()` which silently resumes the AudioContext — no oscillator,
+  no sound.
+- **Crossfade not actually implemented.** `playTitleMusic` /
+  `playGameplayMusic` now perform a real 500 ms crossfade (15 steps) —
+  outgoing track ramps 0.4 → 0, incoming ramps 0 → 0.4. In-flight ramps
+  are cancelled if a new switch happens before completion.
+- **Silent error swallowing.** All `.catch(() => {})` related to audio
+  replaced with `.catch(e => console.warn('audio:', e))`. Audio failures
+  now show in DevTools with the `audio:` prefix.
+- **GameContext imported audio functions directly.** Refactored to use the
+  `useAudio()` hook exclusively. GameContext no longer imports from
+  `audioEngine` or `musicEngine` — all audio goes through the hook.
+- **Music did not pause on tab blur.** Added `document.visibilitychange`
+  listener that pauses music when the tab is hidden and resumes (respecting
+  `musicEnabled`) when the tab is visible again.
+- **Audio files in `src/engine/` violated module contract.** Moved
+  `audioEngine.ts` and `musicEngine.ts` to `src/audio/`. The `src/engine/`
+  directory now has no DOM/browser-API dependencies.
+
 ## [1.2.0] — 2026-04-27
 
 Full audio system — synthesised SFX + AI-generated background music. No gameplay changes.
@@ -43,13 +77,6 @@ Full audio system — synthesised SFX + AI-generated background music. No gamepl
     `playGameOver` (on game over)
 - **`AudioUnlock` component** (`src/App.tsx`). Global `click`/`touchstart` listener
   that resumes the AudioContext on first user gesture (Chrome/Safari autoplay policy).
-
-### Fixed
-
-- **AudioContext suspension.** Browsers require a user gesture to create/resume an
-  AudioContext. The synthesiser now initialises asynchronously with `await resume()`,
-  and a global unlock listener fires on the first tap anywhere on the page.
-- **Master gain** bumped from 0.3 → 0.4 for better audibility across devices.
 
 ## [1.1.0] — 2026-04-26
 
@@ -121,6 +148,7 @@ Engine correctness pass. No breaking changes; existing saves load unchanged.
 Initial commit. Turn-based stock market sim — 60 stocks across 12 sectors,
 4 difficulty levels, margin trading, short selling, 600+ market events.
 
+[1.2.1]: https://github.com/jonathanwxh-cell/stock-simulator/compare/v1.2.0...v1.2.1
 [1.2.0]: https://github.com/jonathanwxh-cell/stock-simulator/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/jonathanwxh-cell/stock-simulator/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/jonathanwxh-cell/stock-simulator/releases/tag/v1.0.0
