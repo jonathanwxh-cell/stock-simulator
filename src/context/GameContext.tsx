@@ -93,7 +93,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
     const game = createNewGame(name, difficulty);
     dispatch({ type: 'SET_GAME_STATE', payload: game });
     dispatch({ type: 'SET_SCREEN', payload: 'game' });
-    if (soundEnabled) playTurn();
+    if (soundEnabled) playTurn().catch(() => {});
     autoSave(game).catch(() => {});
   }, [soundEnabled]);
 
@@ -152,9 +152,9 @@ export function GameProvider({ children }: { children: ReactNode }) {
     try {
       const result = executeBuy(state.gameState, stockId, shares);
       dispatch({ type: 'UPDATE_GAME_STATE', payload: result.state });
-      if (soundEnabled) playBuy();
+      if (soundEnabled) playBuy().catch(() => {});
     } catch {
-      if (soundEnabled) playError();
+      if (soundEnabled) playError().catch(() => {});
     }
   }, [state.gameState, soundEnabled]);
 
@@ -163,9 +163,9 @@ export function GameProvider({ children }: { children: ReactNode }) {
     try {
       const result = executeSell(state.gameState, stockId, shares);
       dispatch({ type: 'UPDATE_GAME_STATE', payload: result.state });
-      if (soundEnabled) playSell();
+      if (soundEnabled) playSell().catch(() => {});
     } catch {
-      if (soundEnabled) playError();
+      if (soundEnabled) playError().catch(() => {});
     }
   }, [state.gameState, soundEnabled]);
 
@@ -174,9 +174,9 @@ export function GameProvider({ children }: { children: ReactNode }) {
     try {
       const result = executeShort(state.gameState, stockId, shares);
       dispatch({ type: 'UPDATE_GAME_STATE', payload: result.state });
-      if (soundEnabled) playShort();
+      if (soundEnabled) playShort().catch(() => {});
     } catch {
-      if (soundEnabled) playError();
+      if (soundEnabled) playError().catch(() => {});
     }
   }, [state.gameState, soundEnabled]);
 
@@ -185,9 +185,9 @@ export function GameProvider({ children }: { children: ReactNode }) {
     try {
       const result = executeCover(state.gameState, stockId, shares);
       dispatch({ type: 'UPDATE_GAME_STATE', payload: result.state });
-      if (soundEnabled) playCover();
+      if (soundEnabled) playCover().catch(() => {});
     } catch {
-      if (soundEnabled) playError();
+      if (soundEnabled) playError().catch(() => {});
     }
   }, [state.gameState, soundEnabled]);
 
@@ -196,9 +196,9 @@ export function GameProvider({ children }: { children: ReactNode }) {
     try {
       const result = placeLimitOrder(state.gameState, stockId, type, shares, targetPrice);
       dispatch({ type: 'UPDATE_GAME_STATE', payload: result.state });
-      if (soundEnabled) playClick();
+      if (soundEnabled) playClick().catch(() => {});
     } catch {
-      if (soundEnabled) playError();
+      if (soundEnabled) playError().catch(() => {});
     }
   }, [state.gameState, soundEnabled]);
 
@@ -206,7 +206,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
     if (!state.gameState) return;
     const newState = cancelLimitOrder(state.gameState, orderId);
     dispatch({ type: 'UPDATE_GAME_STATE', payload: newState });
-    if (soundEnabled) playClick();
+    if (soundEnabled) playClick().catch(() => {});
   }, [state.gameState, soundEnabled]);
 
   const navigateTo = useCallback((screen: Screen) => {

@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { Routes, Route } from 'react-router-dom';
 import { GameProvider, useGame } from './context/GameContext';
 import Layout from './components/Layout';
@@ -47,9 +48,28 @@ function ScreenRouter() {
   }
 }
 
+function AudioUnlock() {
+  useEffect(() => {
+    const unlock = () => {
+      // Unlock audio context on first user interaction
+      import('@/engine/audioEngine').then(m => m.playClick?.().catch(() => {}));
+      document.removeEventListener('click', unlock);
+      document.removeEventListener('touchstart', unlock);
+    };
+    document.addEventListener('click', unlock);
+    document.addEventListener('touchstart', unlock);
+    return () => {
+      document.removeEventListener('click', unlock);
+      document.removeEventListener('touchstart', unlock);
+    };
+  }, []);
+  return null;
+}
+
 function AppContent() {
   return (
     <Layout>
+      <AudioUnlock />
       <ScreenRouter />
     </Layout>
   );
