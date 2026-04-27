@@ -4,6 +4,34 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versioning follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.0] — 2026-04-28
+
+Quality pass: financial correctness, dead code removal, data/code separation, audio polish.
+
+### Fixed
+- **Margin maintenance double-multiplication** (critical financial bug): `checkMarginCall` was multiplying `shortMarginRequirement × marginMaintenance` to get 0.45× liability threshold, meaning shorts were artificially safe. Now correctly uses `marginMaintenance` alone (0.30×). Shorts in Expert mode are now properly risky.
+- **Hardcoded fee rates in UI** replaced with config imports from `DIFFICULTY_CONFIGS` — fee display now stays in sync with engine config automatically.
+- **Mislabeled error log** in `newGame`: `autoSave().catch` logged as `audio:` instead of `save:`.
+- **Audio useCallback defeat**: all SFX methods now individually memoized via `useCallback` keyed on `[soundEnabled]`, so GameContext `useCallback`s that depend on them actually memoize correctly.
+- **Music engine mid-fade reset**: `stopAllMusic` now sets `volume = 0` after `pause()` to prevent one-frame leak; `playTrack` sets incoming volume to 0 before `play()`.
+
+### Removed
+- **Long-side margin dead config**: `marginEnabled` and `marginRequirement` removed from `GameConfig` interface and all difficulty configs. These fields were never wired into `canBuy`/`executeBuy` — buying always required full cash. The config was lying about what the system does. Long margin trading may return as a designed feature in v2.0.
+- **53 unused shadcn/ui components** deleted (~6000 lines of dead code) plus 33 orphaned `@radix-ui/react-*` dependencies removed from `package.json`.
+- **Dead audio exports**: `setMusicVolume` (private, never called) removed from musicEngine; `unlock` alias removed from useAudio return object.
+
+### Internal
+- **News templates → data file**: 600+ lines of template arrays extracted from `scenarioGenerator.ts` (683 → 198 lines) into `src/engine/data/news-templates.json`. Editing news is now JSON, not code.
+- **deepClone deduplicated**: identical `deepClone` in gameState.ts and marketSimulator.ts consolidated into `src/engine/cloneState.ts`. One source of truth for state cloning.
+- **Dead Radix dependencies purged**: 33 unused `@radix-ui/react-*` packages removed alongside the shadcn component cleanup.
+- **Screen policy documented**: music useEffect now has a comment explaining that submenu screens inherit the current track; only `'title'`, `'game'`, and `'game-over'` change tracks.
+- **Bundle split optimized**: Vite vendor chunks now properly separated (react, motion, chart, main index).
+
+### Balance Notice
+Existing saves load unchanged. Margin call thresholds for shorts are now stricter (0.30× liability, was effectively 0.45×). Shorts in flight when upgrading may receive margin calls sooner than they would have under v1.2.x — this is the intended, correct behavior.
+
+---
+
 ## [1.2.2] — 2026-04-28
 
 ### Fixed

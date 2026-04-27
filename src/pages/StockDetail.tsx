@@ -3,7 +3,7 @@ import { useGame } from '../context/GameContext';
 import { motion } from 'framer-motion';
 import { ArrowLeft, TrendingUp, TrendingDown, Shield } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
-import { SECTOR_COLORS, SECTOR_LABELS } from '../engine/config';
+import { SECTOR_COLORS, SECTOR_LABELS, DIFFICULTY_CONFIGS, calcBrokerFee } from '../engine/config';
 
 export default function StockDetail() {
   const { gameState, goBack, buyStock, sellStock, shortStock, coverStock } = useGame();
@@ -34,9 +34,9 @@ export default function StockDetail() {
   }));
 
   // Fee calculation
-  const feeRate = gameState.difficulty === 'easy' ? 0.0005 : gameState.difficulty === 'normal' ? 0.001 : gameState.difficulty === 'hard' ? 0.0015 : 0.002;
+  const config = DIFFICULTY_CONFIGS[gameState.difficulty];
   const cost = stock.currentPrice * shares;
-  const feeAmount = cost * feeRate;
+  const feeAmount = calcBrokerFee(cost, config);
   const totalCost = cost + feeAmount;
 
   const canExecute = tradeType === 'buy'
@@ -180,7 +180,7 @@ export default function StockDetail() {
 
           <div className="bg-[var(--surface-1)] rounded-lg p-3 mb-3 text-xs space-y-1.5">
             <div className="flex justify-between"><span className="text-[var(--text-muted)]">Est. Value</span><span className="font-mono-data text-[var(--text-primary)]">\${cost.toFixed(2)}</span></div>
-            <div className="flex justify-between"><span className="text-[var(--text-muted)]">Fee ({(feeRate * 100).toFixed(1)}%)</span><span className="font-mono-data text-[var(--text-secondary)]">\${feeAmount.toFixed(2)}</span></div>
+            <div className="flex justify-between"><span className="text-[var(--text-muted)]">Fee ({(config.brokerFeePercent * 100).toFixed(1)}%)</span><span className="font-mono-data text-[var(--text-secondary)]">\${feeAmount.toFixed(2)}</span></div>
             <div className="flex justify-between border-t border-[var(--border)] pt-1.5"><span className="text-[var(--text-primary)] font-medium">Total</span><span className="font-mono-data font-bold text-[var(--text-primary)]">\${totalCost.toFixed(2)}</span></div>
             {tradeType === 'buy' && <div className="flex justify-between"><span className="text-[var(--text-muted)]">Cash After</span><span className="font-mono-data">\${(gameState.cash - totalCost).toFixed(2)}</span></div>}
           </div>

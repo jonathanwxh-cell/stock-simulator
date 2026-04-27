@@ -52,511 +52,32 @@ function fillTemplate(template: string, company: string, sector: string): string
 
 // ── News Templates ────────────────────────────────────────────────────
 
-const techPositiveTemplates: NewsTemplate[] = [
-  {
-    headline: '{company} Announces Breakthrough in AI Chip Design',
-    description: '{company}\'s new neural processing unit promises 3x performance gains, sending ripples through the tech sector. Analysts predict strong adoption across cloud computing providers.',
-    sector: 'technology', impact: 'positive', magnitudeRange: [0.1, 0.35],
-  },
-  {
-    headline: '{company} Secures Multi-Billion Government Cloud Contract',
-    description: 'Federal agencies will migrate to {company}\'s cloud infrastructure over the next 5 years, representing the largest government IT modernization contract in history.',
-    sector: 'technology', impact: 'positive', magnitudeRange: [0.15, 0.4],
-  },
-  {
-    headline: '{company} Exceeds Quarterly Revenue Expectations',
-    description: '{company} reported revenue 20% above analyst estimates, driven by surging demand for enterprise software subscriptions.',
-    sector: 'technology', impact: 'positive', magnitudeRange: [0.08, 0.25],
-  },
-  {
-    headline: '{company} Unveils Revolutionary Quantum Computing Milestone',
-    description: '{company} demonstrated a 1000-qubit processor, marking a significant leap toward practical quantum computing applications.',
-    sector: 'technology', impact: 'positive', magnitudeRange: [0.2, 0.45],
-  },
-  {
-    headline: 'Tech Sector Rally: {company} Leads Semiconductor Surge',
-    description: 'Global chip demand continues to outpace supply, with {company} positioned as a key beneficiary of the ongoing semiconductor boom.',
-    sector: 'technology', impact: 'positive', magnitudeRange: [0.1, 0.3],
-  },
-  {
-    headline: '{company} Partners with Major Automakers for Autonomous Driving',
-    description: '{company}\'s AI platform will power self-driving systems in next-generation vehicles from three major automotive manufacturers.',
-    sector: 'technology', impact: 'positive', magnitudeRange: [0.12, 0.3],
-  },
-];
+// ── News Templates (loaded from JSON) ──────────────────────────────────
 
-const techNegativeTemplates: NewsTemplate[] = [
-  {
-    headline: '{company} Data Breach Exposes Millions of User Records',
-    description: 'A sophisticated cyberattack compromised {company}\'s systems, exposing sensitive customer data. Regulatory fines and lawsuits are expected.',
-    sector: 'technology', impact: 'negative', magnitudeRange: [0.15, 0.4],
-  },
-  {
-    headline: '{company} Faces Antitrust Scrutiny from Regulators',
-    description: 'Government regulators are investigating {company} for potential anti-competitive practices, threatening breakup proceedings.',
-    sector: 'technology', impact: 'negative', magnitudeRange: [0.1, 0.3],
-  },
-  {
-    headline: 'Semiconductor Glut Hurts {company} Revenue Outlook',
-    description: 'An oversupply of chips in the market has forced {company} to slash prices and cut production targets for the quarter.',
-    sector: 'technology', impact: 'negative', magnitudeRange: [0.08, 0.25],
-  },
-  {
-    headline: '{company} Key Product Launch Delayed Indefinitely',
-    description: 'Supply chain issues and technical challenges have forced {company} to delay its flagship product launch, disappointing investors.',
-    sector: 'technology', impact: 'negative', magnitudeRange: [0.12, 0.3],
-  },
-  {
-    headline: '{company} Loses Major Enterprise Client to Competitor',
-    description: 'One of {company}\'s largest customers has switched to a rival platform, representing a significant revenue loss.',
-    sector: 'technology', impact: 'negative', magnitudeRange: [0.1, 0.25],
-  },
-  {
-    headline: 'Tech Stocks Tumble on Interest Rate Concerns',
-    description: 'Rising interest rates are putting pressure on growth stocks, with {company} among the hardest hit in the sector selloff.',
-    sector: 'technology', impact: 'negative', magnitudeRange: [0.08, 0.2],
-  },
-];
+import templatesData from './data/news-templates.json';
 
-const healthPositiveTemplates: NewsTemplate[] = [
-  {
-    headline: '{company} Drug Shows Promising Phase 3 Trial Results',
-    description: '{company}\'s experimental treatment demonstrated 85% efficacy in late-stage clinical trials, positioning it for fast-track FDA approval.',
-    sector: 'healthcare', impact: 'positive', magnitudeRange: [0.2, 0.5],
-  },
-  {
-    headline: '{company} Receives FDA Approval for Breakthrough Therapy',
-    description: 'The FDA has granted full approval to {company}\'s novel treatment, opening up a multi-billion dollar market opportunity.',
-    sector: 'healthcare', impact: 'positive', magnitudeRange: [0.25, 0.55],
-  },
-  {
-    headline: '{company} Announces Major Expansion in Telehealth Services',
-    description: '{company} will expand its telehealth platform to cover all 50 states, adding mental health and specialist consultations.',
-    sector: 'healthcare', impact: 'positive', magnitudeRange: [0.1, 0.3],
-  },
-  {
-    headline: '{company} Acquires Promising Biotech Startup',
-    description: '{company} has acquired a cutting-edge biotech firm with a pipeline of innovative therapies for $2.5 billion.',
-    sector: 'healthcare', impact: 'positive', magnitudeRange: [0.08, 0.25],
-  },
-  {
-    headline: 'Aging Population Drives Demand for {company} Medical Devices',
-    description: 'Demographic trends are creating sustained demand growth for {company}\'s medical devices, with sales projected to rise 15% annually.',
-    sector: 'healthcare', impact: 'positive', magnitudeRange: [0.08, 0.2],
-  },
-];
-
-const healthNegativeTemplates: NewsTemplate[] = [
-  {
-    headline: '{company} Drug Trial Fails to Meet Primary Endpoint',
-    description: '{company}\'s highly anticipated drug candidate failed to demonstrate statistically significant benefits in Phase 3 trials.',
-    sector: 'healthcare', impact: 'negative', magnitudeRange: [0.2, 0.5],
-  },
-  {
-    headline: 'FDA Issues Safety Warning for {company} Product',
-    description: 'Regulators have flagged safety concerns with {company}\'s flagship product, potentially limiting its use and triggering recalls.',
-    sector: 'healthcare', impact: 'negative', magnitudeRange: [0.15, 0.4],
-  },
-  {
-    headline: '{company} Faces Patent Cliff as Key Drug Loses Protection',
-    description: 'Generic competitors will enter the market as {company}\'s blockbuster drug patent expires, threatening billions in revenue.',
-    sector: 'healthcare', impact: 'negative', magnitudeRange: [0.12, 0.3],
-  },
-  {
-    headline: 'Healthcare Cost Controls Threaten {company} Pricing Power',
-    description: 'New legislation aims to cap drug prices, directly impacting {company}\'s revenue margins on key products.',
-    sector: 'healthcare', impact: 'negative', magnitudeRange: [0.08, 0.25],
-  },
-  {
-    headline: '{company} Manufacturing Facility Shut Down Over Quality Issues',
-    description: 'Regulatory inspectors found quality control violations at {company}\'s primary manufacturing plant, halting production.',
-    sector: 'healthcare', impact: 'negative', magnitudeRange: [0.1, 0.3],
-  },
-];
-
-const energyPositiveTemplates: NewsTemplate[] = [
-  {
-    headline: '{company} Discovers Major Oil Reserve in New Basin',
-    description: 'Seismic surveys indicate a massive untapped oil field in {company}\'s licensed exploration area, potentially doubling its reserves.',
-    sector: 'energy', impact: 'positive', magnitudeRange: [0.15, 0.4],
-  },
-  {
-    headline: '{company} Solar Project Wins Record Government Contract',
-    description: '{company} will build the nation\'s largest solar farm, securing a 20-year power purchase agreement worth billions.',
-    sector: 'energy', impact: 'positive', magnitudeRange: [0.12, 0.35],
-  },
-  {
-    headline: 'Fusion Breakthrough: {company} Achieves Net Energy Gain',
-    description: '{company}\'s experimental reactor produced more energy than it consumed, a historic milestone for clean energy.',
-    sector: 'energy', impact: 'positive', magnitudeRange: [0.3, 0.6],
-  },
-  {
-    headline: 'Oil Prices Surge on Supply Concerns, Boosting {company}',
-    description: 'Geopolitical tensions have driven crude oil prices to multi-year highs, significantly improving {company}\'s profit outlook.',
-    sector: 'energy', impact: 'positive', magnitudeRange: [0.1, 0.3],
-  },
-  {
-    headline: '{company} Wind Farm Expansion Exceeds Production Targets',
-    description: '{company}\'s new offshore wind installation is generating 25% more power than projected, boosting revenue forecasts.',
-    sector: 'energy', impact: 'positive', magnitudeRange: [0.08, 0.25],
-  },
-];
-
-const energyNegativeTemplates: NewsTemplate[] = [
-  {
-    headline: '{company} Oil Spill Triggers Environmental Cleanup',
-    description: 'A pipeline rupture at {company}\'s facility has released thousands of barrels, triggering massive cleanup costs and fines.',
-    sector: 'energy', impact: 'negative', magnitudeRange: [0.15, 0.4],
-  },
-  {
-    headline: 'Renewable Subsidy Cuts Hurt {company} Expansion Plans',
-    description: 'Government reduction in clean energy tax credits has forced {company} to scale back its solar and wind projects.',
-    sector: 'energy', impact: 'negative', magnitudeRange: [0.1, 0.3],
-  },
-  {
-    headline: 'Oil Price Crash: {company} Cuts Production and Dividends',
-    description: 'A global supply glut has sent oil prices plummeting, forcing {company} to slash production and reduce shareholder payouts.',
-    sector: 'energy', impact: 'negative', magnitudeRange: [0.2, 0.45],
-  },
-  {
-    headline: '{company} Nuclear Project Faces Regulatory Delays',
-    description: 'Permitting challenges and community opposition have delayed {company}\'s nuclear facility by at least 3 years, ballooning costs.',
-    sector: 'energy', impact: 'negative', magnitudeRange: [0.12, 0.3],
-  },
-  {
-    headline: 'Carbon Tax Legislation Threatens {company} Margins',
-    description: 'New environmental regulations will impose significant costs on {company}\'s traditional fossil fuel operations.',
-    sector: 'energy', impact: 'negative', magnitudeRange: [0.08, 0.25],
-  },
-];
-const consumerPositiveTemplates: NewsTemplate[] = [
-  {
-    headline: '{company} Luxury Brand Sales Soar in Emerging Markets',
-    description: 'Rising affluence in Asia is driving explosive growth in {company}\'s premium product lines, with sales up 40% year-over-year.',
-    sector: 'consumer', impact: 'positive', magnitudeRange: [0.12, 0.35],
-  },
-  {
-    headline: '{company} Food Brand Becomes Household Staple Globally',
-    description: '{company}\'s innovative product line has captured significant market share in 25 new countries within six months.',
-    sector: 'consumer', impact: 'positive', magnitudeRange: [0.1, 0.25],
-  },
-  {
-    headline: '{company} E-commerce Platform Hits Record Holiday Sales',
-    description: '{company} processed a record number of transactions during the holiday season, exceeding all analyst expectations.',
-    sector: 'consumer', impact: 'positive', magnitudeRange: [0.15, 0.4],
-  },
-  {
-    headline: '{company} Game Becomes Global Sensation',
-    description: '{company}\'s latest release has sold 30 million copies in its first month, becoming the fastest-selling game in history.',
-    sector: 'consumer', impact: 'positive', magnitudeRange: [0.2, 0.5],
-  },
-  {
-    headline: '{company} EV Deliveries Exceed Production Targets',
-    description: '{company} delivered 20% more vehicles than expected, with new factory ramp-ups proceeding ahead of schedule.',
-    sector: 'consumer', impact: 'positive', magnitudeRange: [0.15, 0.4],
-  },
-];
-
-const consumerNegativeTemplates: NewsTemplate[] = [
-  {
-    headline: '{company} Product Recall Damages Brand Reputation',
-    description: 'A widespread product defect has forced {company} to recall millions of units, costing hundreds of millions in lost sales.',
-    sector: 'consumer', impact: 'negative', magnitudeRange: [0.12, 0.35],
-  },
-  {
-    headline: 'Consumer Spending Slowdown Hits {company} Revenue',
-    description: 'Economic uncertainty is causing consumers to cut discretionary spending, directly impacting {company}\'s sales.',
-    sector: 'consumer', impact: 'negative', magnitudeRange: [0.1, 0.3],
-  },
-  {
-    headline: '{company} Supply Chain Disruption Halts Production',
-    description: 'A key supplier\'s factory shutdown has left {company} unable to meet product demand, resulting in empty shelves.',
-    sector: 'consumer', impact: 'negative', magnitudeRange: [0.12, 0.3],
-  },
-  {
-    headline: '{company} Faces Boycott Over Controversial Statements',
-    description: 'Social media backlash has sparked a consumer boycott of {company} products, with sales declining sharply.',
-    sector: 'consumer', impact: 'negative', magnitudeRange: [0.15, 0.4],
-  },
-  {
-    headline: 'EV Competition Intensifies as {company} Loses Market Lead',
-    description: 'New entrants are capturing electric vehicle market share, forcing {company} to cut prices and margins.',
-    sector: 'consumer', impact: 'negative', magnitudeRange: [0.1, 0.3],
-  },
-];
-
-const industrialPositiveTemplates: NewsTemplate[] = [
-  {
-    headline: '{company} Wins Major Defense Contract',
-    description: '{company} has been awarded a $10 billion defense contract for next-generation military aircraft and systems.',
-    sector: 'industrial', impact: 'positive', magnitudeRange: [0.15, 0.4],
-  },
-  {
-    headline: 'Infrastructure Bill Drives {company} Order Book to Record High',
-    description: 'Government infrastructure spending has created massive demand for {company}\'s construction and engineering services.',
-    sector: 'industrial', impact: 'positive', magnitudeRange: [0.12, 0.35],
-  },
-  {
-    headline: '{company} Steel Demand Surges on Construction Boom',
-    description: 'Global construction activity has driven steel prices to multi-year highs, dramatically improving {company}\'s outlook.',
-    sector: 'industrial', impact: 'positive', magnitudeRange: [0.1, 0.3],
-  },
-  {
-    headline: '{company} Logistics Network Expansion Boosts Efficiency',
-    description: '{company}\'s new automated distribution centers have cut delivery times by 40%, winning new enterprise clients.',
-    sector: 'industrial', impact: 'positive', magnitudeRange: [0.08, 0.25],
-  },
-  {
-    headline: '{company} Chemical Innovation Drives Sustainability Push',
-    description: '{company} has developed breakthrough eco-friendly chemicals that are being rapidly adopted by major manufacturers.',
-    sector: 'industrial', impact: 'positive', magnitudeRange: [0.1, 0.3],
-  },
-];
-
-const industrialNegativeTemplates: NewsTemplate[] = [
-  {
-    headline: 'Defense Budget Cuts Threaten {company} Revenue',
-    description: 'Pentagon spending reductions will eliminate several programs that represent major revenue sources for {company}.',
-    sector: 'industrial', impact: 'negative', magnitudeRange: [0.15, 0.4],
-  },
-  {
-    headline: '{company} Aerospace Division Faces Production Delays',
-    description: 'Supply chain bottlenecks and labor shortages have delayed {company} aircraft deliveries by up to 18 months.',
-    sector: 'industrial', impact: 'negative', magnitudeRange: [0.12, 0.35],
-  },
-  {
-    headline: 'Raw Material Costs Surge, Squeezing {company} Margins',
-    description: 'Inflation in commodity prices has increased {company}\'s input costs by 30%, threatening profitability.',
-    sector: 'industrial', impact: 'negative', magnitudeRange: [0.1, 0.3],
-  },
-  {
-    headline: '{company} Factory Fire Disrupts Critical Production Line',
-    description: 'An industrial accident has shut down {company}\'s primary manufacturing facility for an estimated 6 months.',
-    sector: 'industrial', impact: 'negative', magnitudeRange: [0.2, 0.45],
-  },
-  {
-    headline: 'Trade War Tariffs Hurt {company} Export Business',
-    description: 'Escalating trade tensions have resulted in punitive tariffs on {company}\'s products in key international markets.',
-    sector: 'industrial', impact: 'negative', magnitudeRange: [0.1, 0.3],
-  },
-];
-
-const allPositiveTemplates: NewsTemplate[] = [
-  {
-    headline: 'Global Economic Expansion Boosts Markets',
-    description: 'Strong GDP growth across major economies is lifting corporate profits and investor confidence across all sectors.',
-    sector: 'all', impact: 'positive', magnitudeRange: [0.05, 0.15],
-  },
-  {
-    headline: 'Central Bank Signals Rate Cuts Ahead',
-    description: 'Monetary policy easing is expected to stimulate borrowing and investment, creating a favorable environment for equities.',
-    sector: 'all', impact: 'positive', magnitudeRange: [0.08, 0.2],
-  },
-  {
-    headline: 'Trade Agreement Reached Between Major Economies',
-    description: 'A landmark trade deal will reduce tariffs and barriers, boosting cross-border commerce and corporate earnings.',
-    sector: 'all', impact: 'positive', magnitudeRange: [0.06, 0.18],
-  },
-  {
-    headline: 'Consumer Confidence Hits Record High',
-    description: 'Optimistic consumers are spending freely across retail, housing, and services, driving broad economic growth.',
-    sector: 'all', impact: 'positive', magnitudeRange: [0.05, 0.15],
-  },
-  {
-    headline: 'Technology Rally Lifts Broad Market Indices',
-    description: 'Innovation in AI and clean energy is driving a broad-based market rally, with most sectors participating in the gains.',
-    sector: 'all', impact: 'positive', magnitudeRange: [0.06, 0.18],
-  },
-];
-
-const allNegativeTemplates: NewsTemplate[] = [
-  {
-    headline: 'Global Recession Fears Trigger Market Selloff',
-    description: 'Slowing economic indicators and rising unemployment are sparking fears of a worldwide downturn, hitting stocks broadly.',
-    sector: 'all', impact: 'negative', magnitudeRange: [0.08, 0.2],
-  },
-  {
-    headline: 'Geopolitical Crisis Spooks Investors',
-    description: 'Escalating international tensions have triggered a flight to safety, with equities selling off across all sectors.',
-    sector: 'all', impact: 'negative', magnitudeRange: [0.1, 0.25],
-  },
-  {
-    headline: 'Inflation Surprises to the Upside',
-    description: 'Higher-than-expected inflation data suggests more aggressive rate hikes ahead, putting pressure on growth stocks.',
-    sector: 'all', impact: 'negative', magnitudeRange: [0.06, 0.18],
-  },
-  {
-    headline: 'Major Cyberattack Disrupts Global Commerce',
-    description: 'A coordinated cyberattack on critical infrastructure has caused widespread business disruptions and economic uncertainty.',
-    sector: 'all', impact: 'negative', magnitudeRange: [0.08, 0.22],
-  },
-  {
-    headline: 'Currency Crisis Spreads to Emerging Markets',
-    description: 'Sharp currency devaluations in several emerging economies are triggering contagion fears and capital flight.',
-    sector: 'all', impact: 'negative', magnitudeRange: [0.07, 0.2],
-  },
-];
-
-
-// ── Semiconductors Templates ──────────────────────────────────────
-const semiPositiveTemplates: NewsTemplate[] = [
-  { headline: '{company} Announces Next-Gen AI Chip Architecture', description: '{company} unveils a breakthrough processor design that delivers 5x performance-per-watt gains, setting a new industry benchmark.', sector: 'semiconductors', impact: 'positive', magnitudeRange: [0.15, 0.4] },
-  { headline: 'Global Chip Demand Surges as AI Adoption Accelerates', description: 'Enterprise AI deployment is driving unprecedented demand for {company} processors, straining global supply chains.', sector: 'semiconductors', impact: 'positive', magnitudeRange: [0.1, 0.3] },
-  { headline: '{company} Wins Major Government Semiconductor Subsidy', description: 'Federal CHIPS Act funding will support {company}\'s new fab construction, boosting domestic production capacity by 40%.', sector: 'semiconductors', impact: 'positive', magnitudeRange: [0.12, 0.35] },
-  { headline: '{company} Reports Record Data Center Revenue', description: 'Cloud hyperscaler demand pushed {company}\'s data center segment to all-time highs, exceeding analyst expectations by 25%.', sector: 'semiconductors', impact: 'positive', magnitudeRange: [0.1, 0.3] },
-  { headline: '{company} Secures Exclusive Supply Deal with Major Automaker', description: 'A leading EV manufacturer has signed a multi-year agreement for {company}\'s autonomous driving chips.', sector: 'semiconductors', impact: 'positive', magnitudeRange: [0.08, 0.25] },
-];
-const semiNegativeTemplates: NewsTemplate[] = [
-  { headline: '{company} Faces Export Restrictions to Key Markets', description: 'New trade regulations limit {company}\'s ability to sell advanced chips to certain regions, threatening billions in revenue.', sector: 'semiconductors', impact: 'negative', magnitudeRange: [0.15, 0.4] },
-  { headline: 'Chip Oversupply Drives {company} Margins Lower', description: 'Weakening demand in consumer electronics has created a supply glut, forcing {company} to cut prices.', sector: 'semiconductors', impact: 'negative', magnitudeRange: [0.1, 0.3] },
-  { headline: '{company} Fab Production Halted After Equipment Failure', description: 'A critical manufacturing tool failure has stopped production at {company}\'s advanced node facility for an estimated 8 weeks.', sector: 'semiconductors', impact: 'negative', magnitudeRange: [0.12, 0.35] },
-  { headline: '{company} Loses Design Win to Competitor', description: 'A major smartphone maker has switched to a rival chip supplier, reducing {company}\'s market share in mobile processors.', sector: 'semiconductors', impact: 'negative', magnitudeRange: [0.1, 0.25] },
-  { headline: 'Intellectual Property Dispute Threatens {company} Products', description: 'A patent infringement lawsuit could force {company} to halt sales of key product lines pending resolution.', sector: 'semiconductors', impact: 'negative', magnitudeRange: [0.12, 0.3] },
-];
-
-// ── Biotech Templates ─────────────────────────────────────────────
-const biotechPositiveTemplates: NewsTemplate[] = [
-  { headline: '{company} Gene Therapy Receives Breakthrough Designation', description: 'FDA grants breakthrough therapy designation to {company}\'s one-time gene treatment, accelerating the path to approval.', sector: 'biotech', impact: 'positive', magnitudeRange: [0.2, 0.5] },
-  { headline: '{company} Reports Stunning Phase 2 Results', description: '{company}\'s experimental treatment showed 90% response rates in early trials, sending shares sharply higher.', sector: 'biotech', impact: 'positive', magnitudeRange: [0.2, 0.45] },
-  { headline: '{company} Announces $5 Billion Strategic Partnership', description: 'A major pharmaceutical company will co-develop and commercialize {company}\'s pipeline, providing substantial upfront payments.', sector: 'biotech', impact: 'positive', magnitudeRange: [0.15, 0.35] },
-  { headline: 'CRISPR Breakthrough: {company} Achieves Medical Milestone', description: '{company} successfully demonstrated gene editing in human patients, marking a watershed moment for genetic medicine.', sector: 'biotech', impact: 'positive', magnitudeRange: [0.25, 0.55] },
-  { headline: '{company} Drug Wins FDA Priority Review', description: 'Regulators have granted priority review to {company}\'s drug candidate, shortening the approval timeline by several months.', sector: 'biotech', impact: 'positive', magnitudeRange: [0.12, 0.3] },
-];
-const biotechNegativeTemplates: NewsTemplate[] = [
-  { headline: '{company} Phase 3 Trial Fails to Meet Endpoints', description: '{company}\'s lead drug candidate failed to demonstrate efficacy in a pivotal late-stage study, devastating its pipeline.', sector: 'biotech', impact: 'negative', magnitudeRange: [0.25, 0.55] },
-  { headline: 'FDA Issues Clinical Hold on {company} Study', description: 'Regulators have halted {company}\'s clinical trial due to safety concerns observed in patient data.', sector: 'biotech', impact: 'negative', magnitudeRange: [0.2, 0.45] },
-  { headline: '{company} Faces Generic Competition for Key Drug', description: 'Patent expiration allows generic competitors to enter the market, threatening {company}\'s primary revenue source.', sector: 'biotech', impact: 'negative', magnitudeRange: [0.12, 0.3] },
-  { headline: '{company} CFO Resigns Amid Accounting Probe', description: 'The sudden departure of {company}\'s CFO and news of an SEC investigation has rattled investor confidence.', sector: 'biotech', impact: 'negative', magnitudeRange: [0.15, 0.35] },
-  { headline: '{company} Drug Rejected by European Regulators', description: 'The EMA declined to approve {company}\'s therapy, requiring additional clinical data that could delay launch by 2 years.', sector: 'biotech', impact: 'negative', magnitudeRange: [0.12, 0.3] },
-];
-
-// ── Financials Templates (replacing finance) ──────────────────────
-const financialsPositiveTemplates: NewsTemplate[] = [
-  { headline: '{company} Beats Earnings as Loan Demand Surges', description: 'Strong economic activity drove record loan originations at {company}, pushing quarterly profits well above forecasts.', sector: 'financials', impact: 'positive', magnitudeRange: [0.1, 0.3] },
-  { headline: '{company} Digital Payments Volume Hits Record', description: '{company} processed a record number of transactions as global digital payment adoption accelerates.', sector: 'financials', impact: 'positive', magnitudeRange: [0.12, 0.35] },
-  { headline: 'Interest Rate Hike Boosts {company} Net Interest Margin', description: 'Rising rates are expanding the spread between {company}\'s lending and deposit rates, driving profitability higher.', sector: 'financials', impact: 'positive', magnitudeRange: [0.08, 0.25] },
-  { headline: '{company} Announces Major Share Buyback Program', description: '{company} will repurchase $10 billion in shares, signaling management confidence in the company\'s outlook.', sector: 'financials', impact: 'positive', magnitudeRange: [0.08, 0.2] },
-  { headline: '{company} Asset Management Division Sees Record Inflows', description: 'Investors poured a record amount into {company}\'s fund products, boosting fee income and assets under management.', sector: 'financials', impact: 'positive', magnitudeRange: [0.1, 0.25] },
-];
-const financialsNegativeTemplates: NewsTemplate[] = [
-  { headline: '{company} Reports Massive Loan Loss Provisions', description: 'Deteriorating credit quality has forced {company} to set aside billions for potential defaults, crushing quarterly earnings.', sector: 'financials', impact: 'negative', magnitudeRange: [0.15, 0.4] },
-  { headline: '{company} Fined for Compliance Violations', description: 'Regulators have levied a substantial penalty against {company} for anti-money laundering compliance failures.', sector: 'financials', impact: 'negative', magnitudeRange: [0.08, 0.25] },
-  { headline: 'Fintech Disruption Erodes {company} Market Share', description: 'Aggressive competition from digital-native competitors is siphoning customers and transactions from {company}.', sector: 'financials', impact: 'negative', magnitudeRange: [0.1, 0.3] },
-  { headline: '{company} Hit by Credit Card Delinquency Spike', description: 'Rising consumer defaults on credit cards are forcing {company} to increase loss reserves and tighten lending standards.', sector: 'financials', impact: 'negative', magnitudeRange: [0.1, 0.25] },
-  { headline: 'Regulatory Crackdown on {company} Fee Structure', description: 'New regulations limiting interchange fees will significantly reduce {company}\'s transaction revenue.', sector: 'financials', impact: 'negative', magnitudeRange: [0.08, 0.2] },
-];
-
-// ── Media Templates ───────────────────────────────────────────────
-const mediaPositiveTemplates: NewsTemplate[] = [
-  { headline: '{company} Streaming Service Hits Subscriber Milestone', description: '{company}\'s platform has surpassed expectations with record subscriber growth, driven by a blockbuster content slate.', sector: 'media', impact: 'positive', magnitudeRange: [0.15, 0.4] },
-  { headline: '{company} Blockbuster Release Shatters Box Office Records', description: '{company}\'s latest theatrical release grossed over $1 billion worldwide in its opening weekend.', sector: 'media', impact: 'positive', magnitudeRange: [0.12, 0.35] },
-  { headline: '{company} Wins Exclusive Sports Broadcasting Rights', description: '{company} secured a landmark deal for premium live sports content, significantly boosting its platform appeal.', sector: 'media', impact: 'positive', magnitudeRange: [0.1, 0.3] },
-  { headline: '{company} Ad Revenue Surges on AI-Targeted Advertising', description: 'New AI-powered ad targeting tools have dramatically improved {company}\'s advertising efficiency and revenue per user.', sector: 'media', impact: 'positive', magnitudeRange: [0.1, 0.3] },
-  { headline: '{company} Game Franchise Breaks Sales Records', description: 'The latest installment of {company}\'s flagship game series sold 20 million copies in its first week.', sector: 'media', impact: 'positive', magnitudeRange: [0.12, 0.35] },
-];
-const mediaNegativeTemplates: NewsTemplate[] = [
-  { headline: '{company} Streaming Subscriber Numbers Disappoint', description: '{company} reported weaker-than-expected subscriber growth as competition intensifies and password sharing crackdowns backfire.', sector: 'media', impact: 'negative', magnitudeRange: [0.12, 0.35] },
-  { headline: '{company} Blockbuster Flops at Box Office', description: '{company}\'s big-budget production bombed with audiences, resulting in a $200 million write-down.', sector: 'media', impact: 'negative', magnitudeRange: [0.1, 0.3] },
-  { headline: 'Writers and Actors Strike Halts {company} Production', description: 'An industry-wide labor dispute has shut down {company}\'s content pipeline, delaying multiple releases.', sector: 'media', impact: 'negative', magnitudeRange: [0.12, 0.3] },
-  { headline: '{company} Faces Regulatory Scrutiny Over Content Practices', description: 'Government regulators are investigating {company}\'s content moderation policies and data collection practices.', sector: 'media', impact: 'negative', magnitudeRange: [0.08, 0.2] },
-  { headline: 'Piracy Surge Hits {company} Revenue Hard', description: 'Widespread illegal streaming of {company}\'s premium content is eroding subscriber numbers and ad revenue.', sector: 'media', impact: 'negative', magnitudeRange: [0.08, 0.2] },
-];
-
-// ── Real Estate & Utilities Templates ─────────────────────────────
-const rePositiveTemplates: NewsTemplate[] = [
-  { headline: '{company} Portfolio Occupancy Reaches Record High', description: 'Strong demand from e-commerce and logistics tenants has pushed {company}\'s occupancy rates above 98%.', sector: 'realestate', impact: 'positive', magnitudeRange: [0.1, 0.3] },
-  { headline: '{company} Wins Massive Renewable Energy Contract', description: '{company} secured a 20-year power purchase agreement that will significantly boost its clean energy revenue.', sector: 'realestate', impact: 'positive', magnitudeRange: [0.12, 0.35] },
-  { headline: 'Data Center Demand Drives {company} Expansion', description: 'Cloud computing growth is fueling unprecedented demand for {company}\'s properties, driving rental rate increases.', sector: 'realestate', impact: 'positive', magnitudeRange: [0.1, 0.25] },
-  { headline: '{company} Raises Dividend for 15th Consecutive Year', description: '{company}\'s consistent cash flow generation supports another dividend increase, attracting income-focused investors.', sector: 'realestate', impact: 'positive', magnitudeRange: [0.05, 0.15] },
-  { headline: 'Utility Rate Hike Approved for {company}', description: 'Regulators have approved rate increases that will boost {company}\'s annual revenue by hundreds of millions.', sector: 'realestate', impact: 'positive', magnitudeRange: [0.08, 0.2] },
-];
-const reNegativeTemplates: NewsTemplate[] = [
-  { headline: '{company} Hit by Commercial Real Estate Downturn', description: 'Falling property values and rising vacancies in {company}\'s portfolio are raising concerns about dividend sustainability.', sector: 'realestate', impact: 'negative', magnitudeRange: [0.12, 0.35] },
-  { headline: 'Interest Rate Spike Crushes {company} Valuation', description: 'Rising borrowing costs are pressuring {company}\'s highly leveraged business model and refinancing outlook.', sector: 'realestate', impact: 'negative', magnitudeRange: [0.1, 0.3] },
-  { headline: '{company} Nuclear Plant Faces Extended Outage', description: 'An unexpected shutdown at {company}\'s nuclear facility will reduce power generation capacity for months.', sector: 'realestate', impact: 'negative', magnitudeRange: [0.1, 0.25] },
-  { headline: '{company} Tenant Bankruptcy Triggers Portfolio Reassessment', description: 'A major tenant filing for bankruptcy leaves {company} with significant vacant space and uncertain recovery.', sector: 'realestate', impact: 'negative', magnitudeRange: [0.1, 0.25] },
-  { headline: 'Regulators Reject {company} Rate Increase Request', description: 'Utility regulators denied {company}\'s request for higher rates, limiting revenue growth prospects.', sector: 'realestate', impact: 'negative', magnitudeRange: [0.08, 0.2] },
-];
-
-// ── Telecom Templates ─────────────────────────────────────────────
-const telecomPositiveTemplates: NewsTemplate[] = [
-  { headline: '{company} 5G Subscriber Growth Exceeds Expectations', description: '{company} added record numbers of 5G subscribers, driven by premium plan adoption and network expansion.', sector: 'telecom', impact: 'positive', magnitudeRange: [0.1, 0.3] },
-  { headline: '{company} Fiber Expansion Strategy Pays Off', description: '{company}\'s multi-billion dollar fiber buildout is attracting high-value broadband customers at accelerating rates.', sector: 'telecom', impact: 'positive', magnitudeRange: [0.1, 0.25] },
-  { headline: '{company} Secures Lucrative Enterprise Contract', description: 'A Fortune 100 company has selected {company} as its exclusive connectivity and cloud services provider.', sector: 'telecom', impact: 'positive', magnitudeRange: [0.12, 0.3] },
-  { headline: '{company} Trading Volume Surges on Market Volatility', description: 'Increased market volatility is driving record trading volumes on {company}\'s exchange platforms.', sector: 'telecom', impact: 'positive', magnitudeRange: [0.1, 0.25] },
-  { headline: '{company} Content Bundle Strategy Drives ARPU Higher', description: 'Bundling streaming services with wireless plans is boosting {company}\'s average revenue per user.', sector: 'telecom', impact: 'positive', magnitudeRange: [0.08, 0.2] },
-];
-const telecomNegativeTemplates: NewsTemplate[] = [
-  { headline: '{company} Subscriber Losses Accelerate', description: '{company} reported its worst quarterly subscriber losses in a decade as customers switch to cheaper alternatives.', sector: 'telecom', impact: 'negative', magnitudeRange: [0.12, 0.35] },
-  { headline: '{company} 5G Rollout Costs Balloon Over Budget', description: 'Network infrastructure expenses have far exceeded projections, straining {company}\'s balance sheet.', sector: 'telecom', impact: 'negative', magnitudeRange: [0.1, 0.25] },
-  { headline: 'Price War Erupts in {company} Wireless Market', description: 'Aggressive pricing by competitors is forcing {company} to cut plan prices, threatening profit margins.', sector: 'telecom', impact: 'negative', magnitudeRange: [0.08, 0.2] },
-  { headline: '{company} Faces Massive Data Breach', description: 'A security breach exposed personal data of millions of {company} customers, triggering lawsuits and regulatory scrutiny.', sector: 'telecom', impact: 'negative', magnitudeRange: [0.12, 0.3] },
-  { headline: '{company} Cable TV Cord-Cutting Accelerates', description: 'Traditional cable subscriber declines are speeding up at {company}, eroding a once-reliable revenue stream.', sector: 'telecom', impact: 'negative', magnitudeRange: [0.08, 0.2] },
-];
-
-// ── Materials & Mining Templates ──────────────────────────────────
-const materialsPositiveTemplates: NewsTemplate[] = [
-  { headline: 'Copper Prices Surge, Boosting {company} Outlook', description: 'Global copper demand driven by EV and renewable energy investment has pushed prices to multi-year highs, benefiting {company}.', sector: 'materials', impact: 'positive', magnitudeRange: [0.12, 0.35] },
-  { headline: '{company} Discovers Major New Mineral Deposit', description: 'Exploration drilling has revealed a significant new resource at {company}\'s mining operations, extending reserve life by decades.', sector: 'materials', impact: 'positive', magnitudeRange: [0.15, 0.4] },
-  { headline: 'Infrastructure Spending Bill Drives {company} Demand', description: 'Government infrastructure programs are creating sustained demand for {company}\'s industrial materials and chemicals.', sector: 'materials', impact: 'positive', magnitudeRange: [0.1, 0.25] },
-  { headline: 'Gold Prices Hit Record as Investors Seek Safety', description: 'Geopolitical uncertainty has driven gold to all-time highs, significantly improving {company}\'s profit margins.', sector: 'materials', impact: 'positive', magnitudeRange: [0.12, 0.3] },
-  { headline: '{company} Wins Patent for Green Hydrogen Technology', description: '{company}\'s breakthrough in clean hydrogen production could revolutionize industrial gas markets.', sector: 'materials', impact: 'positive', magnitudeRange: [0.1, 0.3] },
-];
-const materialsNegativeTemplates: NewsTemplate[] = [
-  { headline: 'Commodity Price Crash Hits {company} Hard', description: 'A global economic slowdown has sent commodity prices plummeting, severely impacting {company}\'s profitability.', sector: 'materials', impact: 'negative', magnitudeRange: [0.15, 0.4] },
-  { headline: '{company} Mine Shutdown After Environmental Incident', description: 'Regulators have ordered {company} to halt operations at a major mine following a significant environmental contamination event.', sector: 'materials', impact: 'negative', magnitudeRange: [0.15, 0.4] },
-  { headline: 'Rising Input Costs Squeeze {company} Margins', description: 'Energy and labor cost inflation is eroding {company}\'s profit margins despite stable commodity prices.', sector: 'materials', impact: 'negative', magnitudeRange: [0.08, 0.2] },
-  { headline: '{company} Faces Trade Tariffs in Key Export Markets', description: 'New tariffs on {company}\'s products in major international markets threaten a significant portion of revenue.', sector: 'materials', impact: 'negative', magnitudeRange: [0.1, 0.25] },
-  { headline: '{company} Labor Strike Disrupts Production', description: 'Workers at {company}\'s key facilities have gone on strike, halting production and threatening customer deliveries.', sector: 'materials', impact: 'negative', magnitudeRange: [0.1, 0.25] },
-];
-
-const TEMPLATES_BY_SECTOR: Record<string, { positive: NewsTemplate[]; negative: NewsTemplate[] }> = {
-  technology: { positive: techPositiveTemplates, negative: techNegativeTemplates },
-  semiconductors: { positive: semiPositiveTemplates, negative: semiNegativeTemplates },
-  healthcare: { positive: healthPositiveTemplates, negative: healthNegativeTemplates },
-  biotech: { positive: biotechPositiveTemplates, negative: biotechNegativeTemplates },
-  energy: { positive: energyPositiveTemplates, negative: energyNegativeTemplates },
-  financials: { positive: financialsPositiveTemplates, negative: financialsNegativeTemplates },
-  consumer: { positive: consumerPositiveTemplates, negative: consumerNegativeTemplates },
-  media: { positive: mediaPositiveTemplates, negative: mediaNegativeTemplates },
-  industrial: { positive: industrialPositiveTemplates, negative: industrialNegativeTemplates },
-  realestate: { positive: rePositiveTemplates, negative: reNegativeTemplates },
-  telecom: { positive: telecomPositiveTemplates, negative: telecomNegativeTemplates },
-  materials: { positive: materialsPositiveTemplates, negative: materialsNegativeTemplates },
-  all: { positive: allPositiveTemplates, negative: allNegativeTemplates },
-};
+const TEMPLATES_BY_SECTOR = templatesData as unknown as Record<string, {
+  positive: NewsTemplate[];
+  negative: NewsTemplate[];
+}>;
 
 // ── Scenario Titles ───────────────────────────────────────────────────
 
 const POSITIVE_SCENARIO_TITLES = [
-  'Bull Market Rally',
-  'Economic Boom',
-  'Innovation Wave',
-  'Sector Renaissance',
-  'Market Expansion',
-  'Growth Surge',
-  'Prosperity Cycle',
-  'Golden Age',
+  'Bull Market Rally', 'Economic Boom', 'Innovation Wave',
+  'Sector Renaissance', 'Market Expansion', 'Growth Surge',
+  'Prosperity Cycle', 'Golden Age',
 ];
 
 const NEGATIVE_SCENARIO_TITLES = [
-  'Market Correction',
-  'Economic Downturn',
-  'Sector Crisis',
-  'Global Recession',
-  'Financial Turmoil',
-  'Bear Market',
-  'Systemic Shock',
-  'Contagion Event',
+  'Market Correction', 'Economic Downturn', 'Sector Crisis',
+  'Global Recession', 'Financial Turmoil', 'Bear Market',
+  'Systemic Shock', 'Contagion Event',
 ];
 
 const MIXED_SCENARIO_TITLES = [
-  'Sector Rotation',
-  'Market Rebalancing',
-  'Regulatory Shift',
-  'Technological Disruption',
-  'Policy Transformation',
-  'Industry Restructuring',
+  'Sector Rotation', 'Market Rebalancing', 'Regulatory Shift',
+  'Technological Disruption', 'Policy Transformation', 'Industry Restructuring',
 ];
 
 // ── Public API ────────────────────────────────────────────────────────
@@ -564,14 +85,11 @@ const MIXED_SCENARIO_TITLES = [
 export function generateScenario(gameState: GameState): ActiveScenario {
   const netWorthRatio = getNetWorthRatio(gameState);
 
-  // Determine scenario type based on market conditions
   let scenarioType: 'positive' | 'negative' | 'mixed';
   const r = rng();
   if (netWorthRatio > 1.5) {
-    // Doing well - more likely negative/mixed to create challenge
     scenarioType = r < 0.45 ? 'negative' : r < 0.75 ? 'mixed' : 'positive';
   } else if (netWorthRatio < 0.8) {
-    // Struggling - more likely positive to give hope
     scenarioType = r < 0.45 ? 'positive' : r < 0.75 ? 'mixed' : 'negative';
   } else {
     scenarioType = r < 0.35 ? 'positive' : r < 0.7 ? 'negative' : 'mixed';
@@ -579,22 +97,16 @@ export function generateScenario(gameState: GameState): ActiveScenario {
 
   const numEvents = randInt(2, 5);
   const events: NewsEvent[] = [];
-  const sectors: (Sector | 'all')[] = ['technology', 'semiconductors', 'healthcare', 'biotech', 'energy', 'financials', 'consumer', 'media', 'industrial', 'realestate', 'telecom', 'materials', 'all'];
+  const sectors: (Sector | 'all')[] = [
+    'technology', 'semiconductors', 'healthcare', 'biotech', 'energy',
+    'financials', 'consumer', 'media', 'industrial', 'realestate',
+    'telecom', 'materials', 'all',
+  ];
 
-  // Build sector effects
   const sectorEffects: Record<Sector, number> = {
-    technology: 1.0,
-    semiconductors: 1.0,
-    healthcare: 1.0,
-    biotech: 1.0,
-    energy: 1.0,
-    financials: 1.0,
-    consumer: 1.0,
-    media: 1.0,
-    industrial: 1.0,
-    realestate: 1.0,
-    telecom: 1.0,
-    materials: 1.0,
+    technology: 1.0, semiconductors: 1.0, healthcare: 1.0, biotech: 1.0,
+    energy: 1.0, financials: 1.0, consumer: 1.0, media: 1.0,
+    industrial: 1.0, realestate: 1.0, telecom: 1.0, materials: 1.0,
   };
 
   for (let i = 0; i < numEvents; i++) {
@@ -603,17 +115,14 @@ export function generateScenario(gameState: GameState): ActiveScenario {
     const event = generateNewsEvent(gameState, sector, impact);
     events.push(event);
 
-    // Apply sector effects
     if (event.sector === 'all') {
       (Object.keys(sectorEffects) as Sector[]).forEach(s => {
         sectorEffects[s] += event.impact === 'positive' ? randRange(0.02, 0.08)
-          : event.impact === 'negative' ? -randRange(0.02, 0.08)
-          : 0;
+          : event.impact === 'negative' ? -randRange(0.02, 0.08) : 0;
       });
     } else {
       sectorEffects[event.sector] += event.impact === 'positive' ? randRange(0.03, 0.12)
-        : event.impact === 'negative' ? -randRange(0.03, 0.12)
-        : 0;
+        : event.impact === 'negative' ? -randRange(0.03, 0.12) : 0;
     }
   }
 
@@ -641,14 +150,22 @@ export function generateNewsEvent(
   forcedSector?: Sector | 'all',
   forcedImpact?: 'positive' | 'negative' | 'neutral',
 ): NewsEvent {
-  const sector = forcedSector || pickRandom(['technology', 'semiconductors', 'healthcare', 'biotech', 'energy', 'financials', 'consumer', 'media', 'industrial', 'realestate', 'telecom', 'materials', 'all'] as (Sector | 'all')[]);
-  const templates = TEMPLATES_BY_SECTOR[sector];
-  if (!templates) {
+  const sector = forcedSector || pickRandom(
+    ['technology', 'semiconductors', 'healthcare', 'biotech', 'energy',
+     'financials', 'consumer', 'media', 'industrial', 'realestate',
+     'telecom', 'materials', 'all'] as (Sector | 'all')[]
+  );
+  const sectorTemplates = TEMPLATES_BY_SECTOR[sector];
+  if (!sectorTemplates) {
     throw new Error(`No templates for sector: ${sector}`);
   }
 
   const impact = forcedImpact || (rng() < 0.45 ? 'positive' : rng() < 0.9 ? 'negative' : 'neutral');
-  const templateList = impact === 'positive' ? templates.positive : impact === 'negative' ? templates.negative : [...templates.positive, ...templates.negative];
+  const templateList = impact === 'positive'
+    ? sectorTemplates.positive
+    : impact === 'negative'
+    ? sectorTemplates.negative
+    : [...sectorTemplates.positive, ...sectorTemplates.negative];
   const template = pickRandom(templateList);
   const magnitude = randRange(template.magnitudeRange[0], template.magnitudeRange[1]);
 
@@ -677,7 +194,5 @@ export function generateNewsEvent(
 function getNetWorthRatio(state: GameState): number {
   const config = DIFFICULTY_CONFIGS[state.difficulty];
   const goal = config.startingCash * config.goalMultiplier;
-  // Use the canonical net-worth calculation that accounts for short
-  // liability and margin used — not just cash + long portfolio.
   return getNetWorth(state) / goal;
 }

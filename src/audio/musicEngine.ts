@@ -87,12 +87,6 @@ export function stopAllMusic(): void {
   currentTrack = null;
 }
 
-export function setMusicVolume(vol: number): void {
-  const v = Math.max(0, Math.min(1, vol));
-  if (titleAudio) titleAudio.volume = v;
-  if (gameplayAudio) gameplayAudio.volume = v;
-}
-
 export function isPlaying(): boolean {
   return currentTrack !== null;
 }

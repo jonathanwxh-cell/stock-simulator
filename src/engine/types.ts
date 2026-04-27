@@ -105,8 +105,6 @@ export interface GameConfig {
   scenarioFrequency: 'low' | 'normal' | 'high' | 'very_high';
   brokerFeePercent: number;
   brokerFeeMin: number;
-  marginEnabled: boolean;
-  marginRequirement: number;
   marginMaintenance: number;
   marginInterestRate: number;
   shortEnabled: boolean;

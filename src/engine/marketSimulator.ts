@@ -1,3 +1,4 @@
+import { deepCloneGameState } from './cloneState';
 import type { GameState, Stock } from './types';
 import { DIFFICULTY_CONFIGS, SCENARIO_FREQUENCY_MAP, calcBrokerFee } from './config';
 import { generateScenario, generateNewsEvent } from './scenarioGenerator';
@@ -249,7 +250,7 @@ function chargeMarginInterest(state: GameState) {
   });
 }
 
-function checkMarginCall(state: GameState) {
+export function checkMarginCall(state: GameState) {
   const config = DIFFICULTY_CONFIGS[state.difficulty];
   if (state.marginUsed <= 0 && Object.keys(state.shortPositions).length === 0) return;
 
@@ -261,7 +262,7 @@ function checkMarginCall(state: GameState) {
     const stock = state.stocks.find(s => s.id === stockId);
     if (!stock) continue;
     const currentLiability = stock.currentPrice * short.shares;
-    const maintenanceReq = currentLiability * config.shortMarginRequirement * config.marginMaintenance;
+    const maintenanceReq = currentLiability * config.marginMaintenance;
     if (equity < maintenanceReq) {
       // Force cover at loss
       const pnl = (short.entryPrice - stock.currentPrice) * short.shares;
@@ -338,23 +339,4 @@ function getRankTitle(grade: string | null): string {
   return titles[grade || 'F'] || 'Unknown';
 }
 
-function deepCloneGameState(state: GameState): GameState {
-  return {
-    ...state,
-    currentDate: new Date(state.currentDate),
-    createdAt: new Date(state.createdAt),
-    updatedAt: new Date(state.updatedAt),
-    stocks: state.stocks.map(s => ({ ...s, priceHistory: s.priceHistory.map(p => ({ ...p })) })),
-    portfolio: Object.fromEntries(Object.entries(state.portfolio).map(([k, v]) => [k, { ...v }])),
-    shortPositions: Object.fromEntries(Object.entries(state.shortPositions).map(([k, v]) => [k, { ...v }])),
-    limitOrders: state.limitOrders.map(o => ({ ...o })),
-    transactionHistory: state.transactionHistory.map(t => ({ ...t, date: new Date(t.date) })),
-    netWorthHistory: state.netWorthHistory.map(n => ({ ...n, date: new Date(n.date) })),
-    newsHistory: state.newsHistory.map(n => ({ ...n, date: new Date(n.date) })),
-    currentScenario: state.currentScenario ? {
-      ...state.currentScenario,
-      sectorEffects: { ...state.currentScenario.sectorEffects },
-      events: state.currentScenario.events.map(e => ({ ...e, date: new Date(e.date) })),
-    } : null,
-  };
-}
+

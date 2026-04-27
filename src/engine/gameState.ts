@@ -1,3 +1,4 @@
+import { deepCloneGameState } from './cloneState';
 import type { GameState, Difficulty, Transaction, LimitOrder } from './types';
 import { DIFFICULTY_CONFIGS, calcBrokerFee } from './config';
 import { cloneInitialStocks } from './stockData';
@@ -117,7 +118,7 @@ export function executeBuy(
   const config = DIFFICULTY_CONFIGS[state.difficulty];
   const totalCost = stock.currentPrice * shares;
   const fee = calcBrokerFee(totalCost, config);
-  const newState = deepClone(state);
+  const newState = deepCloneGameState(state);
 
   newState.cash -= (totalCost + fee);
   newState.cash = Math.round(newState.cash * 100) / 100;
@@ -165,7 +166,7 @@ export function executeSell(
   const config = DIFFICULTY_CONFIGS[state.difficulty];
   const totalProceeds = stock.currentPrice * shares;
   const fee = calcBrokerFee(totalProceeds, config);
-  const newState = deepClone(state);
+  const newState = deepCloneGameState(state);
 
   newState.cash += totalProceeds - fee;
   newState.cash = Math.round(newState.cash * 100) / 100;
@@ -202,7 +203,7 @@ export function executeShort(
   const proceeds = stock.currentPrice * shares;
   const marginReq = proceeds * config.shortMarginRequirement;
   const fee = calcBrokerFee(proceeds, config);
-  const newState = deepClone(state);
+  const newState = deepCloneGameState(state);
 
   newState.cash -= (marginReq + fee);
   newState.cash = Math.round(newState.cash * 100) / 100;
@@ -251,7 +252,7 @@ export function executeCover(
   const config = DIFFICULTY_CONFIGS[state.difficulty];
   const coverCost = stock.currentPrice * shares;
   const fee = calcBrokerFee(coverCost, config);
-  const newState = deepClone(state);
+  const newState = deepCloneGameState(state);
 
   const pos = newState.shortPositions[stockId];
   const marginRelease = (pos.marginUsed / pos.shares) * shares;
@@ -302,7 +303,7 @@ export function placeLimitOrder(
     if (state.cash < cost + config.limitOrderFee) throw new Error('Insufficient funds');
   }
 
-  const newState = deepClone(state);
+  const newState = deepCloneGameState(state);
   const fee = config.limitOrderFee;
   newState.cash = Math.round((newState.cash - fee) * 100) / 100;
   recordFee(newState, fee, stockId);
@@ -334,7 +335,7 @@ export function placeLimitOrder(
 }
 
 export function cancelLimitOrder(state: GameState, orderId: string): GameState {
-  const newState = deepClone(state);
+  const newState = deepCloneGameState(state);
   newState.limitOrders = newState.limitOrders.filter(o => o.id !== orderId);
   newState.updatedAt = new Date();
   return newState;
@@ -360,25 +361,4 @@ export function checkGameOver(state: GameState): 'win' | 'lose' | 'ongoing' {
   const goalAmount = config.startingCash * config.goalMultiplier;
   if (getNetWorth(state) >= goalAmount) return 'win';
   return 'lose';
-}
-
-function deepClone(state: GameState): GameState {
-  return {
-    ...state,
-    currentDate: new Date(state.currentDate),
-    createdAt: new Date(state.createdAt),
-    updatedAt: new Date(state.updatedAt),
-    stocks: state.stocks.map(s => ({ ...s, priceHistory: s.priceHistory.map(p => ({ ...p })) })),
-    portfolio: Object.fromEntries(Object.entries(state.portfolio).map(([k, v]) => [k, { ...v }])),
-    shortPositions: Object.fromEntries(Object.entries(state.shortPositions).map(([k, v]) => [k, { ...v }])),
-    limitOrders: state.limitOrders.map(o => ({ ...o })),
-    transactionHistory: state.transactionHistory.map(t => ({ ...t, date: new Date(t.date) })),
-    netWorthHistory: state.netWorthHistory.map(n => ({ ...n, date: new Date(n.date) })),
-    newsHistory: state.newsHistory.map(n => ({ ...n, date: new Date(n.date) })),
-    currentScenario: state.currentScenario ? {
-      ...state.currentScenario,
-      sectorEffects: { ...state.currentScenario.sectorEffects },
-      events: state.currentScenario.events.map(e => ({ ...e, date: new Date(e.date) })),
-    } : null,
-  };
 }

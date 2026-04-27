@@ -7,7 +7,7 @@ import {
   executeCover,
   getNetWorth,
 } from '../gameState';
-import { simulateTurn } from '../marketSimulator';
+import { simulateTurn, checkMarginCall } from '../marketSimulator';
 import { DIFFICULTY_CONFIGS } from '../config';
 
 /**
@@ -137,14 +137,14 @@ describe('Short roundtrip (short → cover)', () => {
     let state = createNewGame('Test', 'normal');
     const stockId = state.stocks[0].id;
 
-    state = executeShort(state, stockId, 100).state;
+    state = executeShort(state, stockId, 50).state;
     const fullMargin = state.marginUsed;
 
-    state = executeCover(state, stockId, 50).state;
+    state = executeCover(state, stockId, 25).state;
 
-    // Half the margin should be released
+    // Half the margin released
     expect(state.marginUsed).toBeCloseTo(fullMargin / 2, 1);
-    expect(state.shortPositions[stockId].shares).toBe(50);
+    expect(state.shortPositions[stockId].shares).toBe(25);
   });
 });
 
@@ -203,5 +203,50 @@ describe('Margin accounting', () => {
     const avg = state.shortPositions[stockId].entryPrice;
     expect(avg).toBeGreaterThan(entryPrice);
     expect(avg).toBeLessThan(entryPrice * 1.1);
+  });
+});
+
+describe('Margin call threshold (v1.3.0 fix)', () => {
+  it('fires when equity < maintenance × liability', () => {
+    // Use WBD at ~$12, short 100 shares, margin = $1800
+    let state = createNewGame('Test', 'normal');
+    const wbd = state.stocks.find(s => s.currentPrice < 20)!;
+    const entryPrice = wbd.currentPrice;
+
+    state = executeShort(state, wbd.id, 100).state;
+    expect(state.shortPositions[wbd.id]).toBeDefined();
+
+    // Push price to 20×: liability ≈ $2400, equity drops below maintenance
+    // equity = 23198 - 2400 ≈ 20798, maintenance = 2400 * 0.3 = 720
+    // Actually at 20×: equity = 23198 - 2400 = 20798, maint = 720 → NO
+    // Need much higher: equity < 0.3 * liability → cash < 1.3 * liability
+    // 23198 < 1.3 * (P * 100) → P > 178.4 → ~15× entry
+    state.stocks.find(s => s.id === wbd.id)!.currentPrice = entryPrice * 20;
+
+    checkMarginCall(state);
+
+    // At 20×, liability = 20 * 12 * 100 = 24000
+    // equity = 23198 - 24000 = -802
+    // maintenance = 24000 * 0.3 = 7200
+    // -802 < 7200 → MARGIN CALL fires
+    expect(state.shortPositions[wbd.id]).toBeUndefined();
+  });
+
+  it('does NOT fire when equity is above maintenance threshold', () => {
+    let state = createNewGame('Test', 'normal');
+    const wbd = state.stocks.find(s => s.currentPrice < 20)!;
+    const entryPrice = wbd.currentPrice;
+
+    state = executeShort(state, wbd.id, 100).state;
+    expect(state.shortPositions[wbd.id]).toBeDefined();
+
+    // Price doubles — equity still well above maintenance
+    // equity ≈ 23198 - 2400 = 20798, maintenance = 2400 * 0.3 = 720
+    state.stocks.find(s => s.id === wbd.id)!.currentPrice = entryPrice * 2;
+
+    checkMarginCall(state);
+
+    expect(state.shortPositions[wbd.id]).toBeDefined();
+    expect(state.shortPositions[wbd.id].shares).toBe(100);
   });
 });

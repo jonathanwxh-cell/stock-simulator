@@ -4,7 +4,7 @@ import {
   playDividend, playBankrupt, playGameOver,
   playTurn, playNews, playMarginCall,
   playLevelUp, playClick, playError,
-  setVolume, unlockAudio,
+  setVolume,
 } from '@/audio/audioEngine';
 import {
   playTitleMusic, playGameplayMusic, stopAllMusic, resumeMusic,
@@ -100,7 +100,6 @@ export function useAudio(opts: AudioOptions) {
   }, [musicEnabled, screen]);
 
   return {
-    unlock: unlockAudio,
     // SFX — all memoized, stable references
     buy, sell, short, cover,
     dividend, bankrupt, gameOver,
