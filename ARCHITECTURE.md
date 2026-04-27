@@ -29,15 +29,20 @@ src/
 ├── hooks/           # Custom React hooks
 │   ├── useAudio.ts       # Audio controls (volume, mute, unlock)
 ├── lib/             # Shared utilities (cn, etc.)
-└── pages/           # Route-level components
-    ├── TitleScreen.tsx
-    ├── StockMarket.tsx    # Main dashboard
-    ├── StockDetail.tsx    # Individual stock + trade execution
-    ├── NextTurn.tsx       # Turn summary
-    ├── GameOver.tsx
-    ├── NewGame.tsx
-    ├── SettingsPage.tsx
-    └── Leaderboard.tsx
+├── pages/           # 13 route-level components
+    ├── TitleScreen.tsx      # Start screen — new game, load, settings
+    ├── StockMarket.tsx      # Main dashboard — stock list, portfolio summary
+    ├── StockDetail.tsx      # Individual stock view + trade execution
+    ├── Portfolio.tsx        # Full portfolio breakdown
+    ├── TradingModal.tsx     # Buy/sell/short/cover modal dialog
+    ├── NewsPanel.tsx        # Breaking news and market events
+    ├── NextTurn.tsx         # Turn summary — price changes, events
+    ├── GameHUD.tsx          # In-game header bar (cash, net worth, turn)
+    ├── GameOver.tsx         # Final grade and performance summary
+    ├── HowToPlay.tsx        # Tutorial / instructions
+    ├── LoadSave.tsx         # Save/load slot selection
+    ├── SettingsPage.tsx     # Sound, music, difficulty settings
+    └── LeaderboardPage.tsx  # High score table
 ```
 
 ## Engine Purity
