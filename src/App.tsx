@@ -14,6 +14,7 @@ import LeaderboardPage from './pages/LeaderboardPage';
 import SettingsPage from './pages/SettingsPage';
 import HowToPlay from './pages/HowToPlay';
 import LoadSave from './pages/LoadSave';
+import { unlockAudio } from './audio/audioEngine';
 
 function ScreenRouter() {
   const { screen } = useGame();
@@ -51,8 +52,7 @@ function ScreenRouter() {
 function AudioUnlock() {
   useEffect(() => {
     const unlock = () => {
-      // Unlock audio context on first user interaction
-      // audio unlock handled by global click listener
+      unlockAudio().catch(e => console.warn('audio:', e));
       document.removeEventListener('click', unlock);
       document.removeEventListener('touchstart', unlock);
     };

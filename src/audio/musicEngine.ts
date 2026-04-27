@@ -1,0 +1,101 @@
+/**
+ * Music Engine — MiniMax-generated ambient BGM
+ * Manages looping background tracks with 500ms crossfade
+ */
+
+const FADE_DURATION = 500;
+const FADE_STEPS = 15;
+const TARGET_VOLUME = 0.4;
+
+let titleAudio: HTMLAudioElement | null = null;
+let gameplayAudio: HTMLAudioElement | null = null;
+let currentTrack: 'title' | 'gameplay' | null = null;
+let fadeInterval: ReturnType<typeof setInterval> | null = null;
+
+function getAudio(path: string): HTMLAudioElement {
+  const audio = new Audio(path);
+  audio.loop = true;
+  audio.volume = 0;
+  return audio;
+}
+
+function cancelFade(): void {
+  if (fadeInterval !== null) {
+    clearInterval(fadeInterval);
+    fadeInterval = null;
+  }
+}
+
+function crossfade(outgoing: HTMLAudioElement | null, incoming: HTMLAudioElement): void {
+  cancelFade();
+
+  const stepMs = FADE_DURATION / FADE_STEPS;
+  const outStart = outgoing?.volume ?? 0;
+  const inStart = 0;
+  let step = 0;
+
+  fadeInterval = setInterval(() => {
+    step++;
+    const t = step / FADE_STEPS;
+
+    if (outgoing) {
+      outgoing.volume = Math.max(0, outStart * (1 - t));
+    }
+    incoming.volume = Math.min(TARGET_VOLUME, inStart + TARGET_VOLUME * t);
+
+    if (step >= FADE_STEPS) {
+      cancelFade();
+      outgoing?.pause();
+      incoming.volume = TARGET_VOLUME;
+    }
+  }, stepMs);
+}
+
+function playTrack(track: 'title' | 'gameplay'): void {
+  if (currentTrack === track) return;
+
+  const outgoing = currentTrack === 'title' ? titleAudio
+    : currentTrack === 'gameplay' ? gameplayAudio
+    : null;
+
+  if (!titleAudio) titleAudio = getAudio('/audio/music/title.mp3');
+  if (!gameplayAudio) gameplayAudio = getAudio('/audio/music/gameplay.mp3');
+
+  const incoming = track === 'title' ? titleAudio : gameplayAudio;
+
+  incoming.currentTime = 0;
+  incoming.play().catch(e => console.warn('audio:', e));
+
+  crossfade(outgoing, incoming);
+  currentTrack = track;
+}
+
+export function playTitleMusic(): void {
+  playTrack('title');
+}
+
+export function playGameplayMusic(): void {
+  playTrack('gameplay');
+}
+
+export function stopAllMusic(): void {
+  cancelFade();
+  titleAudio?.pause();
+  gameplayAudio?.pause();
+  currentTrack = null;
+}
+
+export function setMusicVolume(vol: number): void {
+  const v = Math.max(0, Math.min(1, vol));
+  if (titleAudio) titleAudio.volume = v;
+  if (gameplayAudio) gameplayAudio.volume = v;
+}
+
+export function isPlaying(): boolean {
+  return currentTrack !== null;
+}
+
+export function resumeMusic(screen: 'title' | 'game' | string): void {
+  if (screen === 'title') playTitleMusic();
+  else if (screen === 'game') playGameplayMusic();
+}

@@ -1,4 +1,4 @@
-import { createContext, useContext, useReducer, useCallback, useEffect, type ReactNode } from 'react';
+import { createContext, useContext, useReducer, useCallback, type ReactNode } from 'react';
 import type { GameState, Difficulty, Screen, GameSettings } from '../engine/types';
 import {
   createNewGame,
@@ -16,8 +16,7 @@ import {
   saveSettings,
   initSaveSystem,
 } from '../engine';
-import { playTitleMusic, playGameplayMusic, stopAllMusic } from '../engine/musicEngine';
-import { playBuy, playSell, playShort, playCover, playDividend, playBankrupt, playGameOver, playTurn, playMarginCall, playClick, playError } from '../engine/audioEngine';
+import { useAudio } from '@/hooks/useAudio';
 
 interface GameContextType {
   gameState: GameState | null;
@@ -87,15 +86,19 @@ export function GameProvider({ children }: { children: ReactNode }) {
     previousScreen: 'title',
   });
 
-  const soundEnabled = state.settings.soundEnabled;
+  const audio = useAudio({
+    soundEnabled: state.settings.soundEnabled,
+    musicEnabled: state.settings.musicEnabled,
+    screen: state.screen,
+  });
 
   const newGame = useCallback((name: string, difficulty: Difficulty) => {
     const game = createNewGame(name, difficulty);
     dispatch({ type: 'SET_GAME_STATE', payload: game });
     dispatch({ type: 'SET_SCREEN', payload: 'game' });
-    if (soundEnabled) playTurn().catch(() => {});
-    autoSave(game).catch(() => {});
-  }, [soundEnabled]);
+    audio.turn();
+    autoSave(game).catch(e => console.warn('audio:', e));
+  }, [audio.turn]);
 
   const loadGame = useCallback(async (slot: 1 | 2 | 3 | 'auto') => {
     const loaded = await loadGameEngine(slot);
@@ -111,13 +114,13 @@ export function GameProvider({ children }: { children: ReactNode }) {
       };
       dispatch({ type: 'SET_GAME_STATE', payload: migrated });
       dispatch({ type: 'SET_SCREEN', payload: migrated.isGameOver ? 'game-over' : 'game' });
-      if (soundEnabled && !migrated.isGameOver) playTurn();
+      if (!migrated.isGameOver) audio.turn();
     }
-  }, [soundEnabled]);
+  }, [audio.turn]);
 
   const saveGame = useCallback((slot: 1 | 2 | 3 | 'auto') => {
     if (state.gameState) {
-      saveGameEngine(slot, { ...state.gameState, saveSlot: slot }).catch(() => {});
+      saveGameEngine(slot, { ...state.gameState, saveSlot: slot }).catch(e => console.warn('save:', e));
     }
   }, [state.gameState]);
 
@@ -127,87 +130,89 @@ export function GameProvider({ children }: { children: ReactNode }) {
     const newState = simulateTurn(state.gameState);
     dispatch({ type: 'UPDATE_GAME_STATE', payload: newState });
     dispatch({ type: 'SET_SCREEN', payload: 'next-turn' });
-    autoSave(newState).catch(() => {});
+    autoSave(newState).catch(e => console.warn('save:', e));
 
-    if (!soundEnabled) return;
-    playTurn();
+    audio.turn();
 
-    // Check for special events this turn
-    const hadDividend = newState.transactionHistory.length > prev.transactionHistory.length &&
-      newState.transactionHistory[newState.transactionHistory.length - 1]?.type === 'dividend';
-    if (hadDividend) setTimeout(() => playDividend(), 300);
+    // Check for special events this turn — reuse the same slice for all checks
+    const newTxns = newState.transactionHistory.slice(prev.transactionHistory.length);
 
-    const hadBankrupt = newState.stocks.some((s, i) => s.currentPrice === 0 && prev.stocks[i]?.currentPrice > 0);
-    if (hadBankrupt) setTimeout(() => playBankrupt(), 500);
+    const hadDividend = newTxns.some(t => t.type === 'dividend');
+    if (hadDividend) setTimeout(() => audio.dividend(), 300);
 
-    const hadMarginCall = newState.transactionHistory.length > prev.transactionHistory.length &&
-      newState.transactionHistory.slice(prev.transactionHistory.length).some(t => t.type === 'margin_call');
-    if (hadMarginCall) setTimeout(() => playMarginCall(), 400);
+    const hadBankrupt = newState.stocks.some(s => {
+      const prevStock = prev.stocks.find(p => p.id === s.id);
+      return s.currentPrice === 0 && (prevStock?.currentPrice ?? 0) > 0;
+    });
+    if (hadBankrupt) setTimeout(() => audio.bankrupt(), 500);
 
-    if (newState.isGameOver) setTimeout(() => playGameOver(), 800);
-  }, [state.gameState, soundEnabled]);
+    const hadMarginCall = newTxns.some(t => t.type === 'margin_call');
+    if (hadMarginCall) setTimeout(() => audio.marginCall(), 400);
+
+    if (newState.isGameOver) setTimeout(() => audio.gameOver(), 800);
+  }, [state.gameState, audio.turn, audio.dividend, audio.bankrupt, audio.marginCall, audio.gameOver]);
 
   const buyStock = useCallback((stockId: string, shares: number) => {
     if (!state.gameState) return;
     try {
       const result = executeBuy(state.gameState, stockId, shares);
       dispatch({ type: 'UPDATE_GAME_STATE', payload: result.state });
-      if (soundEnabled) playBuy().catch(() => {});
+      audio.buy();
     } catch {
-      if (soundEnabled) playError().catch(() => {});
+      audio.error();
     }
-  }, [state.gameState, soundEnabled]);
+  }, [state.gameState, audio.buy, audio.error]);
 
   const sellStock = useCallback((stockId: string, shares: number) => {
     if (!state.gameState) return;
     try {
       const result = executeSell(state.gameState, stockId, shares);
       dispatch({ type: 'UPDATE_GAME_STATE', payload: result.state });
-      if (soundEnabled) playSell().catch(() => {});
+      audio.sell();
     } catch {
-      if (soundEnabled) playError().catch(() => {});
+      audio.error();
     }
-  }, [state.gameState, soundEnabled]);
+  }, [state.gameState, audio.sell, audio.error]);
 
   const shortStock = useCallback((stockId: string, shares: number) => {
     if (!state.gameState) return;
     try {
       const result = executeShort(state.gameState, stockId, shares);
       dispatch({ type: 'UPDATE_GAME_STATE', payload: result.state });
-      if (soundEnabled) playShort().catch(() => {});
+      audio.short();
     } catch {
-      if (soundEnabled) playError().catch(() => {});
+      audio.error();
     }
-  }, [state.gameState, soundEnabled]);
+  }, [state.gameState, audio.short, audio.error]);
 
   const coverStock = useCallback((stockId: string, shares: number) => {
     if (!state.gameState) return;
     try {
       const result = executeCover(state.gameState, stockId, shares);
       dispatch({ type: 'UPDATE_GAME_STATE', payload: result.state });
-      if (soundEnabled) playCover().catch(() => {});
+      audio.cover();
     } catch {
-      if (soundEnabled) playError().catch(() => {});
+      audio.error();
     }
-  }, [state.gameState, soundEnabled]);
+  }, [state.gameState, audio.cover, audio.error]);
 
   const placeOrder = useCallback((stockId: string, type: 'buy' | 'sell', shares: number, targetPrice: number) => {
     if (!state.gameState) return;
     try {
       const result = placeLimitOrder(state.gameState, stockId, type, shares, targetPrice);
       dispatch({ type: 'UPDATE_GAME_STATE', payload: result.state });
-      if (soundEnabled) playClick().catch(() => {});
+      audio.click();
     } catch {
-      if (soundEnabled) playError().catch(() => {});
+      audio.error();
     }
-  }, [state.gameState, soundEnabled]);
+  }, [state.gameState, audio.click, audio.error]);
 
   const cancelOrder = useCallback((orderId: string) => {
     if (!state.gameState) return;
     const newState = cancelLimitOrder(state.gameState, orderId);
     dispatch({ type: 'UPDATE_GAME_STATE', payload: newState });
-    if (soundEnabled) playClick().catch(() => {});
-  }, [state.gameState, soundEnabled]);
+    audio.click();
+  }, [state.gameState, audio.click]);
 
   const navigateTo = useCallback((screen: Screen) => {
     dispatch({ type: 'SET_SCREEN', payload: screen });
@@ -234,16 +239,6 @@ export function GameProvider({ children }: { children: ReactNode }) {
     placeOrder, cancelOrder,
     navigateTo, goBack, updateSettings, resetGame,
   };
-
-  useEffect(() => {
-    if (state.screen === 'title') {
-      playTitleMusic();
-    } else if (state.screen === 'game') {
-      playGameplayMusic();
-    } else if (state.screen === 'game-over') {
-      stopAllMusic();
-    }
-  }, [state.screen]);
 
   return (
     <GameContext.Provider value={value}>

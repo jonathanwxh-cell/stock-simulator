@@ -2,7 +2,7 @@
 let audioCtx: AudioContext | null = null;
 let masterGain: GainNode | null = null;
 
-async function initCtx(): Promise<AudioContext> {
+export async function initCtx(): Promise<AudioContext> {
   if (!audioCtx) {
     audioCtx = new AudioContext();
     masterGain = audioCtx.createGain();
@@ -18,6 +18,11 @@ async function initCtx(): Promise<AudioContext> {
 function getMaster(): GainNode {
   if (!masterGain) throw new Error('Audio not initialized');
   return masterGain;
+}
+
+/** Silent unlock — resumes AudioContext without playing any sound */
+export async function unlockAudio(): Promise<void> {
+  await initCtx();
 }
 
 // ── SFX ─────────────────────────────────────────────
