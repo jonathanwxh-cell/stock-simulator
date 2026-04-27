@@ -15,6 +15,7 @@ import SettingsPage from './pages/SettingsPage';
 import HowToPlay from './pages/HowToPlay';
 import LoadSave from './pages/LoadSave';
 import { unlockAudio } from './audio/audioEngine';
+import { resumeMusic } from './audio/musicEngine';
 
 function ScreenRouter() {
   const { screen } = useGame();
@@ -50,9 +51,13 @@ function ScreenRouter() {
 }
 
 function AudioUnlock() {
+  const { screen, settings } = useGame();
   useEffect(() => {
     const unlock = () => {
       unlockAudio().catch(e => console.warn('audio:', e));
+      if (settings.musicEnabled) {
+        resumeMusic(screen);
+      }
       document.removeEventListener('click', unlock);
       document.removeEventListener('touchstart', unlock);
     };
@@ -62,7 +67,7 @@ function AudioUnlock() {
       document.removeEventListener('click', unlock);
       document.removeEventListener('touchstart', unlock);
     };
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
   return null;
 }
 

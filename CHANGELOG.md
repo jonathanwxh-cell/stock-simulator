@@ -4,6 +4,13 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.5.3] — 2026-04-27
+
+### Fixed
+
+- Title-screen music never starts on first page load (prevScreen init sentinel bug)
+- BGM blocked by autoplay policy — AudioUnlock now also kicks music on first user gesture
+
 ## [1.5.2] — 2026-04-27
 
 ### Documentation
@@ -265,6 +272,7 @@ Engine correctness pass. No breaking changes; existing saves load unchanged.
 Initial commit. Turn-based stock market sim — 60 stocks across 12 sectors,
 4 difficulty levels, margin trading, short selling, 600+ market events.
 
+[1.5.3]: https://github.com/jonathanwxh-cell/stock-simulator/compare/v1.5.2...v1.5.3
 [1.5.2]: https://github.com/jonathanwxh-cell/stock-simulator/compare/v1.5.1...v1.5.2
 [1.5.1]: https://github.com/jonathanwxh-cell/stock-simulator/compare/v1.5.0...v1.5.1
 [1.5.0]: https://github.com/jonathanwxh-cell/stock-simulator/compare/v1.4.0...v1.5.0

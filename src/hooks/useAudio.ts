@@ -27,7 +27,7 @@ interface AudioOptions {
 export function useAudio(opts: AudioOptions) {
   const { soundEnabled, musicEnabled, screen } = opts;
   const wasMusicEnabled = useRef(musicEnabled);
-  const prevScreen = useRef(screen);
+  const prevScreen = useRef<Screen | null>(null);
   const wasHidden = useRef(false);
 
   // Core trigger — stable reference, re-created only when soundEnabled changes
