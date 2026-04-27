@@ -188,3 +188,18 @@ export const ALL_SECTORS: Sector[] = [
   'energy', 'financials', 'consumer', 'media',
   'industrial', 'realestate', 'telecom', 'materials',
 ];
+
+// ── Typed trade results (v1.4.0) ─────────────────────────────────────
+
+export type TradeError =
+  | 'insufficient_funds'
+  | 'insufficient_shares'
+  | 'invalid_shares'
+  | 'invalid_target_price'
+  | 'max_limit_orders_reached'
+  | 'short_disabled'
+  | 'no_position';
+
+export type TradeResult =
+  | { ok: true; state: GameState; transaction: Transaction }
+  | { ok: false; reason: TradeError };

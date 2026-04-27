@@ -1,6 +1,7 @@
 import type { Sector, ActiveScenario, NewsEvent, GameState } from './types';
 import { DIFFICULTY_CONFIGS } from './config';
 import { getNetWorth } from './marketSimulator';
+import templatesData from './data/news-templates.json';
 
 function genId(prefix: string): string {
   return `${prefix}_${crypto.randomUUID()}`;
@@ -50,11 +51,6 @@ function fillTemplate(template: string, company: string, sector: string): string
   return template.replace(/\{company\}/g, company).replace(/\{sector\}/g, sector);
 }
 
-// ── News Templates ────────────────────────────────────────────────────
-
-// ── News Templates (loaded from JSON) ──────────────────────────────────
-
-import templatesData from './data/news-templates.json';
 
 const TEMPLATES_BY_SECTOR = templatesData as unknown as Record<string, {
   positive: NewsTemplate[];

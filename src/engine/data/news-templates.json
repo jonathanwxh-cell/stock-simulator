@@ -655,112 +655,6 @@
       }
     ]
   },
-  "industrials": {
-    "positive": [
-      {
-        "headline": "{company} Wins Major Defense Contract",
-        "description": "{company} has been awarded a $10 billion defense contract for next-generation military aircraft and systems.",
-        "sector": "industrial",
-        "impact": "positive",
-        "magnitudeRange": [
-          0.15,
-          0.4
-        ]
-      },
-      {
-        "headline": "Infrastructure Bill Drives {company} Order Book to Record High",
-        "description": "Government infrastructure spending has created massive demand for {company}'s construction and engineering services.",
-        "sector": "industrial",
-        "impact": "positive",
-        "magnitudeRange": [
-          0.12,
-          0.35
-        ]
-      },
-      {
-        "headline": "{company} Steel Demand Surges on Construction Boom",
-        "description": "Global construction activity has driven steel prices to multi-year highs, dramatically improving {company}'s outlook.",
-        "sector": "industrial",
-        "impact": "positive",
-        "magnitudeRange": [
-          0.1,
-          0.3
-        ]
-      },
-      {
-        "headline": "{company} Logistics Network Expansion Boosts Efficiency",
-        "description": "{company}'s new automated distribution centers have cut delivery times by 40%, winning new enterprise clients.",
-        "sector": "industrial",
-        "impact": "positive",
-        "magnitudeRange": [
-          0.08,
-          0.25
-        ]
-      },
-      {
-        "headline": "{company} Chemical Innovation Drives Sustainability Push",
-        "description": "{company} has developed breakthrough eco-friendly chemicals that are being rapidly adopted by major manufacturers.",
-        "sector": "industrial",
-        "impact": "positive",
-        "magnitudeRange": [
-          0.1,
-          0.3
-        ]
-      }
-    ],
-    "negative": [
-      {
-        "headline": "Defense Budget Cuts Threaten {company} Revenue",
-        "description": "Pentagon spending reductions will eliminate several programs that represent major revenue sources for {company}.",
-        "sector": "industrial",
-        "impact": "negative",
-        "magnitudeRange": [
-          0.15,
-          0.4
-        ]
-      },
-      {
-        "headline": "{company} Aerospace Division Faces Production Delays",
-        "description": "Supply chain bottlenecks and labor shortages have delayed {company} aircraft deliveries by up to 18 months.",
-        "sector": "industrial",
-        "impact": "negative",
-        "magnitudeRange": [
-          0.12,
-          0.35
-        ]
-      },
-      {
-        "headline": "Raw Material Costs Surge, Squeezing {company} Margins",
-        "description": "Inflation in commodity prices has increased {company}'s input costs by 30%, threatening profitability.",
-        "sector": "industrial",
-        "impact": "negative",
-        "magnitudeRange": [
-          0.1,
-          0.3
-        ]
-      },
-      {
-        "headline": "{company} Factory Fire Disrupts Critical Production Line",
-        "description": "An industrial accident has shut down {company}'s primary manufacturing facility for an estimated 6 months.",
-        "sector": "industrial",
-        "impact": "negative",
-        "magnitudeRange": [
-          0.2,
-          0.45
-        ]
-      },
-      {
-        "headline": "Trade War Tariffs Hurt {company} Export Business",
-        "description": "Escalating trade tensions have resulted in punitive tariffs on {company}'s products in key international markets.",
-        "sector": "industrial",
-        "impact": "negative",
-        "magnitudeRange": [
-          0.1,
-          0.3
-        ]
-      }
-    ]
-  },
   "financials": {
     "positive": [
       {
@@ -1393,6 +1287,112 @@
         "magnitudeRange": [
           0.08,
           0.2
+        ]
+      }
+    ]
+  },
+  "industrial": {
+    "positive": [
+      {
+        "headline": "{company} Wins Major Defense Contract",
+        "description": "{company} has been awarded a $10 billion defense contract for next-generation military aircraft and systems.",
+        "sector": "industrial",
+        "impact": "positive",
+        "magnitudeRange": [
+          0.15,
+          0.4
+        ]
+      },
+      {
+        "headline": "Infrastructure Bill Drives {company} Order Book to Record High",
+        "description": "Government infrastructure spending has created massive demand for {company}'s construction and engineering services.",
+        "sector": "industrial",
+        "impact": "positive",
+        "magnitudeRange": [
+          0.12,
+          0.35
+        ]
+      },
+      {
+        "headline": "{company} Steel Demand Surges on Construction Boom",
+        "description": "Global construction activity has driven steel prices to multi-year highs, dramatically improving {company}'s outlook.",
+        "sector": "industrial",
+        "impact": "positive",
+        "magnitudeRange": [
+          0.1,
+          0.3
+        ]
+      },
+      {
+        "headline": "{company} Logistics Network Expansion Boosts Efficiency",
+        "description": "{company}'s new automated distribution centers have cut delivery times by 40%, winning new enterprise clients.",
+        "sector": "industrial",
+        "impact": "positive",
+        "magnitudeRange": [
+          0.08,
+          0.25
+        ]
+      },
+      {
+        "headline": "{company} Chemical Innovation Drives Sustainability Push",
+        "description": "{company} has developed breakthrough eco-friendly chemicals that are being rapidly adopted by major manufacturers.",
+        "sector": "industrial",
+        "impact": "positive",
+        "magnitudeRange": [
+          0.1,
+          0.3
+        ]
+      }
+    ],
+    "negative": [
+      {
+        "headline": "Defense Budget Cuts Threaten {company} Revenue",
+        "description": "Pentagon spending reductions will eliminate several programs that represent major revenue sources for {company}.",
+        "sector": "industrial",
+        "impact": "negative",
+        "magnitudeRange": [
+          0.15,
+          0.4
+        ]
+      },
+      {
+        "headline": "{company} Aerospace Division Faces Production Delays",
+        "description": "Supply chain bottlenecks and labor shortages have delayed {company} aircraft deliveries by up to 18 months.",
+        "sector": "industrial",
+        "impact": "negative",
+        "magnitudeRange": [
+          0.12,
+          0.35
+        ]
+      },
+      {
+        "headline": "Raw Material Costs Surge, Squeezing {company} Margins",
+        "description": "Inflation in commodity prices has increased {company}'s input costs by 30%, threatening profitability.",
+        "sector": "industrial",
+        "impact": "negative",
+        "magnitudeRange": [
+          0.1,
+          0.3
+        ]
+      },
+      {
+        "headline": "{company} Factory Fire Disrupts Critical Production Line",
+        "description": "An industrial accident has shut down {company}'s primary manufacturing facility for an estimated 6 months.",
+        "sector": "industrial",
+        "impact": "negative",
+        "magnitudeRange": [
+          0.2,
+          0.45
+        ]
+      },
+      {
+        "headline": "Trade War Tariffs Hurt {company} Export Business",
+        "description": "Escalating trade tensions have resulted in punitive tariffs on {company}'s products in key international markets.",
+        "sector": "industrial",
+        "impact": "negative",
+        "magnitudeRange": [
+          0.1,
+          0.3
         ]
       }
     ]

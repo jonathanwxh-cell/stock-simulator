@@ -1,5 +1,5 @@
 import { deepCloneGameState } from './cloneState';
-import type { GameState, Difficulty, Transaction, LimitOrder } from './types';
+import type { GameState, Difficulty, Transaction, LimitOrder, TradeResult } from './types';
 import { DIFFICULTY_CONFIGS, calcBrokerFee } from './config';
 import { cloneInitialStocks } from './stockData';
 import { getPortfolioValue, getNetWorth, getShortLiability } from './marketSimulator';
@@ -110,10 +110,9 @@ export function executeBuy(
   state: GameState,
   stockId: string,
   shares: number,
-): { state: GameState; transaction: Transaction } {
-  if (!canBuy(state, stockId, shares)) {
-    throw new Error('Insufficient funds');
-  }
+): TradeResult {
+  if (shares <= 0) return { ok: false, reason: 'invalid_shares' };
+  if (!canBuy(state, stockId, shares)) return { ok: false, reason: 'insufficient_funds' };
   const stock = state.stocks.find(s => s.id === stockId)!;
   const config = DIFFICULTY_CONFIGS[state.difficulty];
   const totalCost = stock.currentPrice * shares;
@@ -151,17 +150,16 @@ export function executeBuy(
   };
   newState.transactionHistory.push(transaction);
   newState.updatedAt = new Date();
-  return { state: newState, transaction };
+  return { ok: true, state: newState, transaction };
 }
 
 export function executeSell(
   state: GameState,
   stockId: string,
   shares: number,
-): { state: GameState; transaction: Transaction } {
-  if (!canSell(state, stockId, shares)) {
-    throw new Error('Insufficient shares');
-  }
+): TradeResult {
+  if (shares <= 0) return { ok: false, reason: 'invalid_shares' };
+  if (!canSell(state, stockId, shares)) return { ok: false, reason: 'insufficient_shares' };
   const stock = state.stocks.find(s => s.id === stockId)!;
   const config = DIFFICULTY_CONFIGS[state.difficulty];
   const totalProceeds = stock.currentPrice * shares;
@@ -189,15 +187,16 @@ export function executeSell(
   };
   newState.transactionHistory.push(transaction);
   newState.updatedAt = new Date();
-  return { state: newState, transaction };
+  return { ok: true, state: newState, transaction };
 }
 
 export function executeShort(
   state: GameState,
   stockId: string,
   shares: number,
-): { state: GameState; transaction: Transaction } {
-  if (!canShort(state, stockId, shares)) throw new Error('Cannot short');
+): TradeResult {
+  if (shares <= 0) return { ok: false, reason: 'invalid_shares' };
+  if (!canShort(state, stockId, shares)) return { ok: false, reason: 'short_disabled' };
   const stock = state.stocks.find(s => s.id === stockId)!;
   const config = DIFFICULTY_CONFIGS[state.difficulty];
   const proceeds = stock.currentPrice * shares;
@@ -239,15 +238,16 @@ export function executeShort(
   };
   newState.transactionHistory.push(transaction);
   newState.updatedAt = new Date();
-  return { state: newState, transaction };
+  return { ok: true, state: newState, transaction };
 }
 
 export function executeCover(
   state: GameState,
   stockId: string,
   shares: number,
-): { state: GameState; transaction: Transaction } {
-  if (!canCover(state, stockId, shares)) throw new Error('Cannot cover');
+): TradeResult {
+  if (shares <= 0) return { ok: false, reason: 'invalid_shares' };
+  if (!canCover(state, stockId, shares)) return { ok: false, reason: 'no_position' };
   const stock = state.stocks.find(s => s.id === stockId)!;
   const config = DIFFICULTY_CONFIGS[state.difficulty];
   const coverCost = stock.currentPrice * shares;
@@ -283,7 +283,7 @@ export function executeCover(
   };
   newState.transactionHistory.push(transaction);
   newState.updatedAt = new Date();
-  return { state: newState, transaction };
+  return { ok: true, state: newState, transaction };
 }
 
 export function placeLimitOrder(
@@ -292,15 +292,15 @@ export function placeLimitOrder(
   type: 'buy' | 'sell',
   shares: number,
   targetPrice: number,
-): { state: GameState; transaction: Transaction } {
+): TradeResult {
   const config = DIFFICULTY_CONFIGS[state.difficulty];
-  if (state.limitOrders.length >= config.maxLimitOrders) throw new Error('Max limit orders reached');
-  if (targetPrice <= 0) throw new Error('Target price must be positive');
-  if (shares <= 0) throw new Error('Shares must be positive');
-  if (type === 'sell' && !canSell(state, stockId, shares)) throw new Error('Insufficient shares');
+  if (state.limitOrders.length >= config.maxLimitOrders) return { ok: false, reason: 'max_limit_orders_reached' };
+  if (targetPrice <= 0) return { ok: false, reason: 'invalid_target_price' };
+  if (shares <= 0) return { ok: false, reason: 'invalid_shares' };
+  if (type === 'sell' && !canSell(state, stockId, shares)) return { ok: false, reason: 'insufficient_shares' };
   if (type === 'buy') {
     const cost = targetPrice * shares;
-    if (state.cash < cost + config.limitOrderFee) throw new Error('Insufficient funds');
+    if (state.cash < cost + config.limitOrderFee) return { ok: false, reason: 'insufficient_funds' };
   }
 
   const newState = deepCloneGameState(state);
@@ -331,7 +331,7 @@ export function placeLimitOrder(
   };
   newState.transactionHistory.push(transaction);
   newState.updatedAt = new Date();
-  return { state: newState, transaction };
+  return { ok: true, state: newState, transaction };
 }
 
 export function cancelLimitOrder(state: GameState, orderId: string): GameState {
@@ -361,4 +361,17 @@ export function checkGameOver(state: GameState): 'win' | 'lose' | 'ongoing' {
   const goalAmount = config.startingCash * config.goalMultiplier;
   if (getNetWorth(state) >= goalAmount) return 'win';
   return 'lose';
+}
+
+export function tradeErrorMessage(reason: string): string {
+  const messages: Record<string, string> = {
+    insufficient_funds: 'Not enough cash for this trade',
+    insufficient_shares: 'Not enough shares to sell',
+    invalid_shares: 'Share count must be positive',
+    invalid_target_price: 'Target price must be positive',
+    max_limit_orders_reached: 'Maximum limit orders reached',
+    short_disabled: 'Short selling is not available',
+    no_position: 'No position to cover',
+  };
+  return messages[reason] || 'Trade failed';
 }

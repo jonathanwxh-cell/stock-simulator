@@ -15,6 +15,7 @@ import {
   loadSettings,
   saveSettings,
   initSaveSystem,
+  tradeErrorMessage,
 } from '../engine';
 import { useAudio } from '@/hooks/useAudio';
 
@@ -33,6 +34,8 @@ interface GameContextType {
   coverStock: (stockId: string, shares: number) => void;
   placeOrder: (stockId: string, type: 'buy' | 'sell', shares: number, targetPrice: number) => void;
   cancelOrder: (orderId: string) => void;
+  lastError: string | null;
+  clearError: () => void;
   navigateTo: (screen: Screen) => void;
   goBack: () => void;
   updateSettings: (settings: Partial<GameSettings>) => void;
@@ -53,6 +56,7 @@ interface State {
   settings: GameSettings;
   screen: Screen;
   previousScreen: Screen;
+  lastError: string | null;
 }
 
 type Action =
@@ -61,6 +65,8 @@ type Action =
   | { type: 'SET_PREVIOUS_SCREEN'; payload: Screen }
   | { type: 'UPDATE_SETTINGS'; payload: Partial<GameSettings> }
   | { type: 'UPDATE_GAME_STATE'; payload: GameState }
+  | { type: 'SET_ERROR'; payload: string | null }
+  | { type: 'CLEAR_ERROR' }
   | { type: 'RESET' };
 
 function reducer(state: State, action: Action): State {
@@ -70,7 +76,9 @@ function reducer(state: State, action: Action): State {
     case 'SET_PREVIOUS_SCREEN': return { ...state, previousScreen: action.payload };
     case 'UPDATE_SETTINGS': return { ...state, settings: { ...state.settings, ...action.payload } };
     case 'UPDATE_GAME_STATE': return { ...state, gameState: action.payload };
-    case 'RESET': return { gameState: null, settings: defaultSettings, screen: 'title', previousScreen: 'title' };
+    case 'SET_ERROR': return { ...state, lastError: action.payload };
+    case 'CLEAR_ERROR': return { ...state, lastError: null };
+    case 'RESET': return { gameState: null, settings: defaultSettings, screen: 'title', previousScreen: 'title', lastError: null };
     default: return state;
   }
 }
@@ -84,6 +92,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
     settings: savedSettings || defaultSettings,
     screen: 'title',
     previousScreen: 'title',
+    lastError: null,
   });
 
   const audio = useAudio({
@@ -154,55 +163,60 @@ export function GameProvider({ children }: { children: ReactNode }) {
 
   const buyStock = useCallback((stockId: string, shares: number) => {
     if (!state.gameState) return;
-    try {
-      const result = executeBuy(state.gameState, stockId, shares);
+    const result = executeBuy(state.gameState, stockId, shares);
+    if (result.ok) {
       dispatch({ type: 'UPDATE_GAME_STATE', payload: result.state });
       audio.buy();
-    } catch {
+    } else {
+      dispatch({ type: 'SET_ERROR', payload: tradeErrorMessage(result.reason) });
       audio.error();
     }
   }, [state.gameState, audio.buy, audio.error]);
 
   const sellStock = useCallback((stockId: string, shares: number) => {
     if (!state.gameState) return;
-    try {
-      const result = executeSell(state.gameState, stockId, shares);
+    const result = executeSell(state.gameState, stockId, shares);
+    if (result.ok) {
       dispatch({ type: 'UPDATE_GAME_STATE', payload: result.state });
       audio.sell();
-    } catch {
+    } else {
+      dispatch({ type: 'SET_ERROR', payload: tradeErrorMessage(result.reason) });
       audio.error();
     }
   }, [state.gameState, audio.sell, audio.error]);
 
   const shortStock = useCallback((stockId: string, shares: number) => {
     if (!state.gameState) return;
-    try {
-      const result = executeShort(state.gameState, stockId, shares);
+    const result = executeShort(state.gameState, stockId, shares);
+    if (result.ok) {
       dispatch({ type: 'UPDATE_GAME_STATE', payload: result.state });
       audio.short();
-    } catch {
+    } else {
+      dispatch({ type: 'SET_ERROR', payload: tradeErrorMessage(result.reason) });
       audio.error();
     }
   }, [state.gameState, audio.short, audio.error]);
 
   const coverStock = useCallback((stockId: string, shares: number) => {
     if (!state.gameState) return;
-    try {
-      const result = executeCover(state.gameState, stockId, shares);
+    const result = executeCover(state.gameState, stockId, shares);
+    if (result.ok) {
       dispatch({ type: 'UPDATE_GAME_STATE', payload: result.state });
       audio.cover();
-    } catch {
+    } else {
+      dispatch({ type: 'SET_ERROR', payload: tradeErrorMessage(result.reason) });
       audio.error();
     }
   }, [state.gameState, audio.cover, audio.error]);
 
   const placeOrder = useCallback((stockId: string, type: 'buy' | 'sell', shares: number, targetPrice: number) => {
     if (!state.gameState) return;
-    try {
-      const result = placeLimitOrder(state.gameState, stockId, type, shares, targetPrice);
+    const result = placeLimitOrder(state.gameState, stockId, type, shares, targetPrice);
+    if (result.ok) {
       dispatch({ type: 'UPDATE_GAME_STATE', payload: result.state });
       audio.click();
-    } catch {
+    } else {
+      dispatch({ type: 'SET_ERROR', payload: tradeErrorMessage(result.reason) });
       audio.error();
     }
   }, [state.gameState, audio.click, audio.error]);
@@ -227,6 +241,10 @@ export function GameProvider({ children }: { children: ReactNode }) {
     saveSettings({ ...state.settings, ...partial });
   }, [state.settings]);
 
+  const clearError = useCallback(() => {
+    dispatch({ type: 'CLEAR_ERROR' });
+  }, []);
+
   const resetGame = useCallback(() => {
     dispatch({ type: 'RESET' });
   }, []);
@@ -234,6 +252,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
   const value: GameContextType = {
     gameState: state.gameState, settings: state.settings,
     screen: state.screen, previousScreen: state.previousScreen,
+    lastError: state.lastError, clearError,
     newGame, loadGame, saveGame, advanceTurn,
     buyStock, sellStock, shortStock, coverStock,
     placeOrder, cancelOrder,

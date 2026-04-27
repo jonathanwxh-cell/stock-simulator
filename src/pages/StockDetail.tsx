@@ -6,7 +6,7 @@ import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'rec
 import { SECTOR_COLORS, SECTOR_LABELS, DIFFICULTY_CONFIGS, calcBrokerFee } from '../engine/config';
 
 export default function StockDetail() {
-  const { gameState, goBack, buyStock, sellStock, shortStock, coverStock } = useGame();
+  const { gameState, goBack, buyStock, sellStock, shortStock, coverStock, lastError, clearError } = useGame();
   if (!gameState) return null;
 
   const [shares, setShares] = useState(1);
@@ -48,14 +48,15 @@ export default function StockDetail() {
     : position && position.shares < 0 && Math.abs(position.shares) >= shares;
 
   const handleExecute = () => {
-    setError('');
+    clearError();
     setSuccess('');
-    try {
-      if (tradeType === 'buy') { buyStock(stockId, shares); setSuccess(`Bought ${shares} ${stock.ticker}`); }
-      else if (tradeType === 'sell') { sellStock(stockId, shares); setSuccess(`Sold ${shares} ${stock.ticker}`); }
-      else if (tradeType === 'short') { shortStock(stockId, shares); setSuccess(`Shorted ${shares} ${stock.ticker}`); }
-      else { coverStock(stockId, shares); setSuccess(`Covered ${shares} ${stock.ticker}`); }
-    } catch (e: any) { setError(e.message); }
+    setError('');
+    if (tradeType === 'buy') buyStock(stockId, shares);
+    else if (tradeType === 'sell') sellStock(stockId, shares);
+    else if (tradeType === 'short') shortStock(stockId, shares);
+    else coverStock(stockId, shares);
+    // lastError is populated synchronously by the reducer if trade failed
+    // It'll be visible on next render via the lastError display
   };
 
   // Colors for chart
@@ -185,8 +186,8 @@ export default function StockDetail() {
             {tradeType === 'buy' && <div className="flex justify-between"><span className="text-[var(--text-muted)]">Cash After</span><span className="font-mono-data">\${(gameState.cash - totalCost).toFixed(2)}</span></div>}
           </div>
 
-          {error && <p className="text-xs text-[var(--loss-red)] mb-2">{error}</p>}
-          {success && <p className="text-xs text-[var(--profit-green)] mb-2">{success}</p>}
+          {(error || lastError) && <p className="text-xs text-[var(--loss-red)] mb-2">{error || lastError}</p>}
+          {success && !lastError && <p className="text-xs text-[var(--profit-green)] mb-2">{success}</p>}
 
           <button onClick={handleExecute} disabled={!canExecute}
             className={`w-full py-3 rounded-xl font-semibold text-sm transition-all ${canExecute

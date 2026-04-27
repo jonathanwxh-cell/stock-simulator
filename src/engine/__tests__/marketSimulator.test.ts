@@ -24,8 +24,8 @@ describe('Long roundtrip (buy → sell)', () => {
     const price = stock.currentPrice;
     const initialNetWorth = getNetWorth(state);
 
-    state = executeBuy(state, stockId, 10).state;
-    state = executeSell(state, stockId, 10).state;
+    { const r = executeBuy(state, stockId, 10); if (!r.ok) throw new Error(r.reason); state = r.state; }
+    { const r = executeSell(state, stockId, 10); if (!r.ok) throw new Error(r.reason); state = r.state; }
 
     const finalNetWorth = getNetWorth(state);
     const loss = initialNetWorth - finalNetWorth;
@@ -41,12 +41,12 @@ describe('Long roundtrip (buy → sell)', () => {
     const stockId = state.stocks[0].id;
     const initialNetWorth = getNetWorth(state);
 
-    state = executeBuy(state, stockId, 10).state;
+    { const r = executeBuy(state, stockId, 10); if (!r.ok) throw new Error(r.reason); state = r.state; }
 
     // Force price up 50%
     state.stocks[0].currentPrice = state.stocks[0].currentPrice * 1.5;
 
-    state = executeSell(state, stockId, 10).state;
+    { const r = executeSell(state, stockId, 10); if (!r.ok) throw new Error(r.reason); state = r.state; }
     expect(getNetWorth(state)).toBeGreaterThan(initialNetWorth);
   });
 });
@@ -60,13 +60,13 @@ describe('Short roundtrip (short → cover)', () => {
     const initialNetWorth = getNetWorth(state);
     const shares = 10;
 
-    state = executeShort(state, stockId, shares).state;
+    { const r = executeShort(state, stockId, shares); if (!r.ok) throw new Error(r.reason); state = r.state; }
 
     // Price drops 30%
     const newPrice = entryPrice * 0.7;
     state.stocks[0].currentPrice = newPrice;
 
-    state = executeCover(state, stockId, shares).state;
+    { const r = executeCover(state, stockId, shares); if (!r.ok) throw new Error(r.reason); state = r.state; }
 
     const finalNetWorth = getNetWorth(state);
     const profit = finalNetWorth - initialNetWorth;
@@ -84,9 +84,9 @@ describe('Short roundtrip (short → cover)', () => {
     const entryPrice = state.stocks[0].currentPrice;
     const initialNetWorth = getNetWorth(state);
 
-    state = executeShort(state, stockId, 10).state;
+    { const r = executeShort(state, stockId, 10); if (!r.ok) throw new Error(r.reason); state = r.state; }
     state.stocks[0].currentPrice = entryPrice * 1.3;
-    state = executeCover(state, stockId, 10).state;
+    { const r = executeCover(state, stockId, 10); if (!r.ok) throw new Error(r.reason); state = r.state; }
 
     expect(getNetWorth(state)).toBeLessThan(initialNetWorth);
   });
@@ -96,9 +96,9 @@ describe('Short roundtrip (short → cover)', () => {
     const stockId = state.stocks[0].id;
     const initialNetWorth = getNetWorth(state);
 
-    state = executeShort(state, stockId, 10).state;
+    { const r = executeShort(state, stockId, 10); if (!r.ok) throw new Error(r.reason); state = r.state; }
     // No price change
-    state = executeCover(state, stockId, 10).state;
+    { const r = executeCover(state, stockId, 10); if (!r.ok) throw new Error(r.reason); state = r.state; }
 
     const loss = initialNetWorth - getNetWorth(state);
     expect(loss).toBeGreaterThan(0);
@@ -112,15 +112,15 @@ describe('Short roundtrip (short → cover)', () => {
     const entryPrice = stock.currentPrice;
     const initialNetWorth = getNetWorth(state);
 
-    state = executeShort(state, stockId, 20).state;
+    { const r = executeShort(state, stockId, 20); if (!r.ok) throw new Error(r.reason); state = r.state; }
 
     // Cover half at -20%
     state.stocks[0].currentPrice = entryPrice * 0.8;
-    state = executeCover(state, stockId, 10).state;
+    { const r = executeCover(state, stockId, 10); if (!r.ok) throw new Error(r.reason); state = r.state; }
 
     // Cover rest at -40%
     state.stocks[0].currentPrice = entryPrice * 0.6;
-    state = executeCover(state, stockId, 10).state;
+    { const r = executeCover(state, stockId, 10); if (!r.ok) throw new Error(r.reason); state = r.state; }
 
     const profit = getNetWorth(state) - initialNetWorth;
     const expectedGross = (entryPrice * 0.2 * 10) + (entryPrice * 0.4 * 10);
@@ -137,10 +137,10 @@ describe('Short roundtrip (short → cover)', () => {
     let state = createNewGame('Test', 'normal');
     const stockId = state.stocks[0].id;
 
-    state = executeShort(state, stockId, 50).state;
+    { const r = executeShort(state, stockId, 50); if (!r.ok) throw new Error(r.reason); state = r.state; }
     const fullMargin = state.marginUsed;
 
-    state = executeCover(state, stockId, 25).state;
+    { const r = executeCover(state, stockId, 25); if (!r.ok) throw new Error(r.reason); state = r.state; }
 
     // Half the margin released
     expect(state.marginUsed).toBeCloseTo(fullMargin / 2, 1);
@@ -166,7 +166,7 @@ describe('Game over conditions', () => {
       state.cash / (stock.currentPrice * config.shortMarginRequirement * 1.1),
     );
 
-    state = executeShort(state, stockId, maxShares).state;
+    { const r = executeShort(state, stockId, maxShares); if (!r.ok) throw new Error(r.reason); state = r.state; }
 
     // Massive price spike — liability dwarfs cash
     state.stocks[0].currentPrice = stock.currentPrice * 50;
@@ -189,12 +189,12 @@ describe('Margin accounting', () => {
     const stockId = state.stocks[0].id;
     const entryPrice = state.stocks[0].currentPrice;
 
-    state = executeShort(state, stockId, 10).state;
+    { const r = executeShort(state, stockId, 10); if (!r.ok) throw new Error(r.reason); state = r.state; }
     const firstMargin = state.marginUsed;
 
     // Price moves, short more
     state.stocks[0].currentPrice = entryPrice * 1.1;
-    state = executeShort(state, stockId, 10).state;
+    { const r = executeShort(state, stockId, 10); if (!r.ok) throw new Error(r.reason); state = r.state; }
 
     expect(state.shortPositions[stockId].shares).toBe(20);
     expect(state.marginUsed).toBeGreaterThan(firstMargin);
@@ -213,7 +213,7 @@ describe('Margin call threshold (v1.3.0 fix)', () => {
     const wbd = state.stocks.find(s => s.currentPrice < 20)!;
     const entryPrice = wbd.currentPrice;
 
-    state = executeShort(state, wbd.id, 100).state;
+    { const r = executeShort(state, wbd.id, 100); if (!r.ok) throw new Error(r.reason); state = r.state; }
     expect(state.shortPositions[wbd.id]).toBeDefined();
 
     // Push price to 20×: liability ≈ $2400, equity drops below maintenance
@@ -237,7 +237,7 @@ describe('Margin call threshold (v1.3.0 fix)', () => {
     const wbd = state.stocks.find(s => s.currentPrice < 20)!;
     const entryPrice = wbd.currentPrice;
 
-    state = executeShort(state, wbd.id, 100).state;
+    { const r = executeShort(state, wbd.id, 100); if (!r.ok) throw new Error(r.reason); state = r.state; }
     expect(state.shortPositions[wbd.id]).toBeDefined();
 
     // Price doubles — equity still well above maintenance

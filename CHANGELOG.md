@@ -1,5 +1,34 @@
 # Changelog
 
+## [1.4.0] — 2026-04-27
+
+### Added
+
+- **Test coverage**: 4 new test files covering limit orders, dividends, splits, and scenarios.
+  Suite now has 41 tests across 5 files. All deterministic, flake-free.
+- **`ARCHITECTURE.md`**: documents directory layout, engine purity contract, state flow,
+  audio system, and how to extend the game.
+- **`TradeError` discriminated union**: `executeBuy`/`executeSell`/`executeShort`/`executeCover`/`placeLimitOrder`
+  now return `{ ok: true, state, transaction }` or `{ ok: false, reason }` instead of throwing.
+- **Error display in UI**: `StockDetail` page shows trade failure reason in plain English
+  (e.g. "Not enough cash", "Invalid number of shares").
+- **`tradeErrorMessage()` helper**: centralised error-to-string mapping for future i18n.
+
+### Changed
+
+- **Trade functions no longer throw**. This is technically API-breaking for any external
+  consumer of the engine, but there are none, so it's safe as a minor version bump.
+- **GameContext tracks `lastError`**: exposed via `useGame()` alongside `clearError()`.
+- **Scenario generator**: news templates loaded from `src/engine/data/news-templates.json`
+  (extracted in v1.3.0). Import moved to top of file, divider comments removed.
+
+### Internal
+
+- CHANGELOG link references now include all versions (1.0.0 through 1.4.0).
+- Deleted orphaned v1.2.2 GitHub Release (redundant with v1.3.0).
+- Scenario generator import order cleaned up.
+
+
 All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versioning follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
@@ -187,6 +216,8 @@ Engine correctness pass. No breaking changes; existing saves load unchanged.
 Initial commit. Turn-based stock market sim — 60 stocks across 12 sectors,
 4 difficulty levels, margin trading, short selling, 600+ market events.
 
+[1.4.0]: https://github.com/jonathanwxh-cell/stock-simulator/compare/v1.3.0...v1.4.0
+[1.3.0]: https://github.com/jonathanwxh-cell/stock-simulator/compare/v1.2.1...v1.3.0
 [1.2.1]: https://github.com/jonathanwxh-cell/stock-simulator/compare/v1.2.0...v1.2.1
 [1.2.0]: https://github.com/jonathanwxh-cell/stock-simulator/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/jonathanwxh-cell/stock-simulator/compare/v1.0.0...v1.1.0
