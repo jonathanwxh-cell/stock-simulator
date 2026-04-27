@@ -4,6 +4,53 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versioning follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.0] — 2026-04-27
+
+Full audio system — synthesised SFX + AI-generated background music. No gameplay changes.
+
+### Added
+
+- **Web Audio API synthesiser** (`src/engine/audioEngine.ts`). All SFX are generated
+  at runtime via OscillatorNode + GainNode envelopes — zero external audio assets,
+  ~0 KB download overhead, instant init. Sounds:
+  - `playBuy` — rising 3-note tone (confirmed purchase)
+  - `playSell` — descending 2-note tone (liquidation)
+  - `playShort` — descending sawtooth (bearish move)
+  - `playCover` — rising sine (position closed)
+  - `playDividend` — soft chime (passive income)
+  - `playBankrupt` — low rumble (company failure)
+  - `playGameOver` — dramatic descending phrase (game ends)
+  - `playMarginCall` — pulsing square wave (warning)
+  - `playNews` — sharp ping (alert)
+  - `playTurn` — soft tick (turn advance)
+  - `playLevelUp` — celebratory arpeggio (difficulty milestone)
+  - `playClick` — UI tap
+  - `playError` — low buzz (invalid action)
+- **MiniMax Music-2.6 integration** (`src/engine/musicEngine.ts`). Two AI-generated
+  background tracks via MiniMax API:
+  - `title.mp3` — jazz lo-fi, chill, soft piano (title/character creation screen)
+  - `gameplay.mp3` — chill hop, mellow beats, subtle synth (gameplay loop)
+  Music fades smoothly (500 ms crossfade) on screen transitions and auto-loops.
+- **Audio hooks** (`src/hooks/useAudio.ts`). React hooks for music/SFX control:
+  - `useMusic` — play/pause/fade/track control with automatic screen-aware switching
+  - `useSfx` — per-sound triggers with master volume control
+- **Audio wiring** in `GameContext.tsx`. All game actions now trigger appropriate SFX:
+  - `buyStock` → `playBuy`, `sellStock` → `playSell`, `shortStock` → `playShort`,
+    `coverStock` → `playCover`, `advanceTurn` → `playTurn`, `placeOrder` → `playLimitOrder`,
+    `cancelOrder` → `playClick`, `navigateTo` → `playClick`, `loadGame` → `playGameStart`
+  - Music auto-switches: title screen → title.mp3, any game screen → gameplay.mp3
+  - Turn-simulated events: `playNews` (5 % chance per turn), `playLevelUp` (periodic),
+    `playGameOver` (on game over)
+- **`AudioUnlock` component** (`src/App.tsx`). Global `click`/`touchstart` listener
+  that resumes the AudioContext on first user gesture (Chrome/Safari autoplay policy).
+
+### Fixed
+
+- **AudioContext suspension.** Browsers require a user gesture to create/resume an
+  AudioContext. The synthesiser now initialises asynchronously with `await resume()`,
+  and a global unlock listener fires on the first tap anywhere on the page.
+- **Master gain** bumped from 0.3 → 0.4 for better audibility across devices.
+
 ## [1.1.0] — 2026-04-26
 
 Engine correctness pass. No breaking changes; existing saves load unchanged.
@@ -74,5 +121,6 @@ Engine correctness pass. No breaking changes; existing saves load unchanged.
 Initial commit. Turn-based stock market sim — 60 stocks across 12 sectors,
 4 difficulty levels, margin trading, short selling, 600+ market events.
 
+[1.2.0]: https://github.com/jonathanwxh-cell/stock-simulator/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/jonathanwxh-cell/stock-simulator/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/jonathanwxh-cell/stock-simulator/releases/tag/v1.0.0
