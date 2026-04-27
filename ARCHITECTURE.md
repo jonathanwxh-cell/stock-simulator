@@ -7,7 +7,7 @@ src/
 ├── audio/           # Sound system — no DOM, no React
 │   ├── audioEngine.ts    # Web Audio API synthesizer (SFX)
 │   └── musicEngine.ts    # BGM player (loads MP3 from public/audio/music/)
-├── components/      # Shared UI atoms (mostly unused after shadcn removal)
+├── components/      # Shared UI shell (Layout, Navbar, Footer)
 ├── context/         # React state management
 │   └── GameContext.tsx    # Central reducer: GameProvider + useGame() hook
 ├── engine/          # Pure game logic — ZERO DOM/React imports
@@ -25,7 +25,7 @@ src/
 │   ├── data/
 │   │   ├── news-templates.json   # Sector-specific news headlines + descriptions
 │   │   └── stocks.json           # 60 stock definitions (pure data, no logic)
-│   └── __tests__/        # Vitest test suite (50 tests, 6 files)
+│   └── __tests__/        # Vitest test suite (50 tests across 6 files + 1 helper)
 ├── hooks/           # Custom React hooks
 │   ├── useAudio.ts       # Audio controls (volume, mute, unlock)
 ├── lib/             # Shared utilities (cn, etc.)
@@ -101,21 +101,22 @@ simulateTurn(state, new SeededRNG(42));
 
 ## Audio System
 
-Two independent modules:
+Two independent modules under `src/audio/`:
 
-**SFX** (`audioEngine.ts`): Pure Web Audio API synthesis. 13 sounds generated from oscillators:
-- `buy`, `sell`, `short`, `cover` — trade confirmations
-- `profit`, `loss` — P&L feedback
-- `news`, `alert`, `dividend`, `split` — market events
-- `click`, `error`, `levelUp` — UI feedback
+**SFX** (`audioEngine.ts`): Pure Web Audio API synthesis using OscillatorNode + GainNode envelopes. No external assets.
+
+14 exported `play*` functions:
+- `playBuy`, `playSell`, `playShort`, `playCover` — trade confirmations
+- `playDividend`, `playBankrupt`, `playMarginCall` — financial events
+- `playTurn`, `playGameStart`, `playGameOver` — game lifecycle
+- `playNews`, `playLevelUp` — market events
+- `playClick`, `playError` — UI feedback
 
 **BGM** (`musicEngine.ts`): Loads pre-generated MP3 files from `public/audio/music/`:
-- `title.mp3` — title screen
-- `gameplay.mp3` — main game loop (30s, loops seamlessly)
-- `next-turn.mp3` — turn transition
-- `game-over.mp3` — end screen
+- `title.mp3` — title screen music
+- `gameplay.mp3` — main game loop (loops seamlessly)
 
-Both gated by `settings.soundEnabled` / `settings.musicEnabled`. Audio context requires user gesture to start (handled in `App.tsx`).
+Both gated by `settings.soundEnabled` / `settings.musicEnabled`. Audio context requires user gesture to start (handled in `App.tsx` via `AudioUnlock` component).
 
 ## Adding Things
 
@@ -129,4 +130,4 @@ Both gated by `settings.soundEnabled` / `settings.musicEnabled`. Audio context r
 
 ## Why No shadcn
 
-shadcn/ui was installed in the initial scaffold but never used. All UI is built with Tailwind utility classes and custom CSS variables (`var(--surface-1)`, `var(--text-primary)`, etc.). The 33 unused Radix/shadcn dependencies were removed in v1.3.0. If you need a complex UI primitive (dialog, dropdown, etc.), install the specific Radix component directly.
+shadcn/ui was installed in the initial scaffold but never used. All UI is built with Tailwind utility classes and custom CSS variables (`var(--surface-1)`, `var(--text-primary)`, etc.). Unused Radix/shadcn dependencies were removed in v1.3.0. If you need a complex UI primitive (dialog, dropdown, etc.), install the specific Radix component directly.

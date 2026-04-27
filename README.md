@@ -22,7 +22,7 @@ Trade 60 fictional stocks across 12 sectors, react to randomly generated market 
 
 - React 19 + TypeScript
 - Vite 7
-- Tailwind CSS + shadcn/ui (40+ components)
+- Tailwind CSS
 - Framer Motion
 - Recharts (price charts)
 - IndexedDB (via `idb`) for save persistence
@@ -45,14 +45,18 @@ npm run build
 ```
 src/
 ├── engine/              # Game logic (pure TypeScript, no UI)
-│   ├── config.ts        # Difficulty configs, sector colors, fee calculation
-│   ├── gameState.ts     # State machine: start, trade, next-turn, game-over
-│   ├── marketSimulator.ts   # Price engine: GBM, mean reversion, sector rotation
-│   ├── scenarioGenerator.ts # 600+ event templates across 30+ categories
-│   ├── stockData.ts     # 60 stock definitions with real-ish fundamentals
-│   ├── leaderboard.ts   # Score tracking
-│   ├── saveSystem.ts    # IndexedDB persistence
-│   └── types.ts         # TypeScript interfaces
+│   ├── types.ts         # All TypeScript interfaces
+│   ├── config.ts        # Difficulty configs, sector definitions, constants
+│   ├── rng.ts           # RNG interface + seeded (deterministic) + Math.random backends
+│   ├── gameState.ts     # Trade execution, limit orders, game creation
+│   ├── marketSimulator.ts   # Price engine: sector rotation, mean reversion, margins
+│   ├── scenarioGenerator.ts # 132 news templates across 13 sectors
+│   ├── stockData.ts     # Thin loader for data/stocks.json (60 stocks)
+│   ├── cloneState.ts    # Deep clone utility
+│   ├── saveSystem.ts    # IndexedDB persistence (3 slots + auto)
+│   ├── leaderboard.ts   # High score tracking
+│   ├── index.ts         # Barrel export
+│   └── data/            # stocks.json, news-templates.json
 ├── pages/
 │   ├── TitleScreen.tsx  # Landing page with difficulty selection
 │   ├── GameHUD.tsx      # Main game interface
@@ -66,7 +70,7 @@ src/
 │   └── ...              # Leaderboard, settings, how-to-play, load/save
 ├── context/
 │   └── GameContext.tsx   # React context bridging engine ↔ UI
-└── components/ui/       # shadcn/ui component library
+└── components/          # Layout shell (Navbar, Footer, Layout)
 ```
 
 ## How It Works

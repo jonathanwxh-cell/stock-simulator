@@ -1,6 +1,19 @@
 # Changelog
 
-All notable
+All notable changes to this project are documented here. Format follows
+[Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versioning follows
+[Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [1.5.1] — 2026-04-27
+
+### Documentation
+
+- **CHANGELOG.md**: Restored truncated preamble paragraph
+- **ARCHITECTURE.md**: Fixed audio section — 14 SFX exports (was 13), 2 BGM tracks (was 4)
+- **ARCHITECTURE.md**: Fixed pages section — 13 files listed (was 8, with wrong filenames)
+- **ARCHITECTURE.md**: Fixed components, hooks, and test suite descriptions
+- **README.md**: Removed stale shadcn/ui references, fixed engine file listing, corrected template counts
+
 ## [1.5.0] — 2026-04-27
 
 ### Added
