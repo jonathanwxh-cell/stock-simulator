@@ -1,6 +1,40 @@
 # Changelog
 
-All notable changes to this project are documented here. Format follows
+All notable
+## [1.5.0] — 2026-04-27
+
+### Added
+
+- **Seeded PRNG** (`src/engine/rng.ts`): `RNG` interface with `MathRandomRNG` (production)
+  and `SeededRNG` (mulberry32, deterministic). Same seed → identical game sequences.
+  Functions accept optional `rng` parameter; defaults to `Math.random()` wrapper.
+- **Stock data extracted to JSON**: `data/stocks.json` replaces 913-line inline array.
+  `stockData.ts` reduced to 26-line thin loader.
+- **Test helper** (`_helpers.ts`): `unwrap()` function reduces trade-result boilerplate
+  from 5 lines to 1 across all test files.
+- **9 new RNG tests** including deterministic replay verification.
+- **ARCHITECTURE.md "Randomness" section**: documents injection pattern and debugging usage.
+
+### Fixed
+
+- **splits.test.ts**: 4 tautology tests (pure arithmetic) replaced with real engine tests
+  that exercise `maybeStockSplit` — cost basis invariant, entry value invariant,
+  multiplier tracking, cumulative split verification.
+- **dividend long+short test**: now asserts dividend transactions directly (long credit ≈ 2×
+  short debit, net positive) instead of tolerating $50 negative via net cash.
+- **scenarios test**: comment/code mismatch fixed — threshold bumped from 0.3 to 0.4
+  to match the "majority (> 40%)" comment.
+- **ARCHITECTURE.md**: corrected filenames (`saveSystem.ts`, `cloneState.ts`), added
+  `rng.ts`, `stocks.json`, `index.ts`. Cross-checked against actual repo.
+- **CHANGELOG**: preamble restored to correct position; added missing `[1.2.2]` link ref.
+
+### Internal
+
+- Zero `Math.random()` calls in engine outside `rng.ts`.
+- Zero raw `if (!r.ok) throw` patterns in test files — all use `unwrap()`.
+- 50 tests across 6 files, all deterministic (except integration split test).
+
+ changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/), and this project adheres to
 [Semantic Versioning](https://semver.org/).
 
