@@ -295,8 +295,8 @@ Initial commit. Turn-based stock market sim — 60 stocks across 12 sectors,
 4 difficulty levels, margin trading, short selling, 600+ market events.
 
 [1.5.6]: https://github.com/jonathanwxh-cell/stock-simulator/compare/v1.5.5...v1.5.6
-[1.5.4]: https://github.com/jonathanwxh-cell/stock-simulator/compare/v1.5.3...v1.5.4
 [1.5.5]: https://github.com/jonathanwxh-cell/stock-simulator/compare/v1.5.4...v1.5.5
+[1.5.4]: https://github.com/jonathanwxh-cell/stock-simulator/compare/v1.5.3...v1.5.4
 [1.5.3]: https://github.com/jonathanwxh-cell/stock-simulator/compare/v1.5.2...v1.5.3
 [1.5.2]: https://github.com/jonathanwxh-cell/stock-simulator/compare/v1.5.1...v1.5.2
 [1.5.1]: https://github.com/jonathanwxh-cell/stock-simulator/compare/v1.5.0...v1.5.1

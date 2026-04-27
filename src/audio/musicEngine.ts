@@ -45,7 +45,7 @@ function crossfade(outgoing: HTMLAudioElement | null, incoming: HTMLAudioElement
 
     if (step >= FADE_STEPS) {
       cancelFade();
-      outgoing?.pause();
+      if (outgoing !== incoming) outgoing?.pause();
       incoming.volume = TARGET_VOLUME;
     }
   }, stepMs);
