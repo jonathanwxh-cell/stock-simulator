@@ -4,6 +4,17 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versioning follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.2] — 2026-04-28
+
+### Fixed
+- **Mislabeled error log** in `newGame`: `autoSave().catch` logged as `audio:` instead of `save:` — copy-paste residue from v1.2.1
+- **useCallback defeat**: all SFX methods in `useAudio` were inline arrow functions in the return object, recreated every render, defeating memoization in GameContext callbacks. Now each SFX method is individually wrapped in `useCallback` keyed on `[soundEnabled]`
+- **Mid-fade volume leak**: `stopAllMusic()` cancelled the fade interval but left audio elements at fractional volumes. Next `playTrack()` would briefly play at stale volume before crossfade overwrote it. Now both audio volumes are reset to 0 on stop, and `incoming.volume = 0` is set before `play()` to prevent one-frame leak
+- **Screen handling clarity**: added explicit comment documenting that submenu screens (stock-market, stock-detail, portfolio, news, next-turn, leaderboard, settings, how-to-play, load-save) intentionally inherit the parent screen's music — not a fallthrough bug
+
+### Changed
+- **Hook move** (preceding commit): `useAudio` relocated from `src/hooks/` to `src/hooks/useAudio.ts` for consistency with audio module
+
 ## [1.2.1] — 2026-04-28
 
 ### Fixed
