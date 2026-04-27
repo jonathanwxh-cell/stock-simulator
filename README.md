@@ -50,7 +50,7 @@ src/
 │   ├── rng.ts           # RNG interface + seeded (deterministic) + Math.random backends
 │   ├── gameState.ts     # Trade execution, limit orders, game creation
 │   ├── marketSimulator.ts   # Price engine: sector rotation, mean reversion, margins
-│   ├── scenarioGenerator.ts # 132 news templates across 13 sectors
+│   ├── scenarioGenerator.ts # News events and market scenarios
 │   ├── stockData.ts     # Thin loader for data/stocks.json (60 stocks)
 │   ├── cloneState.ts    # Deep clone utility
 │   ├── saveSystem.ts    # IndexedDB persistence (3 slots + auto)

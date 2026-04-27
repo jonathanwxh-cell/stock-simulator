@@ -1,8 +1,16 @@
 # Changelog
 
 All notable changes to this project are documented here. Format follows
-[Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versioning follows
+[Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [1.5.2] — 2026-04-27
+
+### Documentation
+
+- Removed two duplicate preamble fragments from `CHANGELOG.md` (truncation artifacts from earlier edits).
+- Added missing `[1.5.1]` link reference in `CHANGELOG.md`.
+- Generalized `scenarioGenerator.ts` description in `README.md` to remove unverified template/sector counts.
 
 ## [1.5.1] — 2026-04-27
 
@@ -46,11 +54,6 @@ All notable changes to this project are documented here. Format follows
 - Zero `Math.random()` calls in engine outside `rng.ts`.
 - Zero raw `if (!r.ok) throw` patterns in test files — all use `unwrap()`.
 - 50 tests across 6 files, all deterministic (except integration split test).
-
- changes to this project are documented here. Format follows
-[Keep a Changelog](https://keepachangelog.com/), and this project adheres to
-[Semantic Versioning](https://semver.org/).
-
 ## [1.4.0] — 2026-04-27
 
 ### Added
@@ -78,11 +81,6 @@ All notable changes to this project are documented here. Format follows
 - CHANGELOG link references now include all versions (1.0.0 through 1.4.0).
 - Deleted orphaned v1.2.2 GitHub Release (redundant with v1.3.0).
 - Scenario generator import order cleaned up.
-
-
-All notable changes to this project are documented here. Format follows
-[Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versioning follows
-[Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [1.3.0] — 2026-04-28
 
@@ -267,6 +265,8 @@ Engine correctness pass. No breaking changes; existing saves load unchanged.
 Initial commit. Turn-based stock market sim — 60 stocks across 12 sectors,
 4 difficulty levels, margin trading, short selling, 600+ market events.
 
+[1.5.2]: https://github.com/jonathanwxh-cell/stock-simulator/compare/v1.5.1...v1.5.2
+[1.5.1]: https://github.com/jonathanwxh-cell/stock-simulator/compare/v1.5.0...v1.5.1
 [1.5.0]: https://github.com/jonathanwxh-cell/stock-simulator/compare/v1.4.0...v1.5.0
 [1.4.0]: https://github.com/jonathanwxh-cell/stock-simulator/compare/v1.3.0...v1.4.0
 [1.2.2]: https://github.com/jonathanwxh-cell/stock-simulator/compare/v1.2.1...v1.2.2
