@@ -63,7 +63,9 @@ function playTrack(track: 'title' | 'gameplay'): void {
 
   const incoming = track === 'title' ? titleAudio : gameplayAudio;
 
+  // Set volume to 0 BEFORE play to prevent one-frame volume leak
   incoming.currentTime = 0;
+  incoming.volume = 0;
   incoming.play().catch(e => console.warn('audio:', e));
 
   crossfade(outgoing, incoming);
@@ -80,8 +82,8 @@ export function playGameplayMusic(): void {
 
 export function stopAllMusic(): void {
   cancelFade();
-  titleAudio?.pause();
-  gameplayAudio?.pause();
+  if (titleAudio) { titleAudio.pause(); titleAudio.volume = 0; }
+  if (gameplayAudio) { gameplayAudio.pause(); gameplayAudio.volume = 0; }
   currentTrack = null;
 }
 

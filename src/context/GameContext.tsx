@@ -97,7 +97,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
     dispatch({ type: 'SET_GAME_STATE', payload: game });
     dispatch({ type: 'SET_SCREEN', payload: 'game' });
     audio.turn();
-    autoSave(game).catch(e => console.warn('audio:', e));
+    autoSave(game).catch(e => console.warn('save:', e));
   }, [audio.turn]);
 
   const loadGame = useCallback(async (slot: 1 | 2 | 3 | 'auto') => {
