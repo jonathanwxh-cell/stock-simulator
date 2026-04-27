@@ -1,5 +1,7 @@
 import { deepCloneGameState } from './cloneState';
 import type { GameState, Stock } from './types';
+import type { RNG } from './rng';
+import { defaultRNG } from './rng';
 import { DIFFICULTY_CONFIGS, SCENARIO_FREQUENCY_MAP, calcBrokerFee } from './config';
 import { generateScenario, generateNewsEvent } from './scenarioGenerator';
 import { calculateGrade } from './gameState';
@@ -8,7 +10,7 @@ function genNewsId(): string {
   return `news_${crypto.randomUUID()}`;
 }
 
-export function simulateTurn(gameState: GameState): GameState {
+export function simulateTurn(gameState: GameState, rng: RNG = defaultRNG): GameState {
   const config = DIFFICULTY_CONFIGS[gameState.difficulty];
   const newState = deepCloneGameState(gameState);
 
@@ -27,21 +29,21 @@ export function simulateTurn(gameState: GameState): GameState {
   }
 
   // 4. Maybe start new scenario
-  if (!newState.currentScenario && Math.random() < SCENARIO_FREQUENCY_MAP[config.scenarioFrequency]) {
-    newState.currentScenario = generateScenario(newState);
+  if (!newState.currentScenario && rng.next() < SCENARIO_FREQUENCY_MAP[config.scenarioFrequency]) {
+    newState.currentScenario = generateScenario(newState, rng);
   }
 
   // 5. Generate news
-  const numNews = Math.floor(Math.random() * 3);
+  const numNews = rng.int(0, 2);
   for (let i = 0; i < numNews; i++) {
-    const event = generateNewsEvent(newState);
+    const event = generateNewsEvent(newState, undefined, undefined, rng);
     event.id = genNewsId();
     newState.newsHistory.push(event);
   }
 
   // 6. Update stock prices
   for (const stock of newState.stocks) {
-    const newPrice = calculateNewPrice(stock, newState, config.volatilityMultiplier);
+    const newPrice = calculateNewPrice(stock, newState, config.volatilityMultiplier, rng);
     stock.currentPrice = Math.max(1, Math.round(newPrice * 100) / 100);
     stock.priceHistory.push({ turn: newState.currentTurn, price: stock.currentPrice });
   }
@@ -50,7 +52,7 @@ export function simulateTurn(gameState: GameState): GameState {
   executeLimitOrders(newState);
 
   // 8. Stock splits (rare: ~2% chance per turn for any stock above $500)
-  maybeStockSplit(newState);
+  maybeStockSplit(newState, rng);
 
   // 9. Pay dividends quarterly
   if (currentDate.getMonth() % 3 === 0) payDividends(newState);
@@ -86,8 +88,6 @@ export function simulateTurn(gameState: GameState): GameState {
     newState.finalGrade = calculateGrade(newState);
     newState.finalRank = getRankTitle(newState.finalGrade);
   } else if (netWorth <= 0) {
-    // Wiped out — covers short squeezes where cash is positive but
-    // short liability exceeds total assets.
     newState.isGameOver = true;
     newState.finalGrade = 'F';
     newState.finalRank = getRankTitle('F');
@@ -104,7 +104,6 @@ function executeLimitOrders(state: GameState) {
   for (const order of state.limitOrders) {
     const stock = state.stocks.find(s => s.id === order.stockId);
     if (!stock) {
-      // Stock no longer exists — drop the order.
       consumed.push(order.id);
       continue;
     }
@@ -136,7 +135,6 @@ function executeLimitOrders(state: GameState) {
           price: Math.round(stock.currentPrice * 100) / 100, total: Math.round(total * 100) / 100, fee,
         });
       }
-      // Whether executed or not, the trigger fired — don't leave a zombie in the queue.
       consumed.push(order.id);
     } else {
       const pos = state.portfolio[order.stockId];
@@ -151,7 +149,6 @@ function executeLimitOrders(state: GameState) {
           price: Math.round(stock.currentPrice * 100) / 100, total: Math.round(total * 100) / 100, fee,
         });
       }
-      // Same logic — trigger fired; consume the order regardless.
       consumed.push(order.id);
     }
   }
@@ -159,12 +156,12 @@ function executeLimitOrders(state: GameState) {
   state.limitOrders = state.limitOrders.filter(o => !consumed.includes(o.id));
 }
 
-function maybeStockSplit(state: GameState) {
-  if (Math.random() > 0.02) return;
+function maybeStockSplit(state: GameState, rng: RNG = defaultRNG) {
+  if (rng.next() > 0.02) return;
   const eligible = state.stocks.filter(s => s.currentPrice >= 500);
   if (eligible.length === 0) return;
 
-  const stock = eligible[Math.floor(Math.random() * eligible.length)];
+  const stock = rng.pick(eligible);
   const splitRatio = 2;
   stock.basePrice = Math.round(stock.basePrice / splitRatio * 100) / 100;
   stock.currentPrice = Math.round(stock.currentPrice / splitRatio * 100) / 100;
@@ -213,8 +210,6 @@ function payDividends(state: GameState) {
     });
   }
 
-  // Short sellers pay dividends — record the negative dividend so the player
-  // can reconcile cash drift.
   for (const [stockId, short] of Object.entries(state.shortPositions)) {
     if (short.shares <= 0) continue;
     const stock = state.stocks.find(s => s.id === stockId);
@@ -264,7 +259,6 @@ export function checkMarginCall(state: GameState) {
     const currentLiability = stock.currentPrice * short.shares;
     const maintenanceReq = currentLiability * config.marginMaintenance;
     if (equity < maintenanceReq) {
-      // Force cover at loss
       const pnl = (short.entryPrice - stock.currentPrice) * short.shares;
       state.cash += short.marginUsed + pnl;
       state.cash = Math.round(state.cash * 100) / 100;
@@ -281,13 +275,13 @@ export function checkMarginCall(state: GameState) {
   }
 }
 
-function calculateNewPrice(stock: Stock, state: GameState, volatilityMult: number): number {
+function calculateNewPrice(stock: Stock, state: GameState, volatilityMult: number, rng: RNG = defaultRNG): number {
   const prevPrice = stock.currentPrice;
   const meanReversionStrength = 0.03;
   const meanReversion = (stock.basePrice - prevPrice) * meanReversionStrength;
   const volatility = stock.volatility * volatilityMult;
   const betaAdj = stock.beta ? stock.beta * 0.3 : 0.3;
-  const randomWalk = (Math.random() - 0.48) * volatility * prevPrice;
+  const randomWalk = (rng.next() - 0.48) * volatility * prevPrice;
 
   let sectorEffect = 0;
   if (state.currentScenario) {
@@ -338,5 +332,3 @@ function getRankTitle(grade: string | null): string {
   };
   return titles[grade || 'F'] || 'Unknown';
 }
-
-

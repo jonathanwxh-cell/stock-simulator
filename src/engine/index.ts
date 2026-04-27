@@ -1,5 +1,6 @@
 export * from './types';
 export * from './config';
+export * from './rng';
 export * from './stockData';
 export * from './scenarioGenerator';
 export * from './marketSimulator';

@@ -1,4 +1,6 @@
 import type { Sector, ActiveScenario, NewsEvent, GameState } from './types';
+import type { RNG } from './rng';
+import { defaultRNG } from './rng';
 import { DIFFICULTY_CONFIGS } from './config';
 import { getNetWorth } from './marketSimulator';
 import templatesData from './data/news-templates.json';
@@ -15,33 +17,6 @@ interface NewsTemplate {
   magnitudeRange: [number, number];
 }
 
-function rng(): number {
-  return Math.random();
-}
-
-function randInt(min: number, max: number): number {
-  return Math.floor(rng() * (max - min + 1)) + min;
-}
-
-function randRange(min: number, max: number): number {
-  return rng() * (max - min) + min;
-}
-
-function pickRandom<T>(arr: T[]): T {
-  return arr[Math.floor(rng() * arr.length)];
-}
-
-function pickRandomN<T>(arr: T[], n: number): T[] {
-  // Fisher-Yates partial shuffle: produces a uniformly random sample of size n.
-  const copy = [...arr];
-  const k = Math.min(n, copy.length);
-  for (let i = 0; i < k; i++) {
-    const j = i + Math.floor(rng() * (copy.length - i));
-    [copy[i], copy[j]] = [copy[j], copy[i]];
-  }
-  return copy.slice(0, k);
-}
-
 function getStocksBySector(state: GameState, sector: Sector | 'all'): string[] {
   if (sector === 'all') return state.stocks.map(s => s.id);
   return state.stocks.filter(s => s.sector === sector).map(s => s.id);
@@ -50,7 +25,6 @@ function getStocksBySector(state: GameState, sector: Sector | 'all'): string[] {
 function fillTemplate(template: string, company: string, sector: string): string {
   return template.replace(/\{company\}/g, company).replace(/\{sector\}/g, sector);
 }
-
 
 const TEMPLATES_BY_SECTOR = templatesData as unknown as Record<string, {
   positive: NewsTemplate[];
@@ -78,11 +52,11 @@ const MIXED_SCENARIO_TITLES = [
 
 // ── Public API ────────────────────────────────────────────────────────
 
-export function generateScenario(gameState: GameState): ActiveScenario {
+export function generateScenario(gameState: GameState, rng: RNG = defaultRNG): ActiveScenario {
   const netWorthRatio = getNetWorthRatio(gameState);
 
   let scenarioType: 'positive' | 'negative' | 'mixed';
-  const r = rng();
+  const r = rng.next();
   if (netWorthRatio > 1.5) {
     scenarioType = r < 0.45 ? 'negative' : r < 0.75 ? 'mixed' : 'positive';
   } else if (netWorthRatio < 0.8) {
@@ -91,7 +65,7 @@ export function generateScenario(gameState: GameState): ActiveScenario {
     scenarioType = r < 0.35 ? 'positive' : r < 0.7 ? 'negative' : 'mixed';
   }
 
-  const numEvents = randInt(2, 5);
+  const numEvents = rng.int(2, 5);
   const events: NewsEvent[] = [];
   const sectors: (Sector | 'all')[] = [
     'technology', 'semiconductors', 'healthcare', 'biotech', 'energy',
@@ -106,29 +80,29 @@ export function generateScenario(gameState: GameState): ActiveScenario {
   };
 
   for (let i = 0; i < numEvents; i++) {
-    const sector = pickRandom(sectors);
+    const sector = rng.pick(sectors);
     const impact = scenarioType === 'mixed' ? undefined : scenarioType;
-    const event = generateNewsEvent(gameState, sector, impact);
+    const event = generateNewsEvent(gameState, sector, impact, rng);
     events.push(event);
 
     if (event.sector === 'all') {
       (Object.keys(sectorEffects) as Sector[]).forEach(s => {
-        sectorEffects[s] += event.impact === 'positive' ? randRange(0.02, 0.08)
-          : event.impact === 'negative' ? -randRange(0.02, 0.08) : 0;
+        sectorEffects[s] += event.impact === 'positive' ? rng.range(0.02, 0.08)
+          : event.impact === 'negative' ? -rng.range(0.02, 0.08) : 0;
       });
     } else {
-      sectorEffects[event.sector] += event.impact === 'positive' ? randRange(0.03, 0.12)
-        : event.impact === 'negative' ? -randRange(0.03, 0.12) : 0;
+      sectorEffects[event.sector] += event.impact === 'positive' ? rng.range(0.03, 0.12)
+        : event.impact === 'negative' ? -rng.range(0.03, 0.12) : 0;
     }
   }
 
   const title = scenarioType === 'positive'
-    ? pickRandom(POSITIVE_SCENARIO_TITLES)
+    ? rng.pick(POSITIVE_SCENARIO_TITLES)
     : scenarioType === 'negative'
-    ? pickRandom(NEGATIVE_SCENARIO_TITLES)
-    : pickRandom(MIXED_SCENARIO_TITLES);
+    ? rng.pick(NEGATIVE_SCENARIO_TITLES)
+    : rng.pick(MIXED_SCENARIO_TITLES);
 
-  const duration = randInt(3, 8);
+  const duration = rng.int(3, 8);
 
   return {
     id: genId('scenario'),
@@ -145,8 +119,9 @@ export function generateNewsEvent(
   gameState: GameState,
   forcedSector?: Sector | 'all',
   forcedImpact?: 'positive' | 'negative' | 'neutral',
+  rng: RNG = defaultRNG,
 ): NewsEvent {
-  const sector = forcedSector || pickRandom(
+  const sector = forcedSector || rng.pick(
     ['technology', 'semiconductors', 'healthcare', 'biotech', 'energy',
      'financials', 'consumer', 'media', 'industrial', 'realestate',
      'telecom', 'materials', 'all'] as (Sector | 'all')[]
@@ -156,18 +131,18 @@ export function generateNewsEvent(
     throw new Error(`No templates for sector: ${sector}`);
   }
 
-  const impact = forcedImpact || (rng() < 0.45 ? 'positive' : rng() < 0.9 ? 'negative' : 'neutral');
+  const impact = forcedImpact || (rng.next() < 0.45 ? 'positive' : rng.next() < 0.9 ? 'negative' : 'neutral');
   const templateList = impact === 'positive'
     ? sectorTemplates.positive
     : impact === 'negative'
     ? sectorTemplates.negative
     : [...sectorTemplates.positive, ...sectorTemplates.negative];
-  const template = pickRandom(templateList);
-  const magnitude = randRange(template.magnitudeRange[0], template.magnitudeRange[1]);
+  const template = rng.pick(templateList);
+  const magnitude = rng.range(template.magnitudeRange[0], template.magnitudeRange[1]);
 
-  const affectedStocks = pickRandomN(
+  const affectedStocks = rng.pickN(
     getStocksBySector(gameState, sector),
-    randInt(1, 3)
+    rng.int(1, 3)
   );
 
   const stockName = affectedStocks.length > 0
