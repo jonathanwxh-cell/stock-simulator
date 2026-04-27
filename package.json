@@ -1,7 +1,7 @@
 {
   "name": "stock-simulator",
   "private": true,
-  "version": "1.5.3",
+  "version": "1.5.4",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -54,7 +54,7 @@
     "vite": "^7.2.4",
     "vitest": "^2.1.9"
   },
-  "description": "Turn-based stock market simulation game — 60 stocks, 12 sectors, 4 difficulty levels, margin trading, short selling, and 600+ market events",
+  "description": "Turn-based stock market simulation game \u2014 60 stocks, 12 sectors, 4 difficulty levels, margin trading, short selling, and 600+ market events",
   "author": "Alyosha",
   "license": "MIT",
   "keywords": [

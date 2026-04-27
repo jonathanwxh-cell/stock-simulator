@@ -52,21 +52,26 @@ function crossfade(outgoing: HTMLAudioElement | null, incoming: HTMLAudioElement
 }
 
 function playTrack(track: 'title' | 'gameplay'): void {
-  if (currentTrack === track) return;
-
-  const outgoing = currentTrack === 'title' ? titleAudio
-    : currentTrack === 'gameplay' ? gameplayAudio
-    : null;
-
+  // Lazy-init audio elements
   if (!titleAudio) titleAudio = getAudio('/audio/music/title.mp3');
   if (!gameplayAudio) gameplayAudio = getAudio('/audio/music/gameplay.mp3');
 
   const incoming = track === 'title' ? titleAudio : gameplayAudio;
 
+  // Already playing this track and not paused — nothing to do
+  if (currentTrack === track && !incoming.paused) return;
+
+  const outgoing = currentTrack === 'title' ? titleAudio
+    : currentTrack === 'gameplay' ? gameplayAudio
+    : null;
+
   // Set volume to 0 BEFORE play to prevent one-frame volume leak
   incoming.currentTime = 0;
   incoming.volume = 0;
-  incoming.play().catch(e => console.warn('audio:', e));
+  incoming.play().catch(e => {
+    if (e.name === 'NotAllowedError') return; // Expected before user gesture
+    console.warn('audio:', e);
+  });
 
   crossfade(outgoing, incoming);
   currentTrack = track;
