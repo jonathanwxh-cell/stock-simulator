@@ -52,7 +52,7 @@ function AudioUnlock() {
   useEffect(() => {
     const unlock = () => {
       // Unlock audio context on first user interaction
-      import('@/engine/audioEngine').then(m => m.playClick?.().catch(() => {}));
+      // audio unlock handled by global click listener
       document.removeEventListener('click', unlock);
       document.removeEventListener('touchstart', unlock);
     };
