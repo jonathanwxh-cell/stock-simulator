@@ -26,7 +26,7 @@ describe('Scenario generator', () => {
     let wellState: GameState = { ...state, cash: state.cash * 10 };
 
     let positiveCount = 0;
-    const runs = 200;
+    const runs = 1000;
 
     for (let i = 0; i < runs; i++) {
       const scenario = generateScenario(wellState);
@@ -50,7 +50,7 @@ describe('Scenario generator', () => {
     };
 
     let positiveCount = 0;
-    const runs = 200;
+    const runs = 1000;
 
     for (let i = 0; i < runs; i++) {
       const scenario = generateScenario(struggleState);

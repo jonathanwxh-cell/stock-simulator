@@ -198,7 +198,8 @@ export type TradeError =
   | 'invalid_target_price'
   | 'max_limit_orders_reached'
   | 'short_disabled'
-  | 'no_position';
+  | 'no_position'
+  | 'stock_not_found';
 
 export type TradeResult =
   | { ok: true; state: GameState; transaction: Transaction }

@@ -1,8 +1,30 @@
 import { describe, it, expect } from 'vitest';
-import { createNewGame, executeBuy, executeShort } from '../gameState';
+import { createNewGame, executeBuy, executeShort, placeLimitOrder } from '../gameState';
 import { unwrap } from './_helpers';
 import { simulateTurn } from '../marketSimulator';
+import type { RNG } from '../rng';
 import { SeededRNG } from '../rng';
+
+function makeSplitRng(): RNG {
+  const nextValues = [1, ...Array(60).fill(0.48), 0];
+  return {
+    next() {
+      return nextValues.shift() ?? 0.48;
+    },
+    int() {
+      return 0;
+    },
+    range(min: number) {
+      return min;
+    },
+    pick<T>(arr: T[]): T {
+      return arr[0];
+    },
+    pickN<T>(arr: T[], n: number): T[] {
+      return arr.slice(0, n);
+    },
+  };
+}
 
 describe('Stock splits', () => {
   it('long position cost basis unchanged across split', () => {
@@ -134,26 +156,20 @@ describe('Stock splits', () => {
     let state = createNewGame('Test', 'normal');
     const stockId = state.stocks[0].id;
     const initialMultiplier = state.stocks.find(s => s.id === stockId)!.splitMultiplier;
-    let splitOccurred = false;
 
-    for (let i = 0; i < 1000; i++) {
-      state = {
-        ...state,
-        stocks: state.stocks.map(s =>
-          s.id === stockId
-            ? { ...s, currentPrice: Math.max(s.currentPrice, 600), basePrice: Math.max(s.basePrice, 600) }
-            : s
-        ),
-      };
-      state = simulateTurn(state);
-      const m = state.stocks.find(s => s.id === stockId)!.splitMultiplier;
-      if (m > initialMultiplier) {
-        splitOccurred = true;
-        expect(m).toBe(initialMultiplier * 2);
-        break;
-      }
-    }
-    expect(splitOccurred).toBe(true);
+    state = {
+      ...state,
+      stocks: state.stocks.map((stock, index) =>
+        index === 0
+          ? { ...stock, currentPrice: 600, basePrice: 600 }
+          : { ...stock, currentPrice: 50, basePrice: 50 }
+      ),
+    };
+
+    state = simulateTurn(state, makeSplitRng());
+
+    const multiplier = state.stocks.find(s => s.id === stockId)!.splitMultiplier;
+    expect(multiplier).toBe(initialMultiplier * 2);
   });
 
   it('no split below $500 threshold', () => {
@@ -166,5 +182,27 @@ describe('Stock splits', () => {
       state = simulateTurn(state);
     }
     expect(state.transactionHistory.some(t => t.type === 'split')).toBe(false);
+  });
+
+  it('adjusts outstanding limit orders for the split stock', () => {
+    let state = createNewGame('Test', 'normal');
+    const stockId = state.stocks[0].id;
+
+    state = {
+      ...state,
+      stocks: state.stocks.map((stock, index) =>
+        index === 0
+          ? { ...stock, currentPrice: 600, basePrice: 600 }
+          : { ...stock, currentPrice: 50, basePrice: 50 }
+      ),
+    };
+    state = unwrap(state, s => placeLimitOrder(s, stockId, 'buy', 4, 550));
+
+    state = simulateTurn(state, makeSplitRng());
+
+    const order = state.limitOrders.find(o => o.stockId === stockId);
+    expect(order).toBeDefined();
+    expect(order?.shares).toBe(8);
+    expect(order?.targetPrice).toBeCloseTo(275, 2);
   });
 });
