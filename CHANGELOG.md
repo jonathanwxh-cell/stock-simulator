@@ -4,6 +4,26 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.5.7] — 2026-04-28
+
+### Fixed
+
+- **Margin call equity was stale across multiple shorts** (financial correctness). `checkMarginCall` in `marketSimulator.ts` computed equity once at the top of the function and reused that value while iterating over every short position. After liquidating one position, the next position's maintenance check used pre-liquidation equity, so margin calls under-fired when multiple shorts were open simultaneously. Now equity is recomputed inside the loop.
+- **Stock splits did not adjust outstanding limit orders.** `maybeStockSplit` updated cost basis on long positions, entry price on shorts, and the price history, but left limit orders untouched. After a 2-for-1 split a $550 / 4-share buy order would still trigger at $550 for 4 shares (correct: $275 / 8 shares). Now `order.shares` and `order.targetPrice` are split-adjusted per outstanding order on the splitting stock.
+- **`playTrack` retry self-paused the audio it just faded in** (residue from the v1.5.3/4 autoplay fixes). When `outgoing === incoming` (retry on the same track), the crossfade end-step's `outgoing?.pause()` was killing the just-revived audio. Guard added.
+
+### Changed
+
+- **Trade failure reasons are now specific.** `executeShort` and `executeCover` route through new `getShortError`/`getCoverError` helpers that distinguish `invalid_shares`, `stock_not_found`, `insufficient_funds`, `insufficient_shares`, etc., instead of collapsing everything into `short_disabled` / `no_position`. Added `stock_not_found` to the `TradeError` union and to `tradeErrorMessage`.
+- **Split test rewritten as deterministic.** `splits.test.ts` cumulative-split test no longer relies on a 1000-iteration probabilistic loop — uses a custom `makeSplitRng()` for a single-turn deterministic check.
+
+### Internal
+
+- New `marketSimulator.test.ts` cases: "Margin call liquidation scope" and three "Trade error reasons" tests.
+- New `splits.test.ts` case: limit orders adjust on split.
+- `scenarios.test.ts` iteration count 200 → 1000 for stability.
+- CHANGELOG link refs reordered to strict descending semver.
+
 ## [1.5.6] — 2026-04-27
 
 ### Changed
@@ -294,6 +314,7 @@ Engine correctness pass. No breaking changes; existing saves load unchanged.
 Initial commit. Turn-based stock market sim — 60 stocks across 12 sectors,
 4 difficulty levels, margin trading, short selling, 600+ market events.
 
+[1.5.7]: https://github.com/jonathanwxh-cell/stock-simulator/compare/v1.5.6...v1.5.7
 [1.5.6]: https://github.com/jonathanwxh-cell/stock-simulator/compare/v1.5.5...v1.5.6
 [1.5.5]: https://github.com/jonathanwxh-cell/stock-simulator/compare/v1.5.4...v1.5.5
 [1.5.4]: https://github.com/jonathanwxh-cell/stock-simulator/compare/v1.5.3...v1.5.4
