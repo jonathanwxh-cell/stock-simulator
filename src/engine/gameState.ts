@@ -91,6 +91,43 @@ export function canCover(state: GameState, stockId: string, shares: number): boo
   return state.cash + cashDelta >= 0;
 }
 
+function getShortError(state: GameState, stockId: string, shares: number) {
+  const config = DIFFICULTY_CONFIGS[state.difficulty];
+  if (!config.shortEnabled) return 'short_disabled' as const;
+  if (shares <= 0) return 'invalid_shares' as const;
+
+  const stock = state.stocks.find(s => s.id === stockId);
+  if (!stock) return 'stock_not_found' as const;
+
+  const proceeds = stock.currentPrice * shares;
+  const marginReq = proceeds * config.shortMarginRequirement;
+  const fee = calcBrokerFee(proceeds, config);
+  if (state.cash < marginReq + fee) return 'insufficient_funds' as const;
+
+  return null;
+}
+
+function getCoverError(state: GameState, stockId: string, shares: number) {
+  if (shares <= 0) return 'invalid_shares' as const;
+
+  const pos = state.shortPositions[stockId];
+  if (!pos) return 'no_position' as const;
+  if (pos.shares < shares) return 'insufficient_shares' as const;
+
+  const stock = state.stocks.find(s => s.id === stockId);
+  if (!stock) return 'stock_not_found' as const;
+
+  const config = DIFFICULTY_CONFIGS[state.difficulty];
+  const coverCost = stock.currentPrice * shares;
+  const fee = calcBrokerFee(coverCost, config);
+  const marginRelease = (pos.marginUsed / pos.shares) * shares;
+  const pnl = (pos.entryPrice - stock.currentPrice) * shares;
+  const cashDelta = marginRelease + pnl - fee;
+  if (state.cash + cashDelta < 0) return 'insufficient_funds' as const;
+
+  return null;
+}
+
 function recordFee(newState: GameState, fee: number, stockId: string) {
   newState.totalFeesPaid = Math.round((newState.totalFeesPaid + fee) * 100) / 100;
   newState.transactionHistory.push({
@@ -195,8 +232,8 @@ export function executeShort(
   stockId: string,
   shares: number,
 ): TradeResult {
-  if (shares <= 0) return { ok: false, reason: 'invalid_shares' };
-  if (!canShort(state, stockId, shares)) return { ok: false, reason: 'short_disabled' };
+  const error = getShortError(state, stockId, shares);
+  if (error) return { ok: false, reason: error };
   const stock = state.stocks.find(s => s.id === stockId)!;
   const config = DIFFICULTY_CONFIGS[state.difficulty];
   const proceeds = stock.currentPrice * shares;
@@ -246,8 +283,8 @@ export function executeCover(
   stockId: string,
   shares: number,
 ): TradeResult {
-  if (shares <= 0) return { ok: false, reason: 'invalid_shares' };
-  if (!canCover(state, stockId, shares)) return { ok: false, reason: 'no_position' };
+  const error = getCoverError(state, stockId, shares);
+  if (error) return { ok: false, reason: error };
   const stock = state.stocks.find(s => s.id === stockId)!;
   const config = DIFFICULTY_CONFIGS[state.difficulty];
   const coverCost = stock.currentPrice * shares;
@@ -372,6 +409,7 @@ export function tradeErrorMessage(reason: string): string {
     max_limit_orders_reached: 'Maximum limit orders reached',
     short_disabled: 'Short selling is not available',
     no_position: 'No position to cover',
+    stock_not_found: 'Stock not found',
   };
   return messages[reason] || 'Trade failed';
 }

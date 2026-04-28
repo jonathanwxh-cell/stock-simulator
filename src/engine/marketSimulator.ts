@@ -181,6 +181,12 @@ function maybeStockSplit(state: GameState, rng: RNG = defaultRNG) {
     short.entryPrice = Math.round(short.entryPrice / splitRatio * 100) / 100;
   }
 
+  for (const order of state.limitOrders) {
+    if (order.stockId !== stock.id) continue;
+    order.shares *= splitRatio;
+    order.targetPrice = Math.round(order.targetPrice / splitRatio * 100) / 100;
+  }
+
   state.transactionHistory.push({
     id: `split_${crypto.randomUUID()}`,
     date: new Date(state.currentDate), turn: state.currentTurn,
@@ -249,13 +255,13 @@ export function checkMarginCall(state: GameState) {
   const config = DIFFICULTY_CONFIGS[state.difficulty];
   if (state.marginUsed <= 0 && Object.keys(state.shortPositions).length === 0) return;
 
-  const portfolioValue = getPortfolioValue(state);
-  const shortLiability = getShortLiability(state);
-  const equity = state.cash + portfolioValue - shortLiability;
-
   for (const [stockId, short] of Object.entries(state.shortPositions)) {
     const stock = state.stocks.find(s => s.id === stockId);
     if (!stock) continue;
+
+    const portfolioValue = getPortfolioValue(state);
+    const shortLiability = getShortLiability(state);
+    const equity = state.cash + portfolioValue - shortLiability;
     const currentLiability = stock.currentPrice * short.shares;
     const maintenanceReq = currentLiability * config.marginMaintenance;
     if (equity < maintenanceReq) {

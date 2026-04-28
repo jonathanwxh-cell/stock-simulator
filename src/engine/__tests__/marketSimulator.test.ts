@@ -7,9 +7,11 @@ import {
   executeShort,
   executeCover,
   getNetWorth,
+  tradeErrorMessage,
 } from '../gameState';
 import { simulateTurn, checkMarginCall } from '../marketSimulator';
 import { DIFFICULTY_CONFIGS } from '../config';
+import type { GameState } from '../types';
 
 /**
  * These tests pin down the engine's accounting invariants — especially around
@@ -249,5 +251,95 @@ describe('Margin call threshold (v1.3.0 fix)', () => {
 
     expect(state.shortPositions[wbd.id]).toBeDefined();
     expect(state.shortPositions[wbd.id].shares).toBe(100);
+  });
+});
+
+describe('Margin call liquidation scope', () => {
+  it('recomputes equity after each forced liquidation', () => {
+    let state = createNewGame('Test', 'normal');
+    const [first, second] = state.stocks.slice(0, 2);
+
+    state = {
+      ...state,
+      cash: 200,
+      marginUsed: 3000,
+      shortPositions: {
+        [first.id]: {
+          stockId: first.id,
+          shares: 100,
+          entryPrice: 10,
+          marginUsed: 1500,
+        },
+        [second.id]: {
+          stockId: second.id,
+          shares: 100,
+          entryPrice: 10,
+          marginUsed: 1500,
+        },
+      },
+      stocks: state.stocks.map(stock => {
+        if (stock.id === first.id || stock.id === second.id) {
+          return { ...stock, currentPrice: 10, basePrice: 10 };
+        }
+        return stock;
+      }),
+    };
+
+    checkMarginCall(state);
+
+    expect(state.shortPositions[first.id]).toBeUndefined();
+    expect(state.shortPositions[second.id]).toBeDefined();
+    expect(state.marginUsed).toBeCloseTo(1500, 2);
+  });
+});
+
+describe('Trade error reasons', () => {
+  it('reports insufficient funds when a short is too large', () => {
+    const state = createNewGame('Test', 'normal');
+
+    const result = executeShort(state, state.stocks[0].id, 1_000_000);
+
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.reason).toBe('insufficient_funds');
+      expect(tradeErrorMessage(result.reason)).toContain('Not enough cash');
+    }
+  });
+
+  it('reports insufficient shares when covering more than held', () => {
+    let state = createNewGame('Test', 'normal');
+    const stockId = state.stocks[0].id;
+    state = unwrap(state, s => executeShort(s, stockId, 5));
+
+    const result = executeCover(state, stockId, 10);
+
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.reason).toBe('insufficient_shares');
+    }
+  });
+
+  it('reports insufficient funds when a cover would overdraw cash', () => {
+    let state = createNewGame('Test', 'normal');
+    const stockId = state.stocks[0].id;
+    state = unwrap(state, s => executeShort(s, stockId, 1));
+
+    const stressedState: GameState = {
+      ...state,
+      cash: 0,
+      stocks: state.stocks.map(stock =>
+        stock.id === stockId
+          ? { ...stock, currentPrice: stock.currentPrice * 10 }
+          : stock
+      ),
+    };
+
+    const result = executeCover(stressedState, stockId, 1);
+
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.reason).toBe('insufficient_funds');
+      expect(tradeErrorMessage(result.reason)).toContain('Not enough cash');
+    }
   });
 });
