@@ -1,10 +1,28 @@
 import { useGame } from '../context/GameContext';
 import { motion } from 'framer-motion';
-import { ArrowUpRight, ArrowDownRight } from 'lucide-react';
+import { ArrowUpRight, ArrowDownRight, BarChart3, AlertTriangle } from 'lucide-react';
 import { SECTOR_COLORS, SECTOR_LABELS } from '../engine/config';
 import { getPortfolioValue, getNetWorth } from '../engine/marketSimulator';
+import { getAlphaPct, getMarketReturnPct, getPlayerReturnPct } from '../engine/marketIndex';
+import { getLatestRisk } from '../engine/riskSystem';
 import TradingModal from './TradingModal';
 import { useState } from 'react';
+
+function pct(value: number) {
+  return `${value >= 0 ? '+' : ''}${value.toFixed(1)}%`;
+}
+
+function riskTextClass(level: string) {
+  if (level === 'low') return 'text-[var(--profit-green)]';
+  if (level === 'medium') return 'text-[var(--neutral-amber)]';
+  return 'text-[var(--loss-red)]';
+}
+
+function scoreBarColor(level: string) {
+  if (level === 'low') return '#22C55E';
+  if (level === 'medium') return '#F59E0B';
+  return '#EF4444';
+}
 
 export default function Portfolio() {
   const { gameState, navigateTo } = useGame();
@@ -15,6 +33,11 @@ export default function Portfolio() {
   const portfolioValue = getPortfolioValue(gameState);
   const netWorth = getNetWorth(gameState);
   const positions = Object.entries(gameState.portfolio).filter(([_, pos]) => pos.shares > 0);
+  const latestIndex = gameState.marketIndexHistory.length > 0 ? gameState.marketIndexHistory[gameState.marketIndexHistory.length - 1] : { turn: 0, value: 1000, changePct: 0 };
+  const playerReturn = getPlayerReturnPct(gameState);
+  const marketReturn = getMarketReturnPct(gameState);
+  const alpha = getAlphaPct(gameState);
+  const risk = getLatestRisk(gameState);
 
   const sectorBreakdown: Record<string, number> = {};
   for (const [stockId, pos] of positions) {
@@ -46,6 +69,60 @@ export default function Portfolio() {
             <p className="text-xs text-[var(--text-muted)] uppercase tracking-wider">Portfolio Value</p>
             <p className="text-xl font-mono-data font-bold text-[var(--text-primary)] mt-1">${portfolioValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
           </div>
+        </div>
+
+        {/* Portfolio vs Market */}
+        <div className="bg-[var(--surface-0)] border border-[var(--border)] rounded-2xl p-4 mb-4">
+          <div className="flex items-center gap-2 mb-3">
+            <BarChart3 className="w-4 h-4 text-[var(--info-blue)]" />
+            <h2 className="text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wider">Portfolio vs Market</h2>
+          </div>
+          <div className="grid grid-cols-4 gap-2 text-center">
+            <div>
+              <span className="text-[10px] text-[var(--text-muted)] block">You</span>
+              <span className="text-sm font-mono-data text-[var(--text-primary)]">{pct(playerReturn)}</span>
+            </div>
+            <div>
+              <span className="text-[10px] text-[var(--text-muted)] block">Market</span>
+              <span className="text-sm font-mono-data text-[var(--text-primary)]">{pct(marketReturn)}</span>
+            </div>
+            <div>
+              <span className="text-[10px] text-[var(--text-muted)] block">Alpha</span>
+              <span className={`text-sm font-mono-data font-semibold ${alpha >= 0 ? 'text-[var(--profit-green)]' : 'text-[var(--loss-red)]'}`}>{pct(alpha)}</span>
+            </div>
+            <div>
+              <span className="text-[10px] text-[var(--text-muted)] block">Index</span>
+              <span className="text-sm font-mono-data text-[var(--text-primary)]">{latestIndex.value.toFixed(0)}</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Risk Breakdown */}
+        <div className="bg-[var(--surface-0)] border border-[var(--border)] rounded-2xl p-4 mb-4">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <AlertTriangle className="w-4 h-4 text-[var(--neutral-amber)]" />
+              <h2 className="text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wider">Risk Breakdown</h2>
+            </div>
+            <span className={`text-xs font-semibold uppercase ${riskTextClass(risk.level)}`}>{risk.level} · {risk.totalScore}/100</span>
+          </div>
+          <div className="w-full h-2 rounded-full bg-[var(--surface-2)] overflow-hidden mb-3">
+            <div className="h-full rounded-full" style={{ width: `${Math.max(0, Math.min(100, risk.totalScore))}%`, background: scoreBarColor(risk.level) }} />
+          </div>
+          <div className="grid grid-cols-2 gap-2 text-xs mb-3">
+            <div className="bg-[var(--surface-1)] rounded-lg p-2 flex justify-between"><span className="text-[var(--text-muted)]">Concentration</span><span className="font-mono-data text-[var(--text-primary)]">{risk.concentrationScore}</span></div>
+            <div className="bg-[var(--surface-1)] rounded-lg p-2 flex justify-between"><span className="text-[var(--text-muted)]">Sector</span><span className="font-mono-data text-[var(--text-primary)]">{risk.sectorScore}</span></div>
+            <div className="bg-[var(--surface-1)] rounded-lg p-2 flex justify-between"><span className="text-[var(--text-muted)]">Cash Buffer</span><span className="font-mono-data text-[var(--text-primary)]">{risk.cashBufferScore}</span></div>
+            <div className="bg-[var(--surface-1)] rounded-lg p-2 flex justify-between"><span className="text-[var(--text-muted)]">Shorts</span><span className="font-mono-data text-[var(--text-primary)]">{risk.shortExposureScore}</span></div>
+            <div className="bg-[var(--surface-1)] rounded-lg p-2 flex justify-between col-span-2"><span className="text-[var(--text-muted)]">Drawdown</span><span className="font-mono-data text-[var(--text-primary)]">{risk.drawdownScore}</span></div>
+          </div>
+          {risk.warnings.length > 0 ? (
+            <div className="space-y-1">
+              {risk.warnings.map(warning => <p key={warning} className="text-xs text-[var(--text-secondary)]">• {warning}</p>)}
+            </div>
+          ) : (
+            <p className="text-xs text-[var(--text-muted)]">No major risk warnings.</p>
+          )}
         </div>
 
         {/* Total P&L */}
