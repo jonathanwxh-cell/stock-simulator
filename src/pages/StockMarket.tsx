@@ -26,6 +26,8 @@ export default function StockMarket() {
 
   if (!gameState) return null;
 
+  const currentRegime = gameState.currentRegime;
+
   const sectorBreakdown = useMemo(() => {
     const counts: Record<string, number> = { all: gameState.stocks.length };
     gameState.stocks.forEach(s => { counts[s.sector] = (counts[s.sector] || 0) + 1; });
@@ -86,9 +88,16 @@ export default function StockMarket() {
   return (
     <div className="min-h-[calc(100dvh-56px-72px)] p-4 pb-6 max-w-4xl mx-auto">
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
-        <h1 className="text-xl font-display font-bold text-[var(--text-primary)] mb-4">
-          Stock Market <span className="text-sm text-[var(--text-muted)] font-normal">({filtered.length}/{gameState.stocks.length})</span>
-        </h1>
+        <div className="mb-4">
+          <h1 className="text-xl font-display font-bold text-[var(--text-primary)]">
+            Stock Market <span className="text-sm text-[var(--text-muted)] font-normal">({filtered.length}/{gameState.stocks.length})</span>
+          </h1>
+          <div className="inline-flex items-center gap-1.5 mt-2 px-2.5 py-1 rounded-full bg-[var(--surface-0)] border border-[var(--border)] text-xs text-[var(--text-secondary)]">
+            <span className="text-[var(--text-muted)]">Regime:</span>
+            <span className="font-semibold text-[var(--text-primary)]">{currentRegime?.title || 'Neutral Market'}</span>
+            <span className="text-[var(--text-muted)]">· {currentRegime ? currentRegime.remainingTurns : 0} turns left</span>
+          </div>
+        </div>
 
         <div className="flex gap-2 mb-4">
           <div className="flex-1 relative">
@@ -152,6 +161,7 @@ export default function StockMarket() {
             const change = getChange(stock);
             const position = gameState.portfolio[stock.id];
             const shortPosition = gameState.shortPositions[stock.id];
+            const regimeMultiplier = currentRegime?.sectorEffects[stock.sector] || 1;
             return (
               <button key={stock.id} onClick={() => openStock(stock.id)}
                 className="w-full flex items-center justify-between p-3 bg-[var(--surface-0)] border border-[var(--border)] rounded-xl hover:border-[var(--border-hover)] hover:bg-[var(--surface-1)] transition-all text-left">
@@ -161,11 +171,13 @@ export default function StockMarket() {
                     {stock.ticker.slice(0, 2)}
                   </div>
                   <div className="min-w-0">
-                    <div className="flex items-center gap-1.5">
+                    <div className="flex items-center gap-1.5 flex-wrap">
                       <span className="text-sm font-semibold text-[var(--text-primary)]">{stock.ticker}</span>
                       {stock.dividendYield > 0 && <span className="text-[10px] px-1 py-0.5 rounded bg-[var(--neutral-amber)]/15 text-[var(--neutral-amber)]">DIV</span>}
                       {position && position.shares > 0 && <span className="text-[10px] px-1 py-0.5 rounded bg-[var(--profit-green)]/15 text-[var(--profit-green)]">HOLD</span>}
                       {shortPosition && shortPosition.shares > 0 && <span className="text-[10px] px-1 py-0.5 rounded bg-[var(--loss-red)]/15 text-[var(--loss-red)]">SHORT</span>}
+                      {regimeMultiplier > 1.03 && <span className="text-[10px] px-1 py-0.5 rounded bg-[rgba(34,197,94,0.15)] text-[var(--profit-green)]">TAILWIND</span>}
+                      {regimeMultiplier < 0.97 && <span className="text-[10px] px-1 py-0.5 rounded bg-[rgba(239,68,68,0.15)] text-[var(--loss-red)]">HEADWIND</span>}
                     </div>
                     <span className="text-xs text-[var(--text-muted)] truncate block max-w-[180px]">{stock.name}</span>
                   </div>
