@@ -2,7 +2,26 @@ import { useGame } from '../context/GameContext';
 import { motion } from 'framer-motion';
 import { TrendingUp, TrendingDown, DollarSign, PieChart, Zap, AlertTriangle, BarChart3, Target, Clock } from 'lucide-react';
 import { getNetWorth } from '../engine/marketSimulator';
+import { getAlphaPct, getMarketReturnPct, getPlayerReturnPct } from '../engine/marketIndex';
+import { getLatestRisk } from '../engine/riskSystem';
+import { SECTOR_LABELS } from '../engine/config';
 
+function pct(value: number) {
+  return `${value >= 0 ? '+' : ''}${value.toFixed(1)}%`;
+}
+
+function riskTextClass(level: string) {
+  if (level === 'low') return 'text-[var(--profit-green)]';
+  if (level === 'medium') return 'text-[var(--neutral-amber)]';
+  if (level === 'high') return 'text-[var(--loss-red)]';
+  return 'text-[var(--loss-red)]';
+}
+
+function riskBorderClass(level: string) {
+  if (level === 'low') return 'border-[rgba(34,197,94,0.25)] bg-[rgba(34,197,94,0.05)]';
+  if (level === 'medium') return 'border-[rgba(245,158,11,0.25)] bg-[rgba(245,158,11,0.05)]';
+  return 'border-[rgba(239,68,68,0.3)] bg-[rgba(239,68,68,0.06)]';
+}
 
 export default function GameHUD() {
   const { gameState, navigateTo } = useGame();
@@ -14,6 +33,23 @@ export default function GameHUD() {
 
   const prevSnap = gameState.netWorthHistory.length > 1 ? gameState.netWorthHistory[gameState.netWorthHistory.length - 2] : null;
   const nwChange = prevSnap ? netWorth - prevSnap.netWorth : 0;
+
+  const latestIndex = gameState.marketIndexHistory.length > 0 ? gameState.marketIndexHistory[gameState.marketIndexHistory.length - 1] : { turn: 0, value: 1000, changePct: 0 };
+  const marketReturn = getMarketReturnPct(gameState);
+  const playerReturn = getPlayerReturnPct(gameState);
+  const alpha = getAlphaPct(gameState);
+  const risk = getLatestRisk(gameState);
+  const mission = gameState.activeMission;
+  const regime = gameState.currentRegime;
+  const sectorEffects = Object.entries(regime?.sectorEffects || {});
+  const positiveSectors = sectorEffects
+    .filter(([, mult]) => (mult || 1) > 1)
+    .sort((a, b) => (b[1] || 1) - (a[1] || 1))
+    .slice(0, 3);
+  const negativeSectors = sectorEffects
+    .filter(([, mult]) => (mult || 1) < 1)
+    .sort((a, b) => (a[1] || 1) - (b[1] || 1))
+    .slice(0, 3);
 
   // Margin status
   const marginUsed = Math.abs(Object.entries(gameState.portfolio).filter(([, p]) => p.shares < 0).reduce((sum, [id, p]) => {
@@ -95,6 +131,90 @@ export default function GameHUD() {
             <BarChart3 className="w-4 h-4 text-[var(--purple)] mx-auto mb-1" />
             <span className="text-[10px] text-[var(--text-muted)] block">Trades</span>
             <span className="text-sm font-mono-data font-semibold text-[var(--text-primary)]">{gameState.transactionHistory.length}</span>
+          </div>
+        </div>
+
+        {/* Phase 1 Cards */}
+        <div className="grid grid-cols-1 gap-3 mb-3">
+          <div className="bg-[var(--surface-0)] border border-[var(--border)] rounded-2xl p-4">
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wider">Current Mission</h3>
+              {mission && <span className="text-[10px] text-[var(--neutral-amber)]">Reward \${mission.rewardCash.toLocaleString()}</span>}
+            </div>
+            {mission ? (
+              <>
+                <p className="text-sm font-semibold text-[var(--text-primary)]">{mission.title}</p>
+                <p className="text-xs text-[var(--text-muted)] mt-1">{mission.description}</p>
+                <div className="flex items-center justify-between mt-3 text-xs">
+                  <span className="text-[var(--text-secondary)]">Progress</span>
+                  <span className="font-mono-data text-[var(--text-primary)]">{mission.progress.toFixed(1)} / {mission.target}</span>
+                </div>
+                <div className="w-full h-1.5 rounded-full bg-[var(--surface-2)] mt-1 overflow-hidden">
+                  <div className="h-full rounded-full bg-[var(--profit-green)]" style={{ width: `${Math.max(0, Math.min(100, (mission.progress / Math.max(1, mission.target)) * 100))}%` }} />
+                </div>
+                <div className="text-[10px] text-[var(--text-muted)] mt-2">{Math.max(0, mission.endTurn - gameState.currentTurn)} turns left</div>
+              </>
+            ) : (
+              <p className="text-xs text-[var(--text-muted)]">No active mission yet. Advance one turn to receive one.</p>
+            )}
+          </div>
+
+          <div className="bg-[var(--surface-0)] border border-[var(--border)] rounded-2xl p-4">
+            <h3 className="text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wider mb-3">Benchmark</h3>
+            <div className="grid grid-cols-4 gap-2 text-center">
+              <div>
+                <span className="text-[10px] text-[var(--text-muted)] block">Index</span>
+                <span className="text-sm font-mono-data text-[var(--text-primary)]">{latestIndex.value.toFixed(0)}</span>
+              </div>
+              <div>
+                <span className="text-[10px] text-[var(--text-muted)] block">Market</span>
+                <span className="text-sm font-mono-data text-[var(--text-primary)]">{pct(marketReturn)}</span>
+              </div>
+              <div>
+                <span className="text-[10px] text-[var(--text-muted)] block">You</span>
+                <span className="text-sm font-mono-data text-[var(--text-primary)]">{pct(playerReturn)}</span>
+              </div>
+              <div>
+                <span className="text-[10px] text-[var(--text-muted)] block">Alpha</span>
+                <span className={`text-sm font-mono-data font-semibold ${alpha >= 0 ? 'text-[var(--profit-green)]' : 'text-[var(--loss-red)]'}`}>{pct(alpha)}</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-[var(--surface-0)] border border-[var(--border)] rounded-2xl p-4">
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wider">Current Regime</h3>
+              <span className="text-[10px] text-[var(--text-muted)]">{regime ? `${regime.remainingTurns} turns left` : 'Neutral'}</span>
+            </div>
+            <p className="text-sm font-semibold text-[var(--text-primary)]">{regime?.title || 'Neutral Market'}</p>
+            <p className="text-xs text-[var(--text-muted)] mt-1">{regime?.description || 'No dominant macro force. Stock selection matters more than broad regime bets.'}</p>
+            <div className="grid grid-cols-2 gap-2 mt-3">
+              <div className="rounded-lg bg-[var(--surface-1)] p-2">
+                <span className="text-[10px] text-[var(--profit-green)] uppercase tracking-wider">Tailwinds</span>
+                <p className="text-xs text-[var(--text-secondary)] mt-1">{positiveSectors.length ? positiveSectors.map(([s]) => SECTOR_LABELS[s] || s).join(', ') : 'None'}</p>
+              </div>
+              <div className="rounded-lg bg-[var(--surface-1)] p-2">
+                <span className="text-[10px] text-[var(--loss-red)] uppercase tracking-wider">Headwinds</span>
+                <p className="text-xs text-[var(--text-secondary)] mt-1">{negativeSectors.length ? negativeSectors.map(([s]) => SECTOR_LABELS[s] || s).join(', ') : 'None'}</p>
+              </div>
+            </div>
+          </div>
+
+          <div className={`border rounded-2xl p-4 ${riskBorderClass(risk.level)}`}>
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wider">Risk Meter</h3>
+              <span className={`text-xs font-semibold uppercase ${riskTextClass(risk.level)}`}>{risk.level} · {risk.totalScore}/100</span>
+            </div>
+            <div className="w-full h-2 rounded-full bg-[var(--surface-2)] overflow-hidden mb-3">
+              <div className="h-full rounded-full" style={{ width: `${Math.max(0, Math.min(100, risk.totalScore))}%`, background: risk.level === 'low' ? '#22C55E' : risk.level === 'medium' ? '#F59E0B' : '#EF4444' }} />
+            </div>
+            {risk.warnings.length > 0 ? (
+              <div className="space-y-1">
+                {risk.warnings.slice(0, 3).map(warning => <p key={warning} className="text-xs text-[var(--text-secondary)]">• {warning}</p>)}
+              </div>
+            ) : (
+              <p className="text-xs text-[var(--text-muted)]">No major risk warnings.</p>
+            )}
           </div>
         </div>
 
