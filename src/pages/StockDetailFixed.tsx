@@ -96,7 +96,7 @@ export default function StockDetailFixed() {
     : -(tradeValue + fee);
 
   return (
-    <div className="min-h-[calc(100dvh-56px-72px)] p-4 max-w-lg mx-auto">
+    <div className="min-h-[calc(100dvh-56px-72px)] p-4 pb-32 max-w-lg mx-auto">
       <div className="space-y-3">
         <div className="flex items-center gap-3">
           <button onClick={() => navigateTo('stock-market')} className="w-9 h-9 rounded-lg bg-[var(--surface-1)] border border-[var(--border)] flex items-center justify-center hover:bg-[var(--surface-2)]">

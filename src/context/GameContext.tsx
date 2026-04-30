@@ -5,7 +5,7 @@ import {
   placeLimitOrder, cancelLimitOrder, simulateTurn, autoSave,
   saveGame as saveGameEngine, loadGame as loadGameEngine,
   loadSettings, saveSettings, initSaveSystem, tradeErrorMessage,
-  initialMarketIndex, createInitialRegime, calculateRisk,
+  initialMarketIndex, createInitialRegime, calculateRisk, createMission, defaultRNG,
 } from '../engine';
 import { useAudio } from '@/hooks/useAudio';
 
@@ -75,6 +75,7 @@ function migrateGameState(loaded: GameState): GameState {
     stocks: loaded.stocks.map(s => ({ ...s, beta: s.beta || 1, splitMultiplier: s.splitMultiplier || 1 })),
   };
   if (!migrated.riskHistory.length) migrated.riskHistory = [calculateRisk(migrated)];
+  if (!migrated.activeMission && !migrated.isGameOver) migrated.activeMission = createMission(migrated, defaultRNG);
   return migrated;
 }
 

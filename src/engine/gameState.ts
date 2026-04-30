@@ -7,6 +7,8 @@ import { getPortfolioValue, getNetWorth, getShortLiability } from './marketSimul
 import { initialMarketIndex } from './marketIndex';
 import { createInitialRegime } from './regimeSystem';
 import { calculateRisk } from './riskSystem';
+import { createMission } from './missionSystem';
+import { defaultRNG } from './rng';
 
 export { getPortfolioValue, getNetWorth, getShortLiability };
 
@@ -23,6 +25,7 @@ export function createNewGame(playerName: string, difficulty: Difficulty): GameS
     stocks: cloneInitialStocks(), newsHistory: [], currentScenario: null, isGameOver: false, finalRank: null, finalGrade: null, createdAt: now, updatedAt: now,
   };
   state.riskHistory = [calculateRisk(state)];
+  state.activeMission = createMission(state, defaultRNG);
   return state;
 }
 
