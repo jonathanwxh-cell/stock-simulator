@@ -94,7 +94,7 @@ export function calculateRisk(state: GameState): RiskSnapshot {
 }
 
 export function getLatestRisk(state: GameState): RiskSnapshot {
-  return state.riskHistory?.[state.riskHistory.length - 1] ?? calculateRisk(state);
+  return calculateRisk(state);
 }
 
 export function formatRiskScore(risk: RiskSnapshot): string {
