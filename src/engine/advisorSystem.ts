@@ -47,12 +47,14 @@ export function generateAdvisorFeedback(prevState: GameState, nextState: GameSta
 
   const regime = nextState.currentRegime;
   if (regime && Object.keys(regime.sectorEffects).length > 0) {
-    const favored = Object.entries(regime.sectorEffects).filter(([, v]) => (v ?? 1) > 1.03).map(([sector]) => sector);
-    const held = new Set<string>(
-      Object.keys(nextState.portfolio)
-        .map(id => nextState.stocks.find(stock => stock.id === id)?.sector)
-        .filter((sector): sector is string => Boolean(sector))
-    );
+    const favored = Object.entries(regime.sectorEffects)
+      .filter(([, v]) => (v ?? 1) > 1.03)
+      .map(([sector]) => sector);
+    const held = new Set<string>();
+    for (const stockId of Object.keys(nextState.portfolio)) {
+      const stock = nextState.stocks.find(item => item.id === stockId);
+      if (stock) held.add(stock.sector);
+    }
     if (favored.length > 0 && !favored.some(sector => held.has(sector))) notes.push(feedback('Low regime alignment', `Current regime favors ${favored.join(', ')}, but you have little/no long exposure there.`, 'info', ['regime']));
   }
 
