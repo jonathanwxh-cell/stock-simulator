@@ -32,7 +32,12 @@ function netWorth(state: GameState): number {
 
 export function calculateRisk(state: GameState): RiskSnapshot {
   const nw = Math.max(netWorth(state), 1);
+  const longs = portfolioValue(state);
   const shorts = shortLiability(state);
+  const totalExposure = Math.max(longs + shorts, 0);
+  const exposureRatio = totalExposure / nw;
+  const meaningfulExposure = exposureRatio > 0.2;
+  const exposureScale = Math.min(1, exposureRatio / 0.7);
   const warnings: string[] = [];
 
   let largestPosition = 0;
@@ -53,25 +58,27 @@ export function calculateRisk(state: GameState): RiskSnapshot {
   }
 
   const largestSectorValue = Math.max(0, ...Object.values(sectorValues));
-  const concentrationRatio = largestPosition / nw;
-  const sectorRatio = largestSectorValue / nw;
+  const concentrationByExposure = totalExposure > 0 ? largestPosition / totalExposure : 0;
+  const sectorByExposure = totalExposure > 0 ? largestSectorValue / totalExposure : 0;
+  const largestPositionToNw = largestPosition / nw;
+  const largestSectorToNw = largestSectorValue / nw;
   const cashRatio = state.cash / nw;
   const shortRatio = shorts / nw;
   const peak = Math.max(...state.netWorthHistory.map(s => s.netWorth), nw);
   const drawdown = peak > 0 ? Math.max(0, (peak - nw) / peak) : 0;
 
-  if (concentrationRatio > 0.5) warnings.push('Single-stock concentration is high.');
-  if (sectorRatio > 0.7) warnings.push('Sector concentration is above 70%.');
+  if (meaningfulExposure && largestPositionToNw > 0.25) warnings.push('Single-stock concentration is above 25% of net worth.');
+  if (meaningfulExposure && sectorByExposure > 0.5) warnings.push('One sector is more than 50% of invested exposure.');
   if (cashRatio < 0.1) warnings.push('Cash buffer is below 10%.');
-  if (shortRatio > 0.3) warnings.push('Short exposure is high.');
-  if (drawdown > 0.2) warnings.push('Drawdown exceeds 20%.');
+  if (shortRatio > 0.2) warnings.push('Short exposure is above 20% of net worth.');
+  if (drawdown > 0.1) warnings.push('Drawdown exceeds 10%.');
 
-  const concentrationScore = clampScore(concentrationRatio * 100);
-  const sectorScore = clampScore(sectorRatio * 90);
-  const cashBufferScore = clampScore(cashRatio < 0.1 ? 70 : cashRatio < 0.2 ? 35 : 5);
-  const shortExposureScore = clampScore(shortRatio * 130);
-  const drawdownScore = clampScore(drawdown * 220);
-  const totalScore = clampScore(concentrationScore * 0.25 + sectorScore * 0.2 + cashBufferScore * 0.15 + shortExposureScore * 0.2 + drawdownScore * 0.2);
+  const concentrationScore = clampScore(concentrationByExposure * exposureScale * 65 + Math.max(0, largestPositionToNw - 0.25) * 55);
+  const sectorScore = clampScore(sectorByExposure * exposureScale * 45 + Math.max(0, largestSectorToNw - 0.5) * 45);
+  const cashBufferScore = clampScore(cashRatio < 0.1 ? 70 : cashRatio < 0.2 ? 35 : cashRatio < 0.35 ? 12 : 2);
+  const shortExposureScore = clampScore(shortRatio * 170);
+  const drawdownScore = clampScore(drawdown * 300);
+  const totalScore = clampScore(concentrationScore * 0.3 + sectorScore * 0.22 + cashBufferScore * 0.12 + shortExposureScore * 0.2 + drawdownScore * 0.16);
 
   return {
     turn: state.currentTurn,
