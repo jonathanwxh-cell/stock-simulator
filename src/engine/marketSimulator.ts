@@ -60,7 +60,6 @@ export function simulateTurn(gameState: GameState, rng: RNG = defaultRNG): GameS
   newState.riskHistory = [...(newState.riskHistory || []), riskSnapshot];
 
   updateMission(prevState, newState, rng);
-  newState.lastAdvisorFeedback = generateAdvisorFeedback(prevState, newState);
 
   const portfolioValue = getPortfolioValue(newState);
   const shortLiability = getShortLiability(newState);
@@ -74,6 +73,8 @@ export function simulateTurn(gameState: GameState, rng: RNG = defaultRNG): GameS
     shortLiability: roundCurrency(shortLiability),
     marginUsed: roundCurrency(newState.marginUsed),
   });
+
+  newState.lastAdvisorFeedback = generateAdvisorFeedback(prevState, newState);
 
   const goalAmount = config.startingCash * config.goalMultiplier;
   if (netWorth >= goalAmount || newState.currentTurn >= config.turnLimit) {
