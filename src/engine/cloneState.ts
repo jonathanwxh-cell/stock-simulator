@@ -2,10 +2,6 @@ import type { GameState } from './types';
 
 /**
  * Deep clone a GameState, preserving Date instances and array shapes.
- * We don't use structuredClone because it preserves Dates but doesn't
- * handle the spread-based shallow copy pattern we use for nested objects
- * (portfolio, shortPositions, etc.), and structuredClone would copy
- * prototype methods incorrectly for class instances if any sneak in.
  */
 export function deepCloneGameState(state: GameState): GameState {
   return {
@@ -19,7 +15,17 @@ export function deepCloneGameState(state: GameState): GameState {
     limitOrders: state.limitOrders.map(o => ({ ...o })),
     transactionHistory: state.transactionHistory.map(t => ({ ...t, date: new Date(t.date) })),
     netWorthHistory: state.netWorthHistory.map(n => ({ ...n, date: new Date(n.date) })),
+    marketIndexHistory: (state.marketIndexHistory || []).map(m => ({ ...m })),
+    riskHistory: (state.riskHistory || []).map(r => ({ ...r, warnings: [...r.warnings] })),
+    activeMission: state.activeMission ? { ...state.activeMission } : null,
+    completedMissions: (state.completedMissions || []).map(m => ({ ...m })),
+    lastAdvisorFeedback: (state.lastAdvisorFeedback || []).map(f => ({ ...f, tags: [...f.tags] })),
     newsHistory: state.newsHistory.map(n => ({ ...n, date: new Date(n.date) })),
+    currentRegime: state.currentRegime ? {
+      ...state.currentRegime,
+      sectorEffects: { ...state.currentRegime.sectorEffects },
+      newsBias: state.currentRegime.newsBias ? { ...state.currentRegime.newsBias } : undefined,
+    } : null,
     currentScenario: state.currentScenario ? {
       ...state.currentScenario,
       sectorEffects: { ...state.currentScenario.sectorEffects },
