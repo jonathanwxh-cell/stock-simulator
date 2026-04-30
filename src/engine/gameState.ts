@@ -1,6 +1,7 @@
 import { deepCloneGameState } from './cloneState';
 import type { GameState, Difficulty, Transaction, LimitOrder, TradeResult } from './types';
 import { DIFFICULTY_CONFIGS, calcBrokerFee } from './config';
+import { isPositiveCurrency, isPositiveWholeNumber, roundCurrency } from './financialMath';
 import { cloneInitialStocks } from './stockData';
 import { getPortfolioValue, getNetWorth, getShortLiability } from './marketSimulator';
 
@@ -45,17 +46,23 @@ export function createNewGame(playerName: string, difficulty: Difficulty): GameS
   };
 }
 
-export function canBuy(state: GameState, stockId: string, shares: number): boolean {
-  if (shares <= 0) return false;
+function getTradeStock(state: GameState, stockId: string) {
   const stock = state.stocks.find(s => s.id === stockId);
+  if (!stock || !isPositiveCurrency(stock.currentPrice)) return null;
+  return stock;
+}
+
+export function canBuy(state: GameState, stockId: string, shares: number): boolean {
+  if (!isPositiveWholeNumber(shares)) return false;
+  const stock = getTradeStock(state, stockId);
   if (!stock) return false;
-  const cost = stock.currentPrice * shares;
+  const cost = roundCurrency(stock.currentPrice * shares);
   const fee = calcBrokerFee(cost, DIFFICULTY_CONFIGS[state.difficulty]);
   return state.cash >= cost + fee;
 }
 
 export function canSell(state: GameState, stockId: string, shares: number): boolean {
-  if (shares <= 0) return false;
+  if (!isPositiveWholeNumber(shares)) return false;
   const position = state.portfolio[stockId];
   if (!position) return false;
   return position.shares >= shares;
@@ -64,43 +71,41 @@ export function canSell(state: GameState, stockId: string, shares: number): bool
 export function canShort(state: GameState, stockId: string, shares: number): boolean {
   const config = DIFFICULTY_CONFIGS[state.difficulty];
   if (!config.shortEnabled) return false;
-  if (shares <= 0) return false;
-  const stock = state.stocks.find(s => s.id === stockId);
+  if (!isPositiveWholeNumber(shares)) return false;
+  const stock = getTradeStock(state, stockId);
   if (!stock) return false;
-  const proceeds = stock.currentPrice * shares;
-  const marginReq = proceeds * config.shortMarginRequirement;
+  const proceeds = roundCurrency(stock.currentPrice * shares);
+  const marginReq = roundCurrency(proceeds * config.shortMarginRequirement);
   const fee = calcBrokerFee(proceeds, config);
   return state.cash >= marginReq + fee;
 }
 
 export function canCover(state: GameState, stockId: string, shares: number): boolean {
-  if (shares <= 0) return false;
+  if (!isPositiveWholeNumber(shares)) return false;
   const pos = state.shortPositions[stockId];
   if (!pos) return false;
   if (pos.shares < shares) return false;
-  const stock = state.stocks.find(s => s.id === stockId);
+  const stock = getTradeStock(state, stockId);
   if (!stock) return false;
   const config = DIFFICULTY_CONFIGS[state.difficulty];
-  const coverCost = stock.currentPrice * shares;
+  const coverCost = roundCurrency(stock.currentPrice * shares);
   const fee = calcBrokerFee(coverCost, config);
-  // What actually moves cash on cover: margin release + PnL - fee.
-  // PnL is positive when price fell below entry.
-  const marginRelease = (pos.marginUsed / pos.shares) * shares;
-  const pnl = (pos.entryPrice - stock.currentPrice) * shares;
-  const cashDelta = marginRelease + pnl - fee;
+  const marginRelease = roundCurrency((pos.marginUsed / pos.shares) * shares);
+  const pnl = roundCurrency((pos.entryPrice - stock.currentPrice) * shares);
+  const cashDelta = roundCurrency(marginRelease + pnl - fee);
   return state.cash + cashDelta >= 0;
 }
 
 function getShortError(state: GameState, stockId: string, shares: number) {
   const config = DIFFICULTY_CONFIGS[state.difficulty];
   if (!config.shortEnabled) return 'short_disabled' as const;
-  if (shares <= 0) return 'invalid_shares' as const;
+  if (!isPositiveWholeNumber(shares)) return 'invalid_shares' as const;
 
-  const stock = state.stocks.find(s => s.id === stockId);
+  const stock = getTradeStock(state, stockId);
   if (!stock) return 'stock_not_found' as const;
 
-  const proceeds = stock.currentPrice * shares;
-  const marginReq = proceeds * config.shortMarginRequirement;
+  const proceeds = roundCurrency(stock.currentPrice * shares);
+  const marginReq = roundCurrency(proceeds * config.shortMarginRequirement);
   const fee = calcBrokerFee(proceeds, config);
   if (state.cash < marginReq + fee) return 'insufficient_funds' as const;
 
@@ -108,28 +113,29 @@ function getShortError(state: GameState, stockId: string, shares: number) {
 }
 
 function getCoverError(state: GameState, stockId: string, shares: number) {
-  if (shares <= 0) return 'invalid_shares' as const;
+  if (!isPositiveWholeNumber(shares)) return 'invalid_shares' as const;
 
   const pos = state.shortPositions[stockId];
   if (!pos) return 'no_position' as const;
   if (pos.shares < shares) return 'insufficient_shares' as const;
 
-  const stock = state.stocks.find(s => s.id === stockId);
+  const stock = getTradeStock(state, stockId);
   if (!stock) return 'stock_not_found' as const;
 
   const config = DIFFICULTY_CONFIGS[state.difficulty];
-  const coverCost = stock.currentPrice * shares;
+  const coverCost = roundCurrency(stock.currentPrice * shares);
   const fee = calcBrokerFee(coverCost, config);
-  const marginRelease = (pos.marginUsed / pos.shares) * shares;
-  const pnl = (pos.entryPrice - stock.currentPrice) * shares;
-  const cashDelta = marginRelease + pnl - fee;
+  const marginRelease = roundCurrency((pos.marginUsed / pos.shares) * shares);
+  const pnl = roundCurrency((pos.entryPrice - stock.currentPrice) * shares);
+  const cashDelta = roundCurrency(marginRelease + pnl - fee);
   if (state.cash + cashDelta < 0) return 'insufficient_funds' as const;
 
   return null;
 }
 
 function recordFee(newState: GameState, fee: number, stockId: string) {
-  newState.totalFeesPaid = Math.round((newState.totalFeesPaid + fee) * 100) / 100;
+  if (fee <= 0) return;
+  newState.totalFeesPaid = roundCurrency(newState.totalFeesPaid + fee);
   newState.transactionHistory.push({
     id: `fee_${crypto.randomUUID()}`,
     date: new Date(newState.currentDate),
@@ -138,8 +144,8 @@ function recordFee(newState: GameState, fee: number, stockId: string) {
     type: 'fee',
     shares: 0,
     price: 0,
-    total: fee,
-    fee: fee,
+    total: roundCurrency(fee),
+    fee: roundCurrency(fee),
   });
 }
 
@@ -148,29 +154,28 @@ export function executeBuy(
   stockId: string,
   shares: number,
 ): TradeResult {
-  if (shares <= 0) return { ok: false, reason: 'invalid_shares' };
+  if (!isPositiveWholeNumber(shares)) return { ok: false, reason: 'invalid_shares' };
   if (!canBuy(state, stockId, shares)) return { ok: false, reason: 'insufficient_funds' };
-  const stock = state.stocks.find(s => s.id === stockId)!;
+  const stock = getTradeStock(state, stockId)!;
   const config = DIFFICULTY_CONFIGS[state.difficulty];
-  const totalCost = stock.currentPrice * shares;
+  const totalCost = roundCurrency(stock.currentPrice * shares);
   const fee = calcBrokerFee(totalCost, config);
   const newState = deepCloneGameState(state);
 
-  newState.cash -= (totalCost + fee);
-  newState.cash = Math.round(newState.cash * 100) / 100;
+  newState.cash = roundCurrency(newState.cash - totalCost - fee);
   recordFee(newState, fee, stockId);
 
   const existing = newState.portfolio[stockId];
   if (existing) {
     const totalShares = existing.shares + shares;
-    const totalCostBasis = (existing.avgCost * existing.shares) + totalCost;
+    const totalCostBasis = roundCurrency((existing.avgCost * existing.shares) + totalCost);
     existing.shares = totalShares;
-    existing.avgCost = Math.round((totalCostBasis / totalShares) * 100) / 100;
+    existing.avgCost = roundCurrency(totalCostBasis / totalShares);
   } else {
     newState.portfolio[stockId] = {
       stockId,
       shares,
-      avgCost: Math.round(stock.currentPrice * 100) / 100,
+      avgCost: roundCurrency(stock.currentPrice),
     };
   }
 
@@ -181,8 +186,8 @@ export function executeBuy(
     stockId,
     type: 'buy',
     shares,
-    price: Math.round(stock.currentPrice * 100) / 100,
-    total: Math.round(totalCost * 100) / 100,
+    price: roundCurrency(stock.currentPrice),
+    total: totalCost,
     fee,
   };
   newState.transactionHistory.push(transaction);
@@ -195,16 +200,16 @@ export function executeSell(
   stockId: string,
   shares: number,
 ): TradeResult {
-  if (shares <= 0) return { ok: false, reason: 'invalid_shares' };
+  if (!isPositiveWholeNumber(shares)) return { ok: false, reason: 'invalid_shares' };
   if (!canSell(state, stockId, shares)) return { ok: false, reason: 'insufficient_shares' };
-  const stock = state.stocks.find(s => s.id === stockId)!;
+  const stock = getTradeStock(state, stockId);
+  if (!stock) return { ok: false, reason: 'stock_not_found' };
   const config = DIFFICULTY_CONFIGS[state.difficulty];
-  const totalProceeds = stock.currentPrice * shares;
+  const totalProceeds = roundCurrency(stock.currentPrice * shares);
   const fee = calcBrokerFee(totalProceeds, config);
   const newState = deepCloneGameState(state);
 
-  newState.cash += totalProceeds - fee;
-  newState.cash = Math.round(newState.cash * 100) / 100;
+  newState.cash = roundCurrency(newState.cash + totalProceeds - fee);
   recordFee(newState, fee, stockId);
 
   const position = newState.portfolio[stockId];
@@ -218,8 +223,8 @@ export function executeSell(
     stockId,
     type: 'sell',
     shares,
-    price: Math.round(stock.currentPrice * 100) / 100,
-    total: Math.round(totalProceeds * 100) / 100,
+    price: roundCurrency(stock.currentPrice),
+    total: totalProceeds,
     fee,
   };
   newState.transactionHistory.push(transaction);
@@ -234,16 +239,15 @@ export function executeShort(
 ): TradeResult {
   const error = getShortError(state, stockId, shares);
   if (error) return { ok: false, reason: error };
-  const stock = state.stocks.find(s => s.id === stockId)!;
+  const stock = getTradeStock(state, stockId)!;
   const config = DIFFICULTY_CONFIGS[state.difficulty];
-  const proceeds = stock.currentPrice * shares;
-  const marginReq = proceeds * config.shortMarginRequirement;
+  const proceeds = roundCurrency(stock.currentPrice * shares);
+  const marginReq = roundCurrency(proceeds * config.shortMarginRequirement);
   const fee = calcBrokerFee(proceeds, config);
   const newState = deepCloneGameState(state);
 
-  newState.cash -= (marginReq + fee);
-  newState.cash = Math.round(newState.cash * 100) / 100;
-  newState.marginUsed = Math.round((newState.marginUsed + marginReq) * 100) / 100;
+  newState.cash = roundCurrency(newState.cash - marginReq - fee);
+  newState.marginUsed = roundCurrency(newState.marginUsed + marginReq);
   recordFee(newState, fee, stockId);
 
   const existing = newState.shortPositions[stockId];
@@ -251,14 +255,14 @@ export function executeShort(
     const totalShares = existing.shares + shares;
     const avgEntry = ((existing.entryPrice * existing.shares) + (stock.currentPrice * shares)) / totalShares;
     existing.shares = totalShares;
-    existing.entryPrice = Math.round(avgEntry * 100) / 100;
-    existing.marginUsed = Math.round((existing.marginUsed + marginReq) * 100) / 100;
+    existing.entryPrice = roundCurrency(avgEntry);
+    existing.marginUsed = roundCurrency(existing.marginUsed + marginReq);
   } else {
     newState.shortPositions[stockId] = {
       stockId,
       shares,
-      entryPrice: Math.round(stock.currentPrice * 100) / 100,
-      marginUsed: Math.round(marginReq * 100) / 100,
+      entryPrice: roundCurrency(stock.currentPrice),
+      marginUsed: marginReq,
     };
   }
 
@@ -269,8 +273,8 @@ export function executeShort(
     stockId,
     type: 'short',
     shares,
-    price: Math.round(stock.currentPrice * 100) / 100,
-    total: Math.round(proceeds * 100) / 100,
+    price: roundCurrency(stock.currentPrice),
+    total: proceeds,
     fee,
   };
   newState.transactionHistory.push(transaction);
@@ -285,26 +289,22 @@ export function executeCover(
 ): TradeResult {
   const error = getCoverError(state, stockId, shares);
   if (error) return { ok: false, reason: error };
-  const stock = state.stocks.find(s => s.id === stockId)!;
+  const stock = getTradeStock(state, stockId)!;
   const config = DIFFICULTY_CONFIGS[state.difficulty];
-  const coverCost = stock.currentPrice * shares;
+  const coverCost = roundCurrency(stock.currentPrice * shares);
   const fee = calcBrokerFee(coverCost, config);
   const newState = deepCloneGameState(state);
 
   const pos = newState.shortPositions[stockId];
-  const marginRelease = (pos.marginUsed / pos.shares) * shares;
-  // PnL on the closed shares: positive when price fell below entry.
-  // Short proceeds were never credited at open time, so cover must include the
-  // full price-difference here (matching the margin-call path's accounting).
-  const pnl = (pos.entryPrice - stock.currentPrice) * shares;
+  const marginRelease = roundCurrency((pos.marginUsed / pos.shares) * shares);
+  const pnl = roundCurrency((pos.entryPrice - stock.currentPrice) * shares);
 
-  newState.cash += marginRelease + pnl - fee;
-  newState.cash = Math.round(newState.cash * 100) / 100;
-  newState.marginUsed = Math.round((newState.marginUsed - marginRelease) * 100) / 100;
+  newState.cash = roundCurrency(newState.cash + marginRelease + pnl - fee);
+  newState.marginUsed = roundCurrency(newState.marginUsed - marginRelease);
   recordFee(newState, fee, stockId);
 
   pos.shares -= shares;
-  pos.marginUsed = Math.round((pos.marginUsed - marginRelease) * 100) / 100;
+  pos.marginUsed = roundCurrency(pos.marginUsed - marginRelease);
   if (pos.shares <= 0) delete newState.shortPositions[stockId];
 
   const transaction: Transaction = {
@@ -314,8 +314,8 @@ export function executeCover(
     stockId,
     type: 'cover',
     shares,
-    price: Math.round(stock.currentPrice * 100) / 100,
-    total: Math.round(coverCost * 100) / 100,
+    price: roundCurrency(stock.currentPrice),
+    total: coverCost,
     fee,
   };
   newState.transactionHistory.push(transaction);
@@ -332,17 +332,19 @@ export function placeLimitOrder(
 ): TradeResult {
   const config = DIFFICULTY_CONFIGS[state.difficulty];
   if (state.limitOrders.length >= config.maxLimitOrders) return { ok: false, reason: 'max_limit_orders_reached' };
-  if (targetPrice <= 0) return { ok: false, reason: 'invalid_target_price' };
-  if (shares <= 0) return { ok: false, reason: 'invalid_shares' };
+  if (!isPositiveCurrency(targetPrice)) return { ok: false, reason: 'invalid_target_price' };
+  if (!isPositiveWholeNumber(shares)) return { ok: false, reason: 'invalid_shares' };
+  const stock = getTradeStock(state, stockId);
+  if (!stock) return { ok: false, reason: 'stock_not_found' };
   if (type === 'sell' && !canSell(state, stockId, shares)) return { ok: false, reason: 'insufficient_shares' };
   if (type === 'buy') {
-    const cost = targetPrice * shares;
+    const cost = roundCurrency(targetPrice * shares);
     if (state.cash < cost + config.limitOrderFee) return { ok: false, reason: 'insufficient_funds' };
   }
 
   const newState = deepCloneGameState(state);
-  const fee = config.limitOrderFee;
-  newState.cash = Math.round((newState.cash - fee) * 100) / 100;
+  const fee = roundCurrency(config.limitOrderFee);
+  newState.cash = roundCurrency(newState.cash - fee);
   recordFee(newState, fee, stockId);
 
   const order: LimitOrder = {
@@ -350,7 +352,7 @@ export function placeLimitOrder(
     stockId,
     type,
     shares,
-    targetPrice,
+    targetPrice: roundCurrency(targetPrice),
     placedTurn: state.currentTurn,
   };
   newState.limitOrders.push(order);
@@ -362,7 +364,7 @@ export function placeLimitOrder(
     stockId,
     type: type === 'buy' ? 'limit_buy' : 'limit_sell',
     shares,
-    price: targetPrice,
+    price: roundCurrency(targetPrice),
     total: fee,
     fee,
   };
@@ -404,7 +406,7 @@ export function tradeErrorMessage(reason: string): string {
   const messages: Record<string, string> = {
     insufficient_funds: 'Not enough cash for this trade',
     insufficient_shares: 'Not enough shares to sell',
-    invalid_shares: 'Share count must be positive',
+    invalid_shares: 'Share count must be a positive whole number',
     invalid_target_price: 'Target price must be positive',
     max_limit_orders_reached: 'Maximum limit orders reached',
     short_disabled: 'Short selling is not available',
