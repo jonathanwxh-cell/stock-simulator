@@ -5,6 +5,7 @@ import { getNetWorth } from '../engine/marketSimulator';
 import { getAlphaPct, getMarketReturnPct, getPlayerReturnPct } from '../engine/marketIndex';
 import { getLatestRisk } from '../engine/riskSystem';
 import { SECTOR_LABELS } from '../engine/config';
+import { getMissionProgressLabel, getMissionProgressPercent, getMissionTargetLabel } from '../utils/missionFormatting';
 
 function pct(value: number) {
   return `${value >= 0 ? '+' : ''}${value.toFixed(1)}%`;
@@ -146,13 +147,13 @@ export default function GameHUD() {
                 <p className="text-sm font-semibold text-[var(--text-primary)]">{mission.title}</p>
                 <p className="text-xs text-[var(--text-muted)] mt-1">{mission.description}</p>
                 <div className="flex items-center justify-between mt-3 text-xs">
-                  <span className="text-[var(--text-secondary)]">Progress</span>
-                  <span className="font-mono-data text-[var(--text-primary)]">{mission.progress.toFixed(1)} / {mission.target}</span>
+                  <span className="text-[var(--text-secondary)]">{getMissionProgressLabel(mission)}</span>
+                  <span className="font-mono-data text-[var(--text-primary)]">{getMissionTargetLabel(mission)}</span>
                 </div>
                 <div className="w-full h-1.5 rounded-full bg-[var(--surface-2)] mt-1 overflow-hidden">
-                  <div className="h-full rounded-full bg-[var(--profit-green)]" style={{ width: `${Math.max(0, Math.min(100, (mission.progress / Math.max(1, mission.target)) * 100))}%` }} />
+                  <div className="h-full rounded-full bg-[var(--profit-green)]" style={{ width: `${getMissionProgressPercent(mission)}%` }} />
                 </div>
-                <div className="text-[10px] text-[var(--text-muted)] mt-2">{Math.max(0, mission.endTurn - gameState.currentTurn)} turns left</div>
+                <div className="text-[10px] text-[var(--text-muted)] mt-2">Turns left: {Math.max(0, mission.endTurn - gameState.currentTurn)}</div>
               </>
             ) : (
               <p className="text-xs text-[var(--text-muted)]">No active mission yet. Advance one turn to receive one.</p>
