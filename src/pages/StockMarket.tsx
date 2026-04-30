@@ -76,6 +76,11 @@ export default function StockMarket() {
     else { setSortBy(id); setSortDir('asc'); }
   };
 
+  const openStock = (stockId: string) => {
+    localStorage.setItem('mm_selected', stockId);
+    navigateTo('stock-detail');
+  };
+
   const capLabels: Record<string, string> = { all: 'All', mega: 'Mega', large: 'Large', mid: 'Mid', small: 'Small' };
 
   return (
@@ -146,8 +151,9 @@ export default function StockMarket() {
           {filtered.map((stock) => {
             const change = getChange(stock);
             const position = gameState.portfolio[stock.id];
+            const shortPosition = gameState.shortPositions[stock.id];
             return (
-              <button key={stock.id} onClick={() => navigateTo('stock-detail')}
+              <button key={stock.id} onClick={() => openStock(stock.id)}
                 className="w-full flex items-center justify-between p-3 bg-[var(--surface-0)] border border-[var(--border)] rounded-xl hover:border-[var(--border-hover)] hover:bg-[var(--surface-1)] transition-all text-left">
                 <div className="flex items-center gap-3 min-w-0">
                   <div className="w-9 h-9 rounded-lg flex items-center justify-center text-[11px] font-bold shrink-0"
@@ -159,7 +165,7 @@ export default function StockMarket() {
                       <span className="text-sm font-semibold text-[var(--text-primary)]">{stock.ticker}</span>
                       {stock.dividendYield > 0 && <span className="text-[10px] px-1 py-0.5 rounded bg-[var(--neutral-amber)]/15 text-[var(--neutral-amber)]">DIV</span>}
                       {position && position.shares > 0 && <span className="text-[10px] px-1 py-0.5 rounded bg-[var(--profit-green)]/15 text-[var(--profit-green)]">HOLD</span>}
-                      {position && position.shares < 0 && <span className="text-[10px] px-1 py-0.5 rounded bg-[var(--loss-red)]/15 text-[var(--loss-red)]">SHORT</span>}
+                      {shortPosition && shortPosition.shares > 0 && <span className="text-[10px] px-1 py-0.5 rounded bg-[var(--loss-red)]/15 text-[var(--loss-red)]">SHORT</span>}
                     </div>
                     <span className="text-xs text-[var(--text-muted)] truncate block max-w-[180px]">{stock.name}</span>
                   </div>
