@@ -2,6 +2,7 @@ import type { AdvisorFeedback, GameState } from './types';
 import { getAlphaPct, getMarketReturnPct, getPlayerReturnPct } from './marketIndex';
 import { calculateRisk } from './riskSystem';
 import { roundCurrency } from './financialMath';
+import { getMissionSummary } from '../utils/missionFormatting';
 
 function feedback(headline: string, body: string, severity: AdvisorFeedback['severity'], tags: string[]): AdvisorFeedback {
   return { headline, body, severity, tags };
@@ -58,7 +59,7 @@ export function generateAdvisorFeedback(prevState: GameState, nextState: GameSta
     if (favored.length > 0 && !favored.some(sector => held.has(sector))) notes.push(feedback('Low regime alignment', `Current regime favors ${favored.join(', ')}, but you have little/no long exposure there.`, 'info', ['regime']));
   }
 
-  if (nextState.activeMission) notes.push(feedback('Mission status', `${nextState.activeMission.title}: ${nextState.activeMission.progress.toFixed(1)} / ${nextState.activeMission.target}.`, 'info', ['mission']));
+  if (nextState.activeMission) notes.push(feedback('Mission status', `${nextState.activeMission.title}: ${getMissionSummary(nextState.activeMission)}.`, 'info', ['mission']));
 
   if (notes.length === 0) notes.push(feedback('Steady turn', `Player return: ${getPlayerReturnPct(nextState).toFixed(1)}%. Market return: ${getMarketReturnPct(nextState).toFixed(1)}%. Alpha: ${getAlphaPct(nextState).toFixed(1)}%.`, 'info', ['summary']));
 
