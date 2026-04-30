@@ -1,7 +1,18 @@
 import { useGame } from '../context/GameContext';
 import { motion } from 'framer-motion';
-import { TrendingUp, TrendingDown, Clock, DollarSign } from 'lucide-react';
+import { TrendingUp, TrendingDown, Clock, DollarSign, BarChart3 } from 'lucide-react';
 import { useEffect } from 'react';
+
+function pct(value: number) {
+  return `${value >= 0 ? '+' : ''}${value.toFixed(1)}%`;
+}
+
+function severityClass(severity: string) {
+  if (severity === 'positive') return 'bg-[rgba(34,197,94,0.15)] text-[var(--profit-green)] border-[rgba(34,197,94,0.25)]';
+  if (severity === 'warning') return 'bg-[rgba(245,158,11,0.15)] text-[var(--neutral-amber)] border-[rgba(245,158,11,0.25)]';
+  if (severity === 'danger') return 'bg-[rgba(239,68,68,0.15)] text-[var(--loss-red)] border-[rgba(239,68,68,0.25)]';
+  return 'bg-[var(--surface-1)] text-[var(--info-blue)] border-[var(--border)]';
+}
 
 export default function NextTurn() {
   const { gameState, navigateTo } = useGame();
@@ -20,7 +31,12 @@ export default function NextTurn() {
   const netWorthChange = currentSnapshot && previousSnapshot
     ? currentSnapshot.netWorth - previousSnapshot.netWorth
     : 0;
-
+  const playerTurnReturn = currentSnapshot && previousSnapshot && previousSnapshot.netWorth > 0
+    ? ((currentSnapshot.netWorth - previousSnapshot.netWorth) / previousSnapshot.netWorth) * 100
+    : 0;
+  const latestIndex = gameState.marketIndexHistory.length > 0 ? gameState.marketIndexHistory[gameState.marketIndexHistory.length - 1] : { turn: 0, value: 1000, changePct: 0 };
+  const turnAlpha = playerTurnReturn - latestIndex.changePct;
+  const advisorFeedback = gameState.lastAdvisorFeedback || [];
   const recentNews = gameState.newsHistory.filter(n => n.turn === gameState.currentTurn);
 
   return (
@@ -53,13 +69,53 @@ export default function NextTurn() {
             </div>
           </div>
           <div className="text-mono-lg font-mono-data font-bold text-[var(--text-primary)]">
-            ${currentSnapshot?.netWorth.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            ${(currentSnapshot?.netWorth ?? 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </div>
           <div className="flex items-center gap-2 mt-3 text-xs text-[var(--text-muted)]">
             <DollarSign className="w-3 h-3" />
             <span>Cash: ${gameState.cash.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
           </div>
         </div>
+
+        {/* Market Move */}
+        <div className="bg-[var(--surface-0)] border border-[var(--border)] rounded-2xl p-4 mb-4">
+          <div className="flex items-center gap-2 mb-3">
+            <BarChart3 className="w-4 h-4 text-[var(--info-blue)]" />
+            <h3 className="text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wider">Turn Snapshot</h3>
+          </div>
+          <div className="grid grid-cols-3 gap-2 text-center">
+            <div>
+              <span className="text-[10px] text-[var(--text-muted)] block">Market</span>
+              <span className="text-sm font-mono-data text-[var(--text-primary)]">{pct(latestIndex.changePct)}</span>
+            </div>
+            <div>
+              <span className="text-[10px] text-[var(--text-muted)] block">You</span>
+              <span className="text-sm font-mono-data text-[var(--text-primary)]">{pct(playerTurnReturn)}</span>
+            </div>
+            <div>
+              <span className="text-[10px] text-[var(--text-muted)] block">Alpha</span>
+              <span className={`text-sm font-mono-data font-semibold ${turnAlpha >= 0 ? 'text-[var(--profit-green)]' : 'text-[var(--loss-red)]'}`}>{pct(turnAlpha)}</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Advisor Feedback */}
+        {advisorFeedback.length > 0 && (
+          <div className="bg-[var(--surface-0)] border border-[var(--border)] rounded-2xl p-5 mb-4">
+            <h3 className="text-heading-sm font-semibold text-[var(--text-primary)] mb-3">Advisor Feedback</h3>
+            <div className="space-y-3">
+              {advisorFeedback.map((note, idx) => (
+                <div key={`${note.headline}-${idx}`} className="bg-[var(--surface-1)] border border-[var(--border)] rounded-xl p-3">
+                  <div className="flex items-center justify-between gap-2 mb-1">
+                    <p className="text-sm font-semibold text-[var(--text-primary)]">{note.headline}</p>
+                    <span className={`text-[10px] px-2 py-0.5 rounded-full border uppercase shrink-0 ${severityClass(note.severity)}`}>{note.severity}</span>
+                  </div>
+                  <p className="text-xs text-[var(--text-secondary)] leading-relaxed">{note.body}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* News Events */}
         {recentNews.length > 0 && (
