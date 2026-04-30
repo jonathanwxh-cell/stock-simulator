@@ -21,6 +21,8 @@ export default function Footer() {
 
   const currentTab = screen === 'portfolio' || screen === 'stock-market' || screen === 'news'
     ? screen
+    : screen === 'stock-detail'
+    ? 'stock-market'
     : 'portfolio';
 
   return (
@@ -28,21 +30,19 @@ export default function Footer() {
       initial={{ y: 72 }}
       animate={{ y: 0 }}
       transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] as [number, number, number, number] }}
-      className="fixed bottom-0 left-0 right-0 z-30 h-[72px] bg-[var(--surface-0)] border-t border-[var(--border)] flex items-center px-4"
+      className="fixed bottom-0 left-0 right-0 z-30 min-h-[72px] bg-[var(--surface-0)] border-t border-[var(--border)] flex items-center px-3 sm:px-4"
     >
-      {/* Left: Cash */}
-      <div className="flex items-center gap-2 flex-shrink-0 w-[140px]">
+      <div className="flex items-center gap-2 flex-shrink-0 w-[104px] sm:w-[150px] min-w-0">
         <DollarSign className="w-4 h-4 text-[var(--neutral-amber)]" />
-        <div className="flex flex-col">
+        <div className="flex flex-col min-w-0">
           <span className="text-[10px] uppercase tracking-wider text-[var(--text-muted)]">Cash</span>
-          <span className="text-xs font-mono-data font-semibold text-[var(--text-primary)]">
-            ${gameState.cash.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+          <span className="text-xs font-mono-data font-semibold text-[var(--text-primary)] tabular-nums truncate">
+            ${gameState.cash.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </span>
         </div>
       </div>
 
-      {/* Center: Navigation Tabs */}
-      <div className="flex-1 flex justify-center">
+      <div className="flex-1 flex justify-center min-w-0">
         <div className="flex items-center gap-1 bg-[var(--surface-1)] rounded-xl p-1">
           {tabs.map((tab) => {
             const Icon = tab.icon;
@@ -51,7 +51,7 @@ export default function Footer() {
               <button
                 key={tab.id}
                 onClick={() => handleTabClick(tab.id)}
-                className={`relative flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 ${
+                className={`relative flex items-center gap-2 px-3 sm:px-4 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 ${
                   isActive
                     ? 'text-[var(--profit-green)] bg-[var(--surface-2)]'
                     : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-2)]'
@@ -72,14 +72,14 @@ export default function Footer() {
         </div>
       </div>
 
-      {/* Right: Next Turn */}
-      <div className="flex-shrink-0 w-[140px] flex justify-end">
+      <div className="flex-shrink-0 w-[104px] sm:w-[150px] flex justify-end">
         <button
           onClick={advanceTurn}
           disabled={gameState.isGameOver}
-          className="flex items-center gap-2 px-5 py-2.5 bg-[var(--profit-green)] text-black font-semibold text-sm rounded-lg hover:brightness-110 active:scale-[0.98] transition-all animate-pulse-glow disabled:opacity-40 disabled:cursor-not-allowed disabled:animate-none"
+          className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-5 py-2.5 bg-[var(--profit-green)] text-black font-semibold text-sm rounded-lg hover:brightness-110 active:scale-[0.98] transition-all animate-pulse-glow disabled:opacity-40 disabled:cursor-not-allowed disabled:animate-none"
         >
-          Next Turn
+          <span className="hidden sm:inline">Next Turn</span>
+          <span className="sm:hidden">Next</span>
           <ChevronRight className="w-4 h-4" />
         </button>
       </div>
