@@ -3,6 +3,7 @@ import type { GameState, Stock } from './types';
 import type { RNG } from './rng';
 import { defaultRNG } from './rng';
 import { DIFFICULTY_CONFIGS, SCENARIO_FREQUENCY_MAP, calcBrokerFee } from './config';
+import { roundCurrency } from './financialMath';
 import { generateScenario, generateNewsEvent } from './scenarioGenerator';
 import { calculateGrade } from './gameState';
 
@@ -44,7 +45,7 @@ export function simulateTurn(gameState: GameState, rng: RNG = defaultRNG): GameS
   // 6. Update stock prices
   for (const stock of newState.stocks) {
     const newPrice = calculateNewPrice(stock, newState, config.volatilityMultiplier, rng);
-    stock.currentPrice = Math.max(1, Math.round(newPrice * 100) / 100);
+    stock.currentPrice = Math.max(1, roundCurrency(newPrice));
     stock.priceHistory.push({ turn: newState.currentTurn, price: stock.currentPrice });
   }
 
@@ -66,15 +67,15 @@ export function simulateTurn(gameState: GameState, rng: RNG = defaultRNG): GameS
   // 12. Snapshot
   const portfolioValue = getPortfolioValue(newState);
   const shortLiability = getShortLiability(newState);
-  const netWorth = newState.cash + portfolioValue - shortLiability;
+  const netWorth = roundCurrency(newState.cash + portfolioValue - shortLiability);
   newState.netWorthHistory.push({
     turn: newState.currentTurn,
     date: new Date(currentDate),
-    netWorth: Math.round(netWorth * 100) / 100,
-    cash: Math.round(newState.cash * 100) / 100,
-    portfolioValue: Math.round(portfolioValue * 100) / 100,
-    shortLiability: Math.round(shortLiability * 100) / 100,
-    marginUsed: Math.round(newState.marginUsed * 100) / 100,
+    netWorth,
+    cash: roundCurrency(newState.cash),
+    portfolioValue: roundCurrency(portfolioValue),
+    shortLiability: roundCurrency(shortLiability),
+    marginUsed: roundCurrency(newState.marginUsed),
   });
 
   // 13. Check game over
@@ -97,13 +98,30 @@ export function simulateTurn(gameState: GameState, rng: RNG = defaultRNG): GameS
   return newState;
 }
 
+function recordExecutionFee(state: GameState, fee: number, stockId: string) {
+  if (fee <= 0) return;
+  const roundedFee = roundCurrency(fee);
+  state.totalFeesPaid = roundCurrency(state.totalFeesPaid + roundedFee);
+  state.transactionHistory.push({
+    id: `fee_${crypto.randomUUID()}`,
+    date: new Date(state.currentDate),
+    turn: state.currentTurn,
+    stockId,
+    type: 'fee',
+    shares: 0,
+    price: 0,
+    total: roundedFee,
+    fee: roundedFee,
+  });
+}
+
 function executeLimitOrders(state: GameState) {
   const config = DIFFICULTY_CONFIGS[state.difficulty];
   const consumed: string[] = [];
 
   for (const order of state.limitOrders) {
     const stock = state.stocks.find(s => s.id === order.stockId);
-    if (!stock) {
+    if (!stock || !Number.isFinite(stock.currentPrice) || stock.currentPrice <= 0) {
       consumed.push(order.id);
       continue;
     }
@@ -114,39 +132,41 @@ function executeLimitOrders(state: GameState) {
 
     if (!shouldExecute) continue;
 
-    const total = stock.currentPrice * order.shares;
+    const total = roundCurrency(stock.currentPrice * order.shares);
     const fee = calcBrokerFee(total, config);
 
     if (order.type === 'buy') {
       if (state.cash >= total + fee) {
-        state.cash = Math.round((state.cash - total - fee) * 100) / 100;
+        state.cash = roundCurrency(state.cash - total - fee);
+        recordExecutionFee(state, fee, order.stockId);
         const existing = state.portfolio[order.stockId];
         if (existing) {
           const ts = existing.shares + order.shares;
-          existing.avgCost = Math.round(((existing.avgCost * existing.shares) + total) / ts * 100) / 100;
+          existing.avgCost = roundCurrency(((existing.avgCost * existing.shares) + total) / ts);
           existing.shares = ts;
         } else {
-          state.portfolio[order.stockId] = { stockId: order.stockId, shares: order.shares, avgCost: Math.round(stock.currentPrice * 100) / 100 };
+          state.portfolio[order.stockId] = { stockId: order.stockId, shares: order.shares, avgCost: roundCurrency(stock.currentPrice) };
         }
         state.transactionHistory.push({
           id: `txn_${order.id}_exec`,
           date: new Date(state.currentDate), turn: state.currentTurn,
           stockId: order.stockId, type: 'limit_buy', shares: order.shares,
-          price: Math.round(stock.currentPrice * 100) / 100, total: Math.round(total * 100) / 100, fee,
+          price: roundCurrency(stock.currentPrice), total, fee,
         });
       }
       consumed.push(order.id);
     } else {
       const pos = state.portfolio[order.stockId];
       if (pos && pos.shares >= order.shares) {
-        state.cash = Math.round((state.cash + total - fee) * 100) / 100;
+        state.cash = roundCurrency(state.cash + total - fee);
+        recordExecutionFee(state, fee, order.stockId);
         pos.shares -= order.shares;
         if (pos.shares === 0) delete state.portfolio[order.stockId];
         state.transactionHistory.push({
           id: `txn_${order.id}_exec`,
           date: new Date(state.currentDate), turn: state.currentTurn,
           stockId: order.stockId, type: 'limit_sell', shares: order.shares,
-          price: Math.round(stock.currentPrice * 100) / 100, total: Math.round(total * 100) / 100, fee,
+          price: roundCurrency(stock.currentPrice), total, fee,
         });
       }
       consumed.push(order.id);
@@ -163,35 +183,35 @@ function maybeStockSplit(state: GameState, rng: RNG = defaultRNG) {
 
   const stock = rng.pick(eligible);
   const splitRatio = 2;
-  stock.basePrice = Math.round(stock.basePrice / splitRatio * 100) / 100;
-  stock.currentPrice = Math.round(stock.currentPrice / splitRatio * 100) / 100;
+  stock.basePrice = roundCurrency(stock.basePrice / splitRatio);
+  stock.currentPrice = roundCurrency(stock.currentPrice / splitRatio);
   stock.splitMultiplier *= splitRatio;
 
   // Adjust positions
   const pos = state.portfolio[stock.id];
   if (pos) {
     pos.shares *= splitRatio;
-    pos.avgCost = Math.round(pos.avgCost / splitRatio * 100) / 100;
+    pos.avgCost = roundCurrency(pos.avgCost / splitRatio);
   }
 
   // Adjust short positions
   const short = state.shortPositions[stock.id];
   if (short) {
     short.shares *= splitRatio;
-    short.entryPrice = Math.round(short.entryPrice / splitRatio * 100) / 100;
+    short.entryPrice = roundCurrency(short.entryPrice / splitRatio);
   }
 
   for (const order of state.limitOrders) {
     if (order.stockId !== stock.id) continue;
     order.shares *= splitRatio;
-    order.targetPrice = Math.round(order.targetPrice / splitRatio * 100) / 100;
+    order.targetPrice = roundCurrency(order.targetPrice / splitRatio);
   }
 
   state.transactionHistory.push({
     id: `split_${crypto.randomUUID()}`,
     date: new Date(state.currentDate), turn: state.currentTurn,
     stockId: stock.id, type: 'split', shares: splitRatio,
-    price: Math.round(stock.currentPrice * 100) / 100,
+    price: roundCurrency(stock.currentPrice),
     total: 0, fee: 0,
   });
 }
@@ -202,17 +222,17 @@ function payDividends(state: GameState) {
     const stock = state.stocks.find(s => s.id === stockId);
     if (!stock || stock.dividendYield <= 0) continue;
 
-    const quarterlyDiv = (stock.currentPrice * stock.dividendYield) / 4;
-    const totalDividend = quarterlyDiv * position.shares;
-    state.cash += totalDividend;
-    state.totalDividendsReceived = Math.round((state.totalDividendsReceived + totalDividend) * 100) / 100;
+    const quarterlyDiv = roundCurrency((stock.currentPrice * stock.dividendYield) / 4);
+    const totalDividend = roundCurrency(quarterlyDiv * position.shares);
+    state.cash = roundCurrency(state.cash + totalDividend);
+    state.totalDividendsReceived = roundCurrency(state.totalDividendsReceived + totalDividend);
 
     state.transactionHistory.push({
       id: `div_${crypto.randomUUID()}`,
       date: new Date(state.currentDate), turn: state.currentTurn,
       stockId, type: 'dividend', shares: position.shares,
-      price: Math.round(quarterlyDiv * 100) / 100,
-      total: Math.round(totalDividend * 100) / 100, fee: 0,
+      price: quarterlyDiv,
+      total: totalDividend, fee: 0,
     });
   }
 
@@ -220,17 +240,16 @@ function payDividends(state: GameState) {
     if (short.shares <= 0) continue;
     const stock = state.stocks.find(s => s.id === stockId);
     if (!stock || stock.dividendYield <= 0) continue;
-    const quarterlyDiv = (stock.currentPrice * stock.dividendYield) / 4;
-    const cost = quarterlyDiv * short.shares;
-    state.cash -= cost;
-    state.cash = Math.round(state.cash * 100) / 100;
+    const quarterlyDiv = roundCurrency((stock.currentPrice * stock.dividendYield) / 4);
+    const cost = roundCurrency(quarterlyDiv * short.shares);
+    state.cash = roundCurrency(state.cash - cost);
 
     state.transactionHistory.push({
       id: `div_short_${crypto.randomUUID()}`,
       date: new Date(state.currentDate), turn: state.currentTurn,
       stockId, type: 'dividend', shares: short.shares,
-      price: Math.round(-quarterlyDiv * 100) / 100,
-      total: Math.round(-cost * 100) / 100, fee: 0,
+      price: -quarterlyDiv,
+      total: -cost, fee: 0,
     });
   }
 }
@@ -239,10 +258,9 @@ function chargeMarginInterest(state: GameState) {
   const config = DIFFICULTY_CONFIGS[state.difficulty];
   const totalMargin = state.marginUsed;
   if (totalMargin <= 0) return;
-  const interest = Math.round(totalMargin * config.marginInterestRate * 100) / 100;
-  state.cash -= interest;
-  state.cash = Math.round(state.cash * 100) / 100;
-  state.totalFeesPaid = Math.round((state.totalFeesPaid + interest) * 100) / 100;
+  const interest = roundCurrency(totalMargin * config.marginInterestRate);
+  state.cash = roundCurrency(state.cash - interest);
+  state.totalFeesPaid = roundCurrency(state.totalFeesPaid + interest);
   state.transactionHistory.push({
     id: `margin_int_${crypto.randomUUID()}`,
     date: new Date(state.currentDate), turn: state.currentTurn,
@@ -261,20 +279,19 @@ export function checkMarginCall(state: GameState) {
 
     const portfolioValue = getPortfolioValue(state);
     const shortLiability = getShortLiability(state);
-    const equity = state.cash + portfolioValue - shortLiability;
-    const currentLiability = stock.currentPrice * short.shares;
-    const maintenanceReq = currentLiability * config.marginMaintenance;
+    const equity = roundCurrency(state.cash + portfolioValue - shortLiability);
+    const currentLiability = roundCurrency(stock.currentPrice * short.shares);
+    const maintenanceReq = roundCurrency(currentLiability * config.marginMaintenance);
     if (equity < maintenanceReq) {
-      const pnl = (short.entryPrice - stock.currentPrice) * short.shares;
-      state.cash += short.marginUsed + pnl;
-      state.cash = Math.round(state.cash * 100) / 100;
-      state.marginUsed = Math.round((state.marginUsed - short.marginUsed) * 100) / 100;
+      const pnl = roundCurrency((short.entryPrice - stock.currentPrice) * short.shares);
+      state.cash = roundCurrency(state.cash + short.marginUsed + pnl);
+      state.marginUsed = roundCurrency(state.marginUsed - short.marginUsed);
       state.transactionHistory.push({
         id: `margin_call_${crypto.randomUUID()}`,
         date: new Date(state.currentDate), turn: state.currentTurn,
         stockId, type: 'margin_call', shares: short.shares,
-        price: Math.round(stock.currentPrice * 100) / 100,
-        total: Math.round(currentLiability * 100) / 100, fee: 0,
+        price: roundCurrency(stock.currentPrice),
+        total: currentLiability, fee: 0,
       });
       delete state.shortPositions[stockId];
     }
@@ -314,7 +331,7 @@ export function getPortfolioValue(state: GameState): number {
     const stock = state.stocks.find(s => s.id === stockId);
     if (stock) total += stock.currentPrice * position.shares;
   }
-  return Math.round(total * 100) / 100;
+  return roundCurrency(total);
 }
 
 export function getShortLiability(state: GameState): number {
@@ -324,11 +341,11 @@ export function getShortLiability(state: GameState): number {
     const stock = state.stocks.find(s => s.id === stockId);
     if (stock) total += stock.currentPrice * short.shares;
   }
-  return Math.round(total * 100) / 100;
+  return roundCurrency(total);
 }
 
 export function getNetWorth(state: GameState): number {
-  return Math.round((state.cash + getPortfolioValue(state) - getShortLiability(state)) * 100) / 100;
+  return roundCurrency(state.cash + getPortfolioValue(state) - getShortLiability(state));
 }
 
 function getRankTitle(grade: string | null): string {
