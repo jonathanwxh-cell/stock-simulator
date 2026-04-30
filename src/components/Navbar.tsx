@@ -26,7 +26,12 @@ export default function Navbar() {
       transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] as [number, number, number, number] }}
       className="fixed top-0 left-0 right-0 z-30 h-14 glass border-b border-[var(--border)] flex items-center px-4"
     >
-      <div className="flex items-center gap-3 flex-shrink-0">
+      <button
+        type="button"
+        onClick={() => navigateTo('game')}
+        className="flex items-center gap-3 flex-shrink-0 rounded-lg -ml-1 px-1 py-1 hover:bg-[var(--surface-1)] transition-colors cursor-pointer"
+        aria-label="Go to dashboard"
+      >
         <img
           src="/game-logo.png"
           alt="Market Master"
@@ -35,12 +40,17 @@ export default function Navbar() {
         <span className="text-sm font-medium text-[var(--text-secondary)] hidden sm:block">
           {dateStr}
         </span>
-      </div>
+      </button>
 
       <div className="flex-1 text-center">
-        <span className="text-sm font-mono-data text-[var(--text-primary)] sm:hidden">
+        <button
+          type="button"
+          onClick={() => navigateTo('game')}
+          className="text-sm font-mono-data text-[var(--text-primary)] sm:hidden rounded px-2 py-1 hover:bg-[var(--surface-1)] transition-colors"
+          aria-label="Go to dashboard"
+        >
           {dateStr}
-        </span>
+        </button>
       </div>
 
       <div className="flex items-center gap-3 flex-shrink-0">
