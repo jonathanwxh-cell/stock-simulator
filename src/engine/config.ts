@@ -1,4 +1,5 @@
 import type { GameConfig, Difficulty } from './types';
+import { roundCurrency } from './financialMath';
 
 export const DIFFICULTY_CONFIGS: Record<Difficulty, GameConfig> = {
   easy: {
@@ -112,5 +113,6 @@ export const SECTOR_LABELS: Record<string, string> = {
 };
 
 export function calcBrokerFee(total: number, config: GameConfig): number {
-  return Math.max(config.brokerFeeMin, Math.round(total * config.brokerFeePercent * 100) / 100);
+  if (!Number.isFinite(total) || total <= 0) return 0;
+  return Math.max(config.brokerFeeMin, roundCurrency(total * config.brokerFeePercent));
 }
