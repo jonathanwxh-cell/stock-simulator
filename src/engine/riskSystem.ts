@@ -1,5 +1,4 @@
 import type { GameState, RiskLevel, RiskSnapshot, Sector } from './types';
-import { getNetWorth, getPortfolioValue, getShortLiability } from './marketSimulator';
 import { roundCurrency } from './financialMath';
 
 function riskLevel(score: number): RiskLevel {
@@ -13,10 +12,27 @@ function clampScore(value: number): number {
   return Math.max(0, Math.min(100, Math.round(value)));
 }
 
+function portfolioValue(state: GameState): number {
+  return roundCurrency(Object.entries(state.portfolio).reduce((sum, [stockId, pos]) => {
+    const stock = state.stocks.find(s => s.id === stockId);
+    return sum + (stock && pos.shares > 0 ? stock.currentPrice * pos.shares : 0);
+  }, 0));
+}
+
+function shortLiability(state: GameState): number {
+  return roundCurrency(Object.entries(state.shortPositions).reduce((sum, [stockId, pos]) => {
+    const stock = state.stocks.find(s => s.id === stockId);
+    return sum + (stock && pos.shares > 0 ? stock.currentPrice * pos.shares : 0);
+  }, 0));
+}
+
+function netWorth(state: GameState): number {
+  return roundCurrency(state.cash + portfolioValue(state) - shortLiability(state));
+}
+
 export function calculateRisk(state: GameState): RiskSnapshot {
-  const netWorth = Math.max(getNetWorth(state), 1);
-  const portfolioValue = getPortfolioValue(state);
-  const shortLiability = getShortLiability(state);
+  const nw = Math.max(netWorth(state), 1);
+  const shorts = shortLiability(state);
   const warnings: string[] = [];
 
   let largestPosition = 0;
@@ -37,12 +53,12 @@ export function calculateRisk(state: GameState): RiskSnapshot {
   }
 
   const largestSectorValue = Math.max(0, ...Object.values(sectorValues));
-  const concentrationRatio = largestPosition / netWorth;
-  const sectorRatio = largestSectorValue / netWorth;
-  const cashRatio = state.cash / netWorth;
-  const shortRatio = shortLiability / netWorth;
-  const peak = Math.max(...state.netWorthHistory.map(s => s.netWorth), netWorth);
-  const drawdown = peak > 0 ? Math.max(0, (peak - netWorth) / peak) : 0;
+  const concentrationRatio = largestPosition / nw;
+  const sectorRatio = largestSectorValue / nw;
+  const cashRatio = state.cash / nw;
+  const shortRatio = shorts / nw;
+  const peak = Math.max(...state.netWorthHistory.map(s => s.netWorth), nw);
+  const drawdown = peak > 0 ? Math.max(0, (peak - nw) / peak) : 0;
 
   if (concentrationRatio > 0.5) warnings.push('Single-stock concentration is high.');
   if (sectorRatio > 0.7) warnings.push('Sector concentration is above 70%.');
@@ -55,13 +71,7 @@ export function calculateRisk(state: GameState): RiskSnapshot {
   const cashBufferScore = clampScore(cashRatio < 0.1 ? 70 : cashRatio < 0.2 ? 35 : 5);
   const shortExposureScore = clampScore(shortRatio * 130);
   const drawdownScore = clampScore(drawdown * 220);
-  const totalScore = clampScore(
-    concentrationScore * 0.25 +
-    sectorScore * 0.2 +
-    cashBufferScore * 0.15 +
-    shortExposureScore * 0.2 +
-    drawdownScore * 0.2
-  );
+  const totalScore = clampScore(concentrationScore * 0.25 + sectorScore * 0.2 + cashBufferScore * 0.15 + shortExposureScore * 0.2 + drawdownScore * 0.2);
 
   return {
     turn: state.currentTurn,
@@ -77,7 +87,7 @@ export function calculateRisk(state: GameState): RiskSnapshot {
 }
 
 export function getLatestRisk(state: GameState): RiskSnapshot {
-  return state.riskHistory[state.riskHistory.length - 1] ?? calculateRisk(state);
+  return state.riskHistory?.[state.riskHistory.length - 1] ?? calculateRisk(state);
 }
 
 export function formatRiskScore(risk: RiskSnapshot): string {
