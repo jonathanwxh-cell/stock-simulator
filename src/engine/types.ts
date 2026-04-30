@@ -30,48 +30,65 @@ export interface Stock {
   splitMultiplier: number;
 }
 
-export interface Position {
-  stockId: string;
-  shares: number;
-  avgCost: number;
-}
-
-export interface ShortPosition {
-  stockId: string;
-  shares: number;
-  entryPrice: number;
-  marginUsed: number;
-}
-
-export interface LimitOrder {
-  id: string;
-  stockId: string;
-  type: 'buy' | 'sell';
-  shares: number;
-  targetPrice: number;
-  placedTurn: number;
-}
+export interface Position { stockId: string; shares: number; avgCost: number; }
+export interface ShortPosition { stockId: string; shares: number; entryPrice: number; marginUsed: number; }
+export interface LimitOrder { id: string; stockId: string; type: 'buy' | 'sell'; shares: number; targetPrice: number; placedTurn: number; }
 
 export interface Transaction {
   id: string;
   date: Date;
   turn: number;
   stockId: string;
-  type: 'buy' | 'sell' | 'short' | 'cover' | 'dividend' | 'fee' | 'margin_call' | 'split' | 'limit_buy' | 'limit_sell';
+  type: 'buy' | 'sell' | 'short' | 'cover' | 'dividend' | 'fee' | 'margin_call' | 'split' | 'limit_buy' | 'limit_sell' | 'mission_reward';
   shares: number;
   price: number;
   total: number;
   fee: number;
 }
 
-export interface NetWorthSnapshot {
+export interface NetWorthSnapshot { turn: number; date: Date; netWorth: number; cash: number; portfolioValue: number; shortLiability: number; marginUsed: number; }
+export interface MarketIndexSnapshot { turn: number; value: number; changePct: number; }
+export type RiskLevel = 'low' | 'medium' | 'high' | 'extreme';
+export interface RiskSnapshot {
   turn: number;
-  date: Date;
-  netWorth: number;
-  cash: number;
-  portfolioValue: number;
-  shortLiability: number;
-  marginUsed: number;
+  totalScore: number;
+  level: RiskLevel;
+  concentrationScore: number;
+  sectorScore: number;
+  cashBufferScore: number;
+  shortExposureScore: number;
+  drawdownScore: number;
+  warnings: string[];
+}
+export interface MarketRegime {
+  id: string;
+  title: string;
+  description: string;
+  startTurn: number;
+  remainingTurns: number;
+  sectorEffects: Partial<Record<Sector, number>>;
+  volatilityMultiplier: number;
+  newsBias?: Partial<Record<Sector, 'positive' | 'negative'>>;
+}
+export type MissionStatus = 'active' | 'completed' | 'failed';
+export type MissionType = 'performance' | 'risk' | 'diversification' | 'income' | 'tactical';
+export interface Mission {
+  id: string;
+  title: string;
+  description: string;
+  type: MissionType;
+  startTurn: number;
+  endTurn: number;
+  rewardCash: number;
+  status: MissionStatus;
+  progress: number;
+  target: number;
+}
+export interface AdvisorFeedback {
+  headline: string;
+  body: string;
+  severity: 'info' | 'warning' | 'positive' | 'danger';
+  tags: string[];
 }
 
 export interface NewsEvent {
@@ -128,6 +145,12 @@ export interface GameState {
   totalDividendsReceived: number;
   transactionHistory: Transaction[];
   netWorthHistory: NetWorthSnapshot[];
+  marketIndexHistory: MarketIndexSnapshot[];
+  currentRegime: MarketRegime | null;
+  riskHistory: RiskSnapshot[];
+  activeMission: Mission | null;
+  completedMissions: Mission[];
+  lastAdvisorFeedback: AdvisorFeedback[];
   stocks: Stock[];
   newsHistory: NewsEvent[];
   currentScenario: ActiveScenario | null;
@@ -138,69 +161,10 @@ export interface GameState {
   updatedAt: Date;
 }
 
-export interface LeaderboardEntry {
-  id: string;
-  playerName: string;
-  difficulty: Difficulty;
-  finalNetWorth: number;
-  startingCash: number;
-  grade: 'S' | 'A' | 'B' | 'C' | 'D' | 'F';
-  turnsPlayed: number;
-  date: Date;
-}
-
-export interface GameSettings {
-  soundEnabled: boolean;
-  musicEnabled: boolean;
-  animationSpeed: 'slow' | 'normal' | 'fast';
-  showTutorials: boolean;
-}
-
-export interface SaveMetadata {
-  slot: 1 | 2 | 3 | 'auto';
-  playerName: string;
-  difficulty: Difficulty;
-  currentTurn: number;
-  turnLimit: number;
-  netWorth: number;
-  cash: number;
-  date: Date;
-  updatedAt: Date;
-  exists: boolean;
-}
-
-export type Screen =
-  | 'title'
-  | 'game'
-  | 'stock-market'
-  | 'stock-detail'
-  | 'portfolio'
-  | 'news'
-  | 'next-turn'
-  | 'game-over'
-  | 'leaderboard'
-  | 'settings'
-  | 'how-to-play'
-  | 'load-save';
-
-export const ALL_SECTORS: Sector[] = [
-  'technology', 'semiconductors', 'healthcare', 'biotech',
-  'energy', 'financials', 'consumer', 'media',
-  'industrial', 'realestate', 'telecom', 'materials',
-];
-
-// ── Typed trade results (v1.4.0) ─────────────────────────────────────
-
-export type TradeError =
-  | 'insufficient_funds'
-  | 'insufficient_shares'
-  | 'invalid_shares'
-  | 'invalid_target_price'
-  | 'max_limit_orders_reached'
-  | 'short_disabled'
-  | 'no_position'
-  | 'stock_not_found';
-
-export type TradeResult =
-  | { ok: true; state: GameState; transaction: Transaction }
-  | { ok: false; reason: TradeError };
+export interface LeaderboardEntry { id: string; playerName: string; difficulty: Difficulty; finalNetWorth: number; startingCash: number; grade: 'S' | 'A' | 'B' | 'C' | 'D' | 'F'; turnsPlayed: number; date: Date; }
+export interface GameSettings { soundEnabled: boolean; musicEnabled: boolean; animationSpeed: 'slow' | 'normal' | 'fast'; showTutorials: boolean; }
+export interface SaveMetadata { slot: 1 | 2 | 3 | 'auto'; playerName: string; difficulty: Difficulty; currentTurn: number; turnLimit: number; netWorth: number; cash: number; date: Date; updatedAt: Date; exists: boolean; }
+export type Screen = 'title' | 'game' | 'stock-market' | 'stock-detail' | 'portfolio' | 'news' | 'next-turn' | 'game-over' | 'leaderboard' | 'settings' | 'how-to-play' | 'load-save';
+export const ALL_SECTORS: Sector[] = ['technology', 'semiconductors', 'healthcare', 'biotech', 'energy', 'financials', 'consumer', 'media', 'industrial', 'realestate', 'telecom', 'materials'];
+export type TradeError = 'insufficient_funds' | 'insufficient_shares' | 'invalid_shares' | 'invalid_target_price' | 'max_limit_orders_reached' | 'short_disabled' | 'no_position' | 'stock_not_found';
+export type TradeResult = { ok: true; state: GameState; transaction: Transaction } | { ok: false; reason: TradeError };
