@@ -7,3 +7,4 @@ export * from './marketSimulator';
 export * from './gameState';
 export * from './saveSystem';
 export * from './leaderboard';
+export * from './financialMath';
