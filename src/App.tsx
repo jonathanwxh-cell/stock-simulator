@@ -5,7 +5,7 @@ import Layout from './components/Layout';
 import TitleScreen from './pages/TitleScreen';
 import GameHUD from './pages/GameHUD';
 import StockMarket from './pages/StockMarket';
-import StockDetail from './pages/StockDetail';
+import StockDetail from './pages/StockDetailFixed';
 import Portfolio from './pages/Portfolio';
 import NewsPanel from './pages/NewsPanel';
 import NextTurn from './pages/NextTurn';

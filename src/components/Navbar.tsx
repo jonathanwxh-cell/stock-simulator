@@ -1,4 +1,5 @@
 import { useGame } from '../context/GameContext';
+import { getNetWorth } from '../engine';
 import { Settings, Volume2, VolumeX } from 'lucide-react';
 import { motion } from 'framer-motion';
 
@@ -7,10 +8,7 @@ export default function Navbar() {
 
   if (!gameState) return null;
 
-  const netWorth = gameState.cash + Object.entries(gameState.portfolio).reduce((sum, [stockId, pos]) => {
-    const stock = gameState.stocks.find(s => s.id === stockId);
-    return sum + (stock ? stock.currentPrice * pos.shares : 0);
-  }, 0);
+  const netWorth = getNetWorth(gameState);
 
   const dateStr = gameState.currentDate.toLocaleDateString('en-US', {
     month: 'long',
@@ -28,7 +26,6 @@ export default function Navbar() {
       transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] as [number, number, number, number] }}
       className="fixed top-0 left-0 right-0 z-30 h-14 glass border-b border-[var(--border)] flex items-center px-4"
     >
-      {/* Left: Logo */}
       <div className="flex items-center gap-3 flex-shrink-0">
         <img
           src="/game-logo.png"
@@ -40,14 +37,12 @@ export default function Navbar() {
         </span>
       </div>
 
-      {/* Center: Date on mobile / screen title on desktop */}
       <div className="flex-1 text-center">
         <span className="text-sm font-mono-data text-[var(--text-primary)] sm:hidden">
           {dateStr}
         </span>
       </div>
 
-      {/* Right: Net worth + settings */}
       <div className="flex items-center gap-3 flex-shrink-0">
         <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[var(--surface-1)] border border-[var(--border)]">
           <span className="text-xs text-[var(--text-secondary)] uppercase tracking-wider">Net Worth</span>
