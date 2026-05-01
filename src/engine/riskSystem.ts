@@ -12,6 +12,11 @@ function clampScore(value: number): number {
   return Math.max(0, Math.min(100, Math.round(value)));
 }
 
+function bandScore(value: number, bands: Array<[number, number]>): number {
+  for (const [threshold, score] of bands) if (value >= threshold) return score;
+  return 0;
+}
+
 function portfolioValue(state: GameState): number {
   return roundCurrency(Object.entries(state.portfolio).reduce((sum, [stockId, pos]) => {
     const stock = state.stocks.find(s => s.id === stockId);
@@ -37,7 +42,6 @@ export function calculateRisk(state: GameState): RiskSnapshot {
   const totalExposure = Math.max(longs + shorts, 0);
   const exposureRatio = totalExposure / nw;
   const meaningfulExposure = exposureRatio > 0.2;
-  const exposureScale = Math.min(1, exposureRatio / 0.7);
   const warnings: string[] = [];
 
   let largestPosition = 0;
@@ -61,43 +65,35 @@ export function calculateRisk(state: GameState): RiskSnapshot {
   const concentrationByExposure = totalExposure > 0 ? largestPosition / totalExposure : 0;
   const sectorByExposure = totalExposure > 0 ? largestSectorValue / totalExposure : 0;
   const largestPositionToNw = largestPosition / nw;
-  const largestSectorToNw = largestSectorValue / nw;
   const cashRatio = state.cash / nw;
   const shortRatio = shorts / nw;
   const peak = Math.max(...state.netWorthHistory.map(s => s.netWorth), nw);
   const drawdown = peak > 0 ? Math.max(0, (peak - nw) / peak) : 0;
 
-  let scoreFloor = 0;
-  if (meaningfulExposure && largestPositionToNw > 0.25) {
-    warnings.push('Single-stock concentration is above 25% of net worth.');
-    scoreFloor = Math.max(scoreFloor, 25);
-  }
-  if (meaningfulExposure && largestPositionToNw > 0.5) scoreFloor = Math.max(scoreFloor, 45);
-  if (meaningfulExposure && largestPositionToNw > 0.7) scoreFloor = Math.max(scoreFloor, 60);
-  if (meaningfulExposure && sectorByExposure > 0.5) {
-    warnings.push('One sector is more than 50% of invested exposure.');
-    scoreFloor = Math.max(scoreFloor, 25);
-  }
-  if (cashRatio < 0.1) {
-    warnings.push('Cash buffer is below 10%.');
-    scoreFloor = Math.max(scoreFloor, 35);
-  }
-  if (shortRatio > 0.2) {
-    warnings.push('Short exposure is above 20% of net worth.');
-    scoreFloor = Math.max(scoreFloor, 40);
-  }
-  if (drawdown > 0.1) {
-    warnings.push('Drawdown exceeds 10%.');
-    scoreFloor = Math.max(scoreFloor, 30);
-  }
+  if (meaningfulExposure && largestPositionToNw > 0.25) warnings.push('Single-stock concentration is above 25% of net worth.');
+  if (meaningfulExposure && sectorByExposure > 0.5) warnings.push('One sector is more than 50% of invested exposure.');
+  if (cashRatio < 0.1) warnings.push('Cash buffer is below 10%.');
+  if (shortRatio > 0.2) warnings.push('Short exposure is above 20% of net worth.');
+  if (drawdown > 0.1) warnings.push('Drawdown exceeds 10%.');
 
-  const concentrationScore = clampScore(concentrationByExposure * exposureScale * 70 + Math.max(0, largestPositionToNw - 0.25) * 70);
-  const sectorScore = clampScore(sectorByExposure * exposureScale * 50 + Math.max(0, largestSectorToNw - 0.5) * 50);
-  const cashBufferScore = clampScore(totalExposure <= 0 ? 0 : cashRatio < 0.1 ? 75 : cashRatio < 0.2 ? 40 : cashRatio < 0.35 ? 15 : 3);
-  const shortExposureScore = clampScore(shortRatio * 190);
-  const drawdownScore = clampScore(drawdown * 320);
-  const weightedScore = clampScore(concentrationScore * 0.34 + sectorScore * 0.22 + cashBufferScore * 0.1 + shortExposureScore * 0.2 + drawdownScore * 0.14);
-  const totalScore = clampScore(Math.max(weightedScore, scoreFloor));
+  const concentrationScore = meaningfulExposure
+    ? Math.max(
+      bandScore(largestPositionToNw, [[0.7, 80], [0.5, 60], [0.25, 35], [0.1, 15]]),
+      concentrationByExposure >= 0.8 && exposureRatio > 0.2 ? 30 : 0,
+    )
+    : 0;
+  const sectorScore = meaningfulExposure
+    ? bandScore(sectorByExposure, [[0.8, 45], [0.5, 30], [0.3, 15]])
+    : 0;
+  const cashBufferScore = totalExposure > 0
+    ? bandScore(1 - cashRatio, [[0.95, 40], [0.9, 30], [0.8, 15]])
+    : 0;
+  const shortExposureScore = bandScore(shortRatio, [[0.7, 85], [0.5, 70], [0.2, 45], [0.1, 25]]);
+  const drawdownScore = bandScore(drawdown, [[0.35, 85], [0.25, 70], [0.1, 35], [0.05, 15]]);
+
+  const dominant = Math.max(concentrationScore, sectorScore, cashBufferScore, shortExposureScore, drawdownScore);
+  const weighted = clampScore(concentrationScore * 0.32 + sectorScore * 0.18 + cashBufferScore * 0.14 + shortExposureScore * 0.22 + drawdownScore * 0.14);
+  const totalScore = clampScore(Math.max(dominant, weighted));
 
   return {
     turn: state.currentTurn,
