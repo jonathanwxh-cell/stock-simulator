@@ -1,5 +1,6 @@
 import type { GameState, RiskLevel, Sector, Stock } from './types';
 import { executeBuy, executeCover, executeSell, executeShort, getNetWorth, getPortfolioValue, getShortLiability } from './gameState';
+import { DIFFICULTY_CONFIGS } from './config';
 import { calculateRisk } from './riskSystem';
 import { roundCurrency } from './financialMath';
 
@@ -148,7 +149,7 @@ export function getTradeFeedback(state: GameState, stockId: string, shares: numb
       { label: 'Position after', value: positionLabel },
     );
   } else if (action === 'short') {
-    const marginUsed = roundCurrency(transaction.total * 1.5);
+    const marginUsed = roundCurrency(transaction.total * DIFFICULTY_CONFIGS[state.difficulty].shortMarginRequirement);
     const shortExposure = positionWeightAfter;
     headline = `Shorted ${shares} ${stock.ticker}`;
     subheadline = `Exposure ${money(transaction.total)} · Fee ${money(transaction.fee)}`;
