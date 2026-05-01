@@ -4,7 +4,12 @@ import type { RNG } from './rng';
 
 class FixedIntRng implements RNG {
   private index = 0;
-  constructor(private values: number[]) {}
+  private values: number[];
+
+  constructor(values: number[]) {
+    this.values = values;
+  }
+
   next(): number { return 0.5; }
   int(_min: number, _max: number): number { return this.values[this.index++] ?? 0; }
   range(min: number, _max: number): number { return min; }
