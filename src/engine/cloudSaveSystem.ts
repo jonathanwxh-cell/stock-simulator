@@ -2,8 +2,12 @@ import { createClient, type SupabaseClient, type User } from '@supabase/supabase
 import type { GameState, SaveMetadata } from './types';
 
 // Cloud saves are optional: local save remains the source of fallback truth.
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
-const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
+// Vercel's Supabase integration creates NEXT_PUBLIC_* vars; local/dev may use VITE_*.
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || import.meta.env.NEXT_PUBLIC_SUPABASE_URL;
+const SUPABASE_ANON_KEY =
+  import.meta.env.VITE_SUPABASE_ANON_KEY ||
+  import.meta.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
+  import.meta.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
 const CLOUD_SAVE_ENABLED = Boolean(SUPABASE_URL && SUPABASE_ANON_KEY);
 
 type SaveSlot = 1 | 2 | 3 | 'auto';
