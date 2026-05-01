@@ -1,7 +1,8 @@
 import type { Mission } from '../engine/types';
 
 function signedPct(value: number): string {
-  return `${value >= 0 ? '+' : ''}${value.toFixed(1)}%`;
+  if (Math.abs(value) < 0.05) return '0.0%';
+  return `${value > 0 ? '+' : ''}${value.toFixed(1)}%`;
 }
 
 function riskScoreFromBuffer(mission: Mission): number {
@@ -36,6 +37,9 @@ export function getMissionProgressPercent(mission: Mission): number {
 }
 
 export function getMissionSummary(mission: Mission): string {
-  if (mission.id.includes('risk')) return `current risk score ${riskScoreFromBuffer(mission).toFixed(0)}/100, limit below ${(100 - mission.target).toFixed(0)}`;
+  if (mission.id.includes('risk')) return `Risk score ${riskScoreFromBuffer(mission).toFixed(0)}/100, limit below ${(100 - mission.target).toFixed(0)}`;
+  if (mission.id.includes('diversify')) return `Sectors held ${mission.progress.toFixed(0)}/${mission.target.toFixed(0)}, target ${mission.target.toFixed(0)}`;
+  if (mission.id.includes('growth')) return `Growth ${signedPct(mission.progress)}, target ${signedPct(mission.target)}`;
+  if (mission.id.includes('alpha')) return `Alpha ${signedPct(mission.progress)}, target ${signedPct(mission.target)}`;
   return `${getMissionProgressLabel(mission)} · ${getMissionTargetLabel(mission)}`;
 }
