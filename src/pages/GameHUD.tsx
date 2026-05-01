@@ -6,7 +6,7 @@ import { getAlphaPct, getMarketReturnPct, getPlayerReturnPct } from '../engine/m
 import { getLatestRisk } from '../engine/riskSystem';
 import { SECTOR_LABELS } from '../engine/config';
 import { getMissionProgressLabel, getMissionProgressPercent, getMissionTargetLabel } from '../utils/missionFormatting';
-import { getHeadwindSectors, getTailwindSectors } from '../utils/regimeUi';
+import { getRegimeHeadwindSectors, getRegimeTailwindSectors } from '../utils/regimeUi';
 
 function pct(value: number) {
   return `${value >= 0 ? '+' : ''}${value.toFixed(1)}%`;
@@ -43,8 +43,8 @@ export default function GameHUD() {
   const risk = getLatestRisk(gameState);
   const mission = gameState.activeMission;
   const regime = gameState.currentRegime;
-  const positiveSectors = getTailwindSectors(regime).slice(0, 3);
-  const negativeSectors = getHeadwindSectors(regime).slice(0, 3);
+  const positiveSectors = getRegimeTailwindSectors(regime).slice(0, 3);
+  const negativeSectors = getRegimeHeadwindSectors(regime).slice(0, 3);
 
   // Margin status
   const marginUsed = Math.abs(Object.entries(gameState.portfolio).filter(([, p]) => p.shares < 0).reduce((sum, [id, p]) => {
