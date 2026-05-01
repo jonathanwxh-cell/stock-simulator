@@ -3,7 +3,7 @@ import { useGame } from '../context/GameContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Search, SlidersHorizontal, ArrowDownUp } from 'lucide-react';
 import { SECTOR_COLORS, SECTOR_LABELS } from '../engine/config';
-import { getSectorRegimeTone } from '../utils/regimeUi';
+import { getRegimeToneForSector } from '../utils/regimeUi';
 
 const MARKET_CAPS = ['all', 'mega', 'large', 'mid', 'small'];
 const SORT_OPTIONS = [
@@ -162,7 +162,7 @@ export default function StockMarket() {
             const change = getChange(stock);
             const position = gameState.portfolio[stock.id];
             const shortPosition = gameState.shortPositions[stock.id];
-            const regimeTone = getSectorRegimeTone(currentRegime?.sectorEffects[stock.sector]);
+            const regimeTone = getRegimeToneForSector(currentRegime, stock.sector);
             return (
               <button key={stock.id} onClick={() => openStock(stock.id)}
                 className="w-full flex items-center justify-between p-3 bg-[var(--surface-0)] border border-[var(--border)] rounded-xl hover:border-[var(--border-hover)] hover:bg-[var(--surface-1)] transition-all text-left">
