@@ -1,10 +1,32 @@
 import { useMemo, useState } from 'react';
 import { useGame } from '../context/GameContext';
-import { ArrowLeft, Shield, TrendingDown, TrendingUp } from 'lucide-react';
+import { ArrowLeft, CheckCircle, Shield, TrendingDown, TrendingUp, X } from 'lucide-react';
 import { Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { calcBrokerFee, DIFFICULTY_CONFIGS, SECTOR_COLORS, SECTOR_LABELS } from '../engine/config';
+import { getTradeFeedback, tradeFeedbackFormat, type FeedbackTone, type TradeAction, type TradeFeedback } from '../engine/tradeFeedback';
 
-type TradeType = 'buy' | 'sell' | 'short' | 'cover';
+type TradeType = TradeAction;
+
+function toneClass(tone?: FeedbackTone) {
+  if (tone === 'positive') return 'text-[var(--profit-green)]';
+  if (tone === 'warning') return 'text-[var(--neutral-amber)]';
+  if (tone === 'danger') return 'text-[var(--loss-red)]';
+  return 'text-[var(--text-primary)]';
+}
+
+function FeedbackDetails({ feedback, compact = false }: { feedback: TradeFeedback; compact?: boolean }) {
+  const details = compact ? feedback.details.slice(-2) : feedback.details;
+  return (
+    <div className="space-y-1.5">
+      {details.map(detail => (
+        <div key={`${detail.label}-${detail.value}`} className="flex justify-between gap-3 text-xs">
+          <span className="text-[var(--text-muted)]">{detail.label}</span>
+          <span className={`font-mono-data text-right ${toneClass(detail.tone)}`}>{detail.value}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
 
 export default function StockDetailFixed() {
   const { gameState, navigateTo, buyStock, sellStock, shortStock, coverStock, lastError, clearError } = useGame();
@@ -12,6 +34,7 @@ export default function StockDetailFixed() {
   const [shares, setShares] = useState(1);
   const [localError, setLocalError] = useState('');
   const [chartRange, setChartRange] = useState(30);
+  const [lastFeedback, setLastFeedback] = useState<TradeFeedback | null>(null);
 
   if (!gameState) return null;
 
@@ -41,9 +64,13 @@ export default function StockDetailFixed() {
   const coverMarginRelease = shortPosition ? (shortPosition.marginUsed / shortPosition.shares) * coverShares : 0;
   const coverPnl = shortPosition ? (shortPosition.entryPrice - stock.currentPrice) * coverShares : 0;
   const coverCashAfter = gameState.cash + coverMarginRelease + coverPnl - fee;
+  const neededForBuy = tradeValue + fee;
+  const availableCash = gameState.cash;
+
+  const tradePreview = useMemo(() => getTradeFeedback(gameState, stockId, shares, tradeType), [gameState, stockId, shares, tradeType]);
 
   const canExecute = tradeType === 'buy'
-    ? gameState.cash >= tradeValue + fee
+    ? gameState.cash >= neededForBuy
     : tradeType === 'sell'
     ? longShares >= shares
     : tradeType === 'short'
@@ -52,11 +79,11 @@ export default function StockDetailFixed() {
 
   const disabledReason = useMemo(() => {
     if (canExecute) return '';
-    if (tradeType === 'buy') return 'Not enough cash.';
+    if (tradeType === 'buy') return `Need ${tradeFeedbackFormat.money(neededForBuy)}, available ${tradeFeedbackFormat.money(availableCash)}.`;
     if (tradeType === 'sell') return longShares > 0 ? `Only ${longShares} long shares available.` : 'No long position to sell.';
-    if (tradeType === 'short') return config.shortEnabled ? 'Not enough cash for short margin.' : 'Short selling is disabled.';
+    if (tradeType === 'short') return config.shortEnabled ? `Need ${tradeFeedbackFormat.money(shortCashNeeded)} cash for margin and fee.` : 'Short selling is disabled.';
     return shortShares > 0 ? `Only ${shortShares} short shares available.` : 'No short position to cover.';
-  }, [canExecute, config.shortEnabled, longShares, shortShares, tradeType]);
+  }, [availableCash, canExecute, config.shortEnabled, longShares, neededForBuy, shortCashNeeded, shortShares, tradeType]);
 
   const setWholeShares = (value: number) => setShares(Math.max(1, Math.floor(value) || 1));
 
@@ -70,6 +97,7 @@ export default function StockDetailFixed() {
   const selectTrade = (next: TradeType) => {
     setTradeType(next);
     setLocalError('');
+    setLastFeedback(null);
     if (next === 'sell' && longShares > 0) setShares(s => Math.min(s, longShares));
     if (next === 'cover' && shortShares > 0) setShares(s => Math.min(s, shortShares));
   };
@@ -81,6 +109,7 @@ export default function StockDetailFixed() {
       setLocalError(disabledReason);
       return;
     }
+    if (tradePreview) setLastFeedback(tradePreview);
     if (tradeType === 'buy') buyStock(stockId, shares);
     if (tradeType === 'sell') sellStock(stockId, shares);
     if (tradeType === 'short') shortStock(stockId, shares);
@@ -120,6 +149,28 @@ export default function StockDetailFixed() {
             {change >= 0 ? '+' : ''}{change.toFixed(2)}%
           </span>
         </div>
+
+        {lastFeedback && (
+          <div className="bg-[rgba(34,197,94,0.08)] border border-[rgba(34,197,94,0.25)] rounded-2xl p-4">
+            <div className="flex items-start gap-3">
+              <CheckCircle className="w-5 h-5 text-[var(--profit-green)] shrink-0 mt-0.5" />
+              <div className="flex-1 min-w-0">
+                <div className="flex items-start justify-between gap-2">
+                  <div>
+                    <p className="text-sm font-semibold text-[var(--text-primary)]">{lastFeedback.headline}</p>
+                    <p className="text-xs text-[var(--text-secondary)] mt-0.5">{lastFeedback.subheadline}</p>
+                  </div>
+                  <button onClick={() => setLastFeedback(null)} className="w-7 h-7 rounded-lg bg-[var(--surface-0)]/70 flex items-center justify-center text-[var(--text-muted)] hover:text-[var(--text-primary)]">
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+                <div className="mt-3">
+                  <FeedbackDetails feedback={lastFeedback} compact />
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         <div className="bg-[var(--surface-0)] border border-[var(--border)] rounded-2xl p-4">
           <div className="flex items-center justify-between mb-3">
@@ -180,6 +231,22 @@ export default function StockDetailFixed() {
             {tradeType === 'cover' && <div className="flex justify-between"><span className="text-[var(--text-muted)]">Margin Released</span><span className="font-mono-data text-[var(--text-secondary)]">${coverMarginRelease.toFixed(2)}</span></div>}
             <div className="flex justify-between"><span className="text-[var(--text-muted)]">Fee</span><span className="font-mono-data text-[var(--text-secondary)]">${fee.toFixed(2)}</span></div>
             <div className="flex justify-between border-t border-[var(--border)] pt-1.5"><span className="text-[var(--text-primary)] font-medium">Cash Impact</span><span className="font-mono-data font-bold text-[var(--text-primary)]">{cashImpact >= 0 ? '+' : '-'}${Math.abs(cashImpact).toFixed(2)}</span></div>
+          </div>
+
+          <div className={`rounded-xl p-3 mb-3 border ${tradePreview ? 'bg-[rgba(59,130,246,0.06)] border-[rgba(59,130,246,0.18)]' : 'bg-[var(--surface-1)] border-[var(--border)]'}`}>
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wider">Trade Preview</span>
+              <span className="text-[10px] text-[var(--text-muted)]">Before execution</span>
+            </div>
+            {tradePreview ? (
+              <>
+                <p className="text-sm font-semibold text-[var(--text-primary)]">{tradePreview.headline.replace(/^(Bought|Sold|Shorted|Covered)/, tradeType === 'buy' ? 'Buy' : tradeType === 'sell' ? 'Sell' : tradeType === 'short' ? 'Short' : 'Cover')}</p>
+                <p className="text-xs text-[var(--text-muted)] mb-3">{tradePreview.subheadline}</p>
+                <FeedbackDetails feedback={tradePreview} />
+              </>
+            ) : (
+              <p className="text-xs text-[var(--text-muted)]">{disabledReason || 'Enter a valid whole-share amount to preview this trade.'}</p>
+            )}
           </div>
 
           {(localError || lastError) && <p className="text-xs text-[var(--loss-red)] mb-2">{localError || lastError}</p>}
