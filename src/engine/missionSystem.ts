@@ -1,4 +1,4 @@
-import type { GameState, Mission } from './types';
+import type { GameState, Mission, MissionStatus } from './types';
 import type { RNG } from './rng';
 import { getAlphaPct } from './marketIndex';
 import { calculateRisk } from './riskSystem';
@@ -56,7 +56,8 @@ export function updateMission(prevState: GameState, nextState: GameState, rng: R
     return;
   }
 
-  const mission: Mission = { ...nextState.activeMission, status: 'active' };
+  const activeStatus: MissionStatus = 'active';
+  const mission: Mission = { ...nextState.activeMission, status: activeStatus };
   const startNetWorth = prevState.netWorthHistory.find(s => s.turn === mission.startTurn)?.netWorth ?? prevState.netWorthHistory[0]?.netWorth ?? netWorth(prevState);
 
   if (mission.id.includes('alpha')) mission.progress = getAlphaPct(nextState);
