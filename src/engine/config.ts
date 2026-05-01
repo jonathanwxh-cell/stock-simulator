@@ -107,7 +107,7 @@ export const SECTOR_LABELS: Record<string, string> = {
   consumer: 'Consumer',
   media: 'Media & Entertainment',
   industrial: 'Industrial',
-  realestate: 'Real Estate & Utilities',
+  realestate: 'Real Estate',
   telecom: 'Telecom',
   materials: 'Materials & Mining',
 };
