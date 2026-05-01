@@ -78,7 +78,7 @@ export function calculateRisk(state: GameState): RiskSnapshot {
 
   const concentrationScore = meaningfulExposure
     ? Math.max(
-      bandScore(largestPositionToNw, [[0.7, 80], [0.5, 60], [0.25, 35], [0.1, 15]]),
+      bandScore(largestPositionToNw, [[0.7, 85], [0.5, 70], [0.25, 40], [0.1, 15]]),
       concentrationByExposure >= 0.8 && exposureRatio > 0.2 ? 30 : 0,
     )
     : 0;
@@ -88,7 +88,7 @@ export function calculateRisk(state: GameState): RiskSnapshot {
   const cashBufferScore = totalExposure > 0
     ? bandScore(1 - cashRatio, [[0.95, 40], [0.9, 30], [0.8, 15]])
     : 0;
-  const shortExposureScore = bandScore(shortRatio, [[0.7, 85], [0.5, 70], [0.2, 45], [0.1, 25]]);
+  const shortExposureScore = bandScore(shortRatio, [[0.7, 90], [0.5, 80], [0.2, 55], [0.1, 30]]);
   const drawdownScore = bandScore(drawdown, [[0.35, 85], [0.25, 70], [0.1, 35], [0.05, 15]]);
 
   const dominant = Math.max(concentrationScore, sectorScore, cashBufferScore, shortExposureScore, drawdownScore);

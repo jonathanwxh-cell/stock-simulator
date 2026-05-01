@@ -20,10 +20,10 @@ const ALL_REGIMES: Omit<MarketRegime, 'startTurn' | 'remainingTurns'>[] = [
   {
     id: 'rate_hike',
     title: 'Rate Hike Pressure',
-    description: 'Higher rates pressure long-duration growth and real estate.',
-    sectorEffects: { realestate: 0.93, technology: 0.96, financials: 1.01 },
+    description: 'Higher rates pressure long-duration technology, semiconductors, and real estate.',
+    sectorEffects: { realestate: 0.93, technology: 0.96, semiconductors: 0.96, financials: 1.01 },
     volatilityMultiplier: 1.2,
-    newsBias: { realestate: 'negative', technology: 'negative' },
+    newsBias: { realestate: 'negative', technology: 'negative', semiconductors: 'negative' },
   },
   {
     id: 'energy_shock',
