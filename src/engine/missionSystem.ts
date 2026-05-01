@@ -56,7 +56,7 @@ export function updateMission(prevState: GameState, nextState: GameState, rng: R
     return;
   }
 
-  const mission = { ...nextState.activeMission, status: 'active' as const };
+  const mission: Mission = { ...nextState.activeMission, status: 'active' };
   const startNetWorth = prevState.netWorthHistory.find(s => s.turn === mission.startTurn)?.netWorth ?? prevState.netWorthHistory[0]?.netWorth ?? netWorth(prevState);
 
   if (mission.id.includes('alpha')) mission.progress = getAlphaPct(nextState);
