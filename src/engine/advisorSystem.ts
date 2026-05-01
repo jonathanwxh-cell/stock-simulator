@@ -55,7 +55,7 @@ export function generateAdvisorFeedback(_prevState: GameState, nextState: GameSt
     if (favored.length > 0 && !favored.some(sector => held.has(sector))) notes.push(feedback('Low regime alignment', `Current regime favors ${favored.join(', ')}, but you have little/no long exposure there.`, 'info', ['regime']));
   }
 
-  if (nextState.activeMission) notes.push(feedback('Mission status', `${nextState.activeMission.title}: ${getMissionSummary(nextState.activeMission)}.`, 'info', ['mission']));
+  if (nextState.activeMission) notes.push(feedback(`Mission: ${nextState.activeMission.title}`, `${getMissionSummary(nextState.activeMission)}.`, 'info', ['mission']));
 
   if (notes.length === 0) notes.push(feedback('Steady turn', `Player return: ${getPlayerReturnPct(nextState).toFixed(1)}%. Market return: ${getMarketReturnPct(nextState).toFixed(1)}%. Alpha: ${getAlphaPct(nextState).toFixed(1)}%.`, 'info', ['summary']));
 
