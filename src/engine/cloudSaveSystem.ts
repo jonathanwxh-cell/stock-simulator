@@ -1,6 +1,7 @@
 import { createClient, type SupabaseClient, type User } from '@supabase/supabase-js';
 import type { GameState, SaveMetadata } from './types';
 
+// Cloud saves are optional: local save remains the source of fallback truth.
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
 const CLOUD_SAVE_ENABLED = Boolean(SUPABASE_URL && SUPABASE_ANON_KEY);
