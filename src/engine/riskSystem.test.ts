@@ -75,9 +75,18 @@ describe('calculateRisk', () => {
       cash: 60000,
       portfolio: { amd: { stockId: 'amd', shares: 400, avgCost: 100 } },
     }));
-    expect(risk.totalScore).toBeGreaterThanOrEqual(35);
+    expect(risk.totalScore).toBeGreaterThanOrEqual(40);
     expect(risk.level).toBe('medium');
     expect(risk.warnings).toContain('Single-stock concentration is above 25% of net worth.');
+  });
+
+  it('escalates a 50% concentrated long position to high', () => {
+    const risk = calculateRisk(makeState({
+      cash: 50000,
+      portfolio: { amd: { stockId: 'amd', shares: 500, avgCost: 100 } },
+    }));
+    expect(risk.totalScore).toBeGreaterThanOrEqual(70);
+    expect(risk.level).toBe('high');
   });
 
   it('escalates a 70% concentrated long position to extreme', () => {
@@ -104,19 +113,19 @@ describe('calculateRisk', () => {
       shortPositions: { amd: { stockId: 'amd', shares: 250, entryPrice: 100, marginUsed: 12500 } },
       marginUsed: 12500,
     }));
-    expect(risk.totalScore).toBeGreaterThanOrEqual(45);
-    expect(risk.level).toBe('medium');
+    expect(risk.totalScore).toBeGreaterThanOrEqual(55);
+    expect(risk.level).toBe('high');
     expect(risk.warnings).toContain('Short exposure is above 20% of net worth.');
   });
 
-  it('escalates short exposure above 50% of net worth to high', () => {
+  it('escalates short exposure above 50% of net worth to extreme', () => {
     const risk = calculateRisk(makeState({
       cash: 100000,
       shortPositions: { amd: { stockId: 'amd', shares: 400, entryPrice: 100, marginUsed: 20000 } },
       marginUsed: 20000,
     }));
-    expect(risk.totalScore).toBeGreaterThanOrEqual(70);
-    expect(risk.level).toBe('high');
+    expect(risk.totalScore).toBeGreaterThanOrEqual(80);
+    expect(risk.level).toBe('extreme');
   });
 
   it('raises risk for drawdowns above 10%', () => {
