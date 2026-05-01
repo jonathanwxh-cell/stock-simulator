@@ -3,6 +3,7 @@ import { useGame } from '../context/GameContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Search, SlidersHorizontal, ArrowDownUp } from 'lucide-react';
 import { SECTOR_COLORS, SECTOR_LABELS } from '../engine/config';
+import { getSectorRegimeTone } from '../utils/regimeUi';
 
 const MARKET_CAPS = ['all', 'mega', 'large', 'mid', 'small'];
 const SORT_OPTIONS = [
@@ -161,7 +162,7 @@ export default function StockMarket() {
             const change = getChange(stock);
             const position = gameState.portfolio[stock.id];
             const shortPosition = gameState.shortPositions[stock.id];
-            const regimeMultiplier = currentRegime?.sectorEffects[stock.sector] || 1;
+            const regimeTone = getSectorRegimeTone(currentRegime?.sectorEffects[stock.sector]);
             return (
               <button key={stock.id} onClick={() => openStock(stock.id)}
                 className="w-full flex items-center justify-between p-3 bg-[var(--surface-0)] border border-[var(--border)] rounded-xl hover:border-[var(--border-hover)] hover:bg-[var(--surface-1)] transition-all text-left">
@@ -176,8 +177,8 @@ export default function StockMarket() {
                       {stock.dividendYield > 0 && <span className="text-[10px] px-1 py-0.5 rounded bg-[var(--neutral-amber)]/15 text-[var(--neutral-amber)]">DIV</span>}
                       {position && position.shares > 0 && <span className="text-[10px] px-1 py-0.5 rounded bg-[var(--profit-green)]/15 text-[var(--profit-green)]">HOLD</span>}
                       {shortPosition && shortPosition.shares > 0 && <span className="text-[10px] px-1 py-0.5 rounded bg-[var(--loss-red)]/15 text-[var(--loss-red)]">SHORT</span>}
-                      {regimeMultiplier > 1.03 && <span className="text-[10px] px-1 py-0.5 rounded bg-[rgba(34,197,94,0.15)] text-[var(--profit-green)]">TAILWIND</span>}
-                      {regimeMultiplier < 0.97 && <span className="text-[10px] px-1 py-0.5 rounded bg-[rgba(239,68,68,0.15)] text-[var(--loss-red)]">HEADWIND</span>}
+                      {regimeTone === 'tailwind' && <span className="text-[10px] px-1 py-0.5 rounded bg-[rgba(34,197,94,0.15)] text-[var(--profit-green)]">TAILWIND</span>}
+                      {regimeTone === 'headwind' && <span className="text-[10px] px-1 py-0.5 rounded bg-[rgba(239,68,68,0.15)] text-[var(--loss-red)]">HEADWIND</span>}
                     </div>
                     <span className="text-xs text-[var(--text-muted)] truncate block max-w-[180px]">{stock.name}</span>
                   </div>

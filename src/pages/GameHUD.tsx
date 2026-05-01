@@ -6,6 +6,7 @@ import { getAlphaPct, getMarketReturnPct, getPlayerReturnPct } from '../engine/m
 import { getLatestRisk } from '../engine/riskSystem';
 import { SECTOR_LABELS } from '../engine/config';
 import { getMissionProgressLabel, getMissionProgressPercent, getMissionTargetLabel } from '../utils/missionFormatting';
+import { getHeadwindSectors, getTailwindSectors } from '../utils/regimeUi';
 
 function pct(value: number) {
   return `${value >= 0 ? '+' : ''}${value.toFixed(1)}%`;
@@ -42,15 +43,8 @@ export default function GameHUD() {
   const risk = getLatestRisk(gameState);
   const mission = gameState.activeMission;
   const regime = gameState.currentRegime;
-  const sectorEffects = Object.entries(regime?.sectorEffects || {});
-  const positiveSectors = sectorEffects
-    .filter(([, mult]) => (mult || 1) > 1)
-    .sort((a, b) => (b[1] || 1) - (a[1] || 1))
-    .slice(0, 3);
-  const negativeSectors = sectorEffects
-    .filter(([, mult]) => (mult || 1) < 1)
-    .sort((a, b) => (a[1] || 1) - (b[1] || 1))
-    .slice(0, 3);
+  const positiveSectors = getTailwindSectors(regime).slice(0, 3);
+  const negativeSectors = getHeadwindSectors(regime).slice(0, 3);
 
   // Margin status
   const marginUsed = Math.abs(Object.entries(gameState.portfolio).filter(([, p]) => p.shares < 0).reduce((sum, [id, p]) => {
@@ -192,11 +186,11 @@ export default function GameHUD() {
             <div className="grid grid-cols-2 gap-2 mt-3">
               <div className="rounded-lg bg-[var(--surface-1)] p-2">
                 <span className="text-[10px] text-[var(--profit-green)] uppercase tracking-wider">Tailwinds</span>
-                <p className="text-xs text-[var(--text-secondary)] mt-1">{positiveSectors.length ? positiveSectors.map(([s]) => SECTOR_LABELS[s] || s).join(', ') : 'None'}</p>
+                <p className="text-xs text-[var(--text-secondary)] mt-1">{positiveSectors.length ? positiveSectors.map(sector => SECTOR_LABELS[sector] || sector).join(', ') : 'None'}</p>
               </div>
               <div className="rounded-lg bg-[var(--surface-1)] p-2">
                 <span className="text-[10px] text-[var(--loss-red)] uppercase tracking-wider">Headwinds</span>
-                <p className="text-xs text-[var(--text-secondary)] mt-1">{negativeSectors.length ? negativeSectors.map(([s]) => SECTOR_LABELS[s] || s).join(', ') : 'None'}</p>
+                <p className="text-xs text-[var(--text-secondary)] mt-1">{negativeSectors.length ? negativeSectors.map(sector => SECTOR_LABELS[sector] || sector).join(', ') : 'None'}</p>
               </div>
             </div>
           </div>

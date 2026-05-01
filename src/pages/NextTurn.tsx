@@ -2,6 +2,7 @@ import { useGame } from '../context/GameContext';
 import { motion } from 'framer-motion';
 import { TrendingUp, TrendingDown, Clock, DollarSign, BarChart3 } from 'lucide-react';
 import { useEffect } from 'react';
+import { getLatestTurnPerformance } from '../engine/turnPerformance';
 
 function pct(value: number) {
   return `${value >= 0 ? '+' : ''}${value.toFixed(1)}%`;
@@ -31,11 +32,7 @@ export default function NextTurn() {
   const netWorthChange = currentSnapshot && previousSnapshot
     ? currentSnapshot.netWorth - previousSnapshot.netWorth
     : 0;
-  const playerTurnReturn = currentSnapshot && previousSnapshot && previousSnapshot.netWorth > 0
-    ? ((currentSnapshot.netWorth - previousSnapshot.netWorth) / previousSnapshot.netWorth) * 100
-    : 0;
-  const latestIndex = gameState.marketIndexHistory.length > 0 ? gameState.marketIndexHistory[gameState.marketIndexHistory.length - 1] : { turn: 0, value: 1000, changePct: 0 };
-  const turnAlpha = playerTurnReturn - latestIndex.changePct;
+  const { marketMovePct, playerMovePct, turnAlphaPct } = getLatestTurnPerformance(gameState);
   const advisorFeedback = gameState.lastAdvisorFeedback || [];
   const recentNews = gameState.newsHistory.filter(n => n.turn === gameState.currentTurn);
 
@@ -86,15 +83,15 @@ export default function NextTurn() {
           <div className="grid grid-cols-3 gap-2 text-center">
             <div>
               <span className="text-[10px] text-[var(--text-muted)] block">Market</span>
-              <span className="text-sm font-mono-data text-[var(--text-primary)]">{pct(latestIndex.changePct)}</span>
+              <span className="text-sm font-mono-data text-[var(--text-primary)]">{pct(marketMovePct)}</span>
             </div>
             <div>
               <span className="text-[10px] text-[var(--text-muted)] block">You</span>
-              <span className="text-sm font-mono-data text-[var(--text-primary)]">{pct(playerTurnReturn)}</span>
+              <span className="text-sm font-mono-data text-[var(--text-primary)]">{pct(playerMovePct)}</span>
             </div>
             <div>
               <span className="text-[10px] text-[var(--text-muted)] block">Alpha</span>
-              <span className={`text-sm font-mono-data font-semibold ${turnAlpha >= 0 ? 'text-[var(--profit-green)]' : 'text-[var(--loss-red)]'}`}>{pct(turnAlpha)}</span>
+              <span className={`text-sm font-mono-data font-semibold ${turnAlphaPct >= 0 ? 'text-[var(--profit-green)]' : 'text-[var(--loss-red)]'}`}>{pct(turnAlphaPct)}</span>
             </div>
           </div>
         </div>
