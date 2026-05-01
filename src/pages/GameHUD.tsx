@@ -5,6 +5,7 @@ import { getNetWorth } from '../engine/marketSimulator';
 import { getAlphaPct, getMarketReturnPct, getPlayerReturnPct } from '../engine/marketIndex';
 import { getLatestRisk } from '../engine/riskSystem';
 import { SECTOR_LABELS } from '../engine/config';
+import type { GameState } from '../engine/types';
 import { getMissionProgressLabel, getMissionProgressPercent, getMissionTargetLabel } from '../utils/missionFormatting';
 import { getRegimeHeadwindSectors, getRegimeTailwindSectors } from '../utils/regimeUi';
 
@@ -25,7 +26,7 @@ function riskBorderClass(level: string) {
   return 'border-[rgba(239,68,68,0.3)] bg-[rgba(239,68,68,0.06)]';
 }
 
-function countPlayerTrades(gameState: NonNullable<ReturnType<typeof useGame>['gameState']>): number {
+function countPlayerTrades(gameState: GameState): number {
   return gameState.transactionHistory.filter(t => t.type === 'buy' || t.type === 'sell' || t.type === 'short' || t.type === 'cover').length;
 }
 
