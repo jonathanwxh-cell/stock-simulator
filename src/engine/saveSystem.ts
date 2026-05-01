@@ -1,6 +1,7 @@
 import type { GameState, SaveMetadata } from './types';
 import { openDB, type DBSchema, type IDBPDatabase } from 'idb';
 import { z } from 'zod';
+import { cloudDeleteSave, cloudGetSaveMetadata, cloudLoadGame, cloudSaveGame, isCloudSaveConfigured } from './cloudSaveSystem';
 
 const SAVE_SLOTS_KEY = 'marketmaster_save_slots';
 const AUTO_SAVE_KEY = 'marketmaster_autosave';
@@ -185,7 +186,7 @@ function reviveDates(state: GameState): GameState {
   };
 }
 
-export async function saveGame(slot: 1 | 2 | 3 | 'auto', gameState: GameState): Promise<void> {
+async function saveGameLocal(slot: 1 | 2 | 3 | 'auto', gameState: GameState): Promise<void> {
   const slotKey = getSlotKey(slot);
 
   // Save small data to localStorage
@@ -216,7 +217,7 @@ export async function saveGame(slot: 1 | 2 | 3 | 'auto', gameState: GameState): 
   ]);
 }
 
-export async function loadGame(slot: 1 | 2 | 3 | 'auto'): Promise<GameState | null> {
+async function loadGameLocal(slot: 1 | 2 | 3 | 'auto'): Promise<GameState | null> {
   const slotKey = getSlotKey(slot);
 
   // Load small data from localStorage
@@ -273,6 +274,31 @@ export async function loadGame(slot: 1 | 2 | 3 | 'auto'): Promise<GameState | nu
   return reviveDates(state);
 }
 
+export async function saveGame(slot: 1 | 2 | 3 | 'auto', gameState: GameState): Promise<void> {
+  await saveGameLocal(slot, gameState);
+  if (!isCloudSaveConfigured()) return;
+  try {
+    await cloudSaveGame(slot, gameState);
+  } catch (e) {
+    console.warn('Cloud save failed; local save preserved:', e);
+  }
+}
+
+export async function loadGame(slot: 1 | 2 | 3 | 'auto'): Promise<GameState | null> {
+  if (isCloudSaveConfigured()) {
+    try {
+      const cloud = await cloudLoadGame(slot);
+      if (cloud) {
+        await saveGameLocal(slot, cloud);
+        return cloud;
+      }
+    } catch (e) {
+      console.warn('Cloud load failed; falling back to local save:', e);
+    }
+  }
+  return loadGameLocal(slot);
+}
+
 export async function deleteSave(slot: 1 | 2 | 3 | 'auto'): Promise<void> {
   const slotKey = getSlotKey(slot);
 
@@ -298,9 +324,17 @@ export async function deleteSave(slot: 1 | 2 | 3 | 'auto'): Promise<void> {
   } catch (e) {
     console.warn('Failed to delete IndexedDB data:', e);
   }
+
+  if (isCloudSaveConfigured()) {
+    try {
+      await cloudDeleteSave(slot);
+    } catch (e) {
+      console.warn('Cloud delete failed; local delete completed:', e);
+    }
+  }
 }
 
-export async function getSaveMetadata(): Promise<SaveMetadata[]> {
+async function getLocalSaveMetadata(): Promise<SaveMetadata[]> {
   const slots: SaveMetadata[] = [];
 
   // Check auto-save
@@ -388,6 +422,27 @@ export async function getSaveMetadata(): Promise<SaveMetadata[]> {
   }
 
   return slots;
+}
+
+export async function getSaveMetadata(): Promise<SaveMetadata[]> {
+  const local = await getLocalSaveMetadata();
+  if (!isCloudSaveConfigured()) return local;
+
+  try {
+    const cloud = await cloudGetSaveMetadata();
+    if (!cloud.length) return local;
+    const bySlot = new Map<SaveMetadata['slot'], SaveMetadata>();
+    for (const item of local) bySlot.set(item.slot, item);
+    for (const item of cloud) bySlot.set(item.slot, item);
+    return Array.from(bySlot.values()).sort((a, b) => {
+      if (a.slot === 'auto') return -1;
+      if (b.slot === 'auto') return 1;
+      return String(a.slot).localeCompare(String(b.slot));
+    });
+  } catch (e) {
+    console.warn('Cloud metadata failed; using local metadata:', e);
+    return local;
+  }
 }
 
 export async function autoSave(gameState: GameState): Promise<void> {
