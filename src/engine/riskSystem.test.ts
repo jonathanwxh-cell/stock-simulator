@@ -60,14 +60,33 @@ describe('calculateRisk', () => {
     expect(risk.warnings).toHaveLength(0);
   });
 
-  it('raises risk for a concentrated long position', () => {
+  it('keeps a small starter position low', () => {
     const risk = calculateRisk(makeState({
-      cash: 40000,
-      portfolio: { amd: { stockId: 'amd', shares: 600, avgCost: 100 } },
+      cash: 95000,
+      portfolio: { amd: { stockId: 'amd', shares: 50, avgCost: 100 } },
     }));
-    expect(risk.totalScore).toBeGreaterThanOrEqual(45);
+    expect(risk.level).toBe('low');
+    expect(risk.totalScore).toBeGreaterThanOrEqual(5);
+    expect(risk.totalScore).toBeLessThanOrEqual(15);
+  });
+
+  it('raises risk for a 40% concentrated long position', () => {
+    const risk = calculateRisk(makeState({
+      cash: 60000,
+      portfolio: { amd: { stockId: 'amd', shares: 400, avgCost: 100 } },
+    }));
+    expect(risk.totalScore).toBeGreaterThanOrEqual(35);
     expect(risk.level).toBe('medium');
     expect(risk.warnings).toContain('Single-stock concentration is above 25% of net worth.');
+  });
+
+  it('escalates a 70% concentrated long position to extreme', () => {
+    const risk = calculateRisk(makeState({
+      cash: 30000,
+      portfolio: { amd: { stockId: 'amd', shares: 700, avgCost: 100 } },
+    }));
+    expect(risk.totalScore).toBeGreaterThanOrEqual(75);
+    expect(risk.level).toBe('extreme');
   });
 
   it('warns on sector concentration when invested exposure is meaningful', () => {
@@ -75,7 +94,7 @@ describe('calculateRisk', () => {
       cash: 70000,
       portfolio: { amd: { stockId: 'amd', shares: 300, avgCost: 100 } },
     }));
-    expect(risk.totalScore).toBeGreaterThanOrEqual(25);
+    expect(risk.totalScore).toBeGreaterThanOrEqual(30);
     expect(risk.warnings).toContain('One sector is more than 50% of invested exposure.');
   });
 
@@ -85,9 +104,19 @@ describe('calculateRisk', () => {
       shortPositions: { amd: { stockId: 'amd', shares: 250, entryPrice: 100, marginUsed: 12500 } },
       marginUsed: 12500,
     }));
-    expect(risk.totalScore).toBeGreaterThanOrEqual(40);
+    expect(risk.totalScore).toBeGreaterThanOrEqual(45);
     expect(risk.level).toBe('medium');
     expect(risk.warnings).toContain('Short exposure is above 20% of net worth.');
+  });
+
+  it('escalates short exposure above 50% of net worth to high', () => {
+    const risk = calculateRisk(makeState({
+      cash: 100000,
+      shortPositions: { amd: { stockId: 'amd', shares: 400, entryPrice: 100, marginUsed: 20000 } },
+      marginUsed: 20000,
+    }));
+    expect(risk.totalScore).toBeGreaterThanOrEqual(70);
+    expect(risk.level).toBe('high');
   });
 
   it('raises risk for drawdowns above 10%', () => {
@@ -95,7 +124,7 @@ describe('calculateRisk', () => {
       cash: 80000,
       netWorthHistory: [{ turn: 0, date: new Date(2024, 0, 1), netWorth: 100000, cash: 100000, portfolioValue: 0, shortLiability: 0, marginUsed: 0 }],
     }));
-    expect(risk.totalScore).toBeGreaterThanOrEqual(30);
+    expect(risk.totalScore).toBeGreaterThanOrEqual(35);
     expect(risk.warnings).toContain('Drawdown exceeds 10%.');
   });
 });
