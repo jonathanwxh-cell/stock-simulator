@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { createNewGame, executeBuy, placeLimitOrder, simulateTurn } from '../index';
+import { createNewGame, executeBuy, executeShort, placeLimitOrder, simulateTurn } from '../index';
+import { getTradeFeedback } from '../tradeFeedback';
 import { SeededRNG } from '../rng';
 
 describe('game state trade invariants', () => {
@@ -35,5 +36,27 @@ describe('game state trade invariants', () => {
     expect(next.portfolio.aapl?.shares).toBe(1);
     expect(next.totalFeesPaid).toBeGreaterThan(feesAfterPlacement);
     expect(next.transactionHistory.some(t => t.type === 'fee' && t.stockId === 'aapl')).toBe(true);
+  });
+
+  it('stores short positions separately from long holdings', () => {
+    const state = createNewGame('Tester', 'normal');
+    const result = executeShort(state, 'tsla', 1);
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+
+    expect(result.state.portfolio.tsla).toBeUndefined();
+    expect(result.state.shortPositions.tsla?.shares).toBe(1);
+    expect(result.state.transactionHistory.filter(t => t.type === 'short')).toHaveLength(1);
+  });
+
+  it('uses net-worth basis for first-buy sector exposure preview', () => {
+    const state = createNewGame('Tester', 'normal');
+    const feedback = getTradeFeedback(state, 'aapl', 1, 'buy');
+
+    expect(feedback).not.toBeNull();
+    expect(feedback?.sectorExposureBefore).toBe(0);
+    expect(feedback?.sectorExposureAfter).toBeGreaterThan(0);
+    expect(feedback?.sectorExposureAfter).toBeLessThan(1);
   });
 });
