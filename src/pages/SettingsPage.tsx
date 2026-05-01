@@ -1,9 +1,9 @@
 import { useGame } from '../context/GameContext';
 import { motion } from 'framer-motion';
-import { ArrowLeft, Volume2, VolumeX, Music, MicOff, Zap, Eye, EyeOff } from 'lucide-react';
+import { ArrowLeft, Volume2, VolumeX, Music, MicOff, Zap, Eye, EyeOff, Home } from 'lucide-react';
 
 export default function SettingsPage() {
-  const { settings, updateSettings, goBack } = useGame();
+  const { settings, updateSettings, goBack, navigateTo } = useGame();
 
   const toggle = (key: 'soundEnabled' | 'musicEnabled' | 'showTutorials') => {
     updateSettings({ [key]: !settings[key] });
@@ -13,7 +13,7 @@ export default function SettingsPage() {
     <div className="min-h-[100dvh] p-6 max-w-lg mx-auto">
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
         <div className="flex items-center gap-3 mb-6">
-          <button onClick={goBack} className="w-9 h-9 rounded-lg bg-[var(--surface-1)] border border-[var(--border)] flex items-center justify-center hover:bg-[var(--surface-2)]">
+          <button onClick={goBack} aria-label="Go back" className="w-9 h-9 rounded-lg bg-[var(--surface-1)] border border-[var(--border)] flex items-center justify-center hover:bg-[var(--surface-2)]">
             <ArrowLeft className="w-4 h-4 text-[var(--text-secondary)]" />
           </button>
           <h1 className="text-xl font-display font-bold text-[var(--text-primary)]">Settings</h1>
@@ -63,6 +63,15 @@ export default function SettingsPage() {
                 </button>
               ))}
             </div>
+          </div>
+
+          <div className="pt-4 grid grid-cols-2 gap-3">
+            <button onClick={goBack} className="py-3 rounded-xl border border-[var(--border)] bg-[var(--surface-0)] text-sm font-semibold text-[var(--text-primary)] hover:bg-[var(--surface-1)] transition-all flex items-center justify-center gap-2">
+              <ArrowLeft className="w-4 h-4" /> Back
+            </button>
+            <button onClick={() => navigateTo('title')} className="py-3 rounded-xl bg-[var(--profit-green)] text-black text-sm font-semibold hover:brightness-110 transition-all flex items-center justify-center gap-2">
+              <Home className="w-4 h-4" /> Main Menu
+            </button>
           </div>
         </div>
       </motion.div>
