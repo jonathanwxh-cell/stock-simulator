@@ -61,6 +61,21 @@ function findStock(state: GameState, stockId: string): Stock | null {
   return state.stocks.find(s => s.id === stockId) ?? null;
 }
 
+function latestRecordedNetWorth(state: GameState): number {
+  return state.netWorthHistory?.[state.netWorthHistory.length - 1]?.netWorth ?? 0;
+}
+
+function exposureBasis(state: GameState): number {
+  const longValue = getPortfolioValue(state);
+  const shortValue = getShortLiability(state);
+  const directNetWorth = getNetWorth(state);
+  const marginAdjustedEquity = roundCurrency(state.cash + longValue + state.marginUsed - shortValue);
+  const latest = latestRecordedNetWorth(state);
+  const candidates = [directNetWorth, marginAdjustedEquity, latest]
+    .filter(value => Number.isFinite(value) && value > 0);
+  return Math.max(1, ...candidates);
+}
+
 function sectorExposurePct(state: GameState, sector: Sector): number {
   const longValue = getPortfolioValue(state);
   const shortValue = getShortLiability(state);
@@ -86,8 +101,8 @@ function positionWeightPct(state: GameState, stockId: string): number {
   const longShares = state.portfolio[stockId]?.shares ?? 0;
   const shortShares = state.shortPositions[stockId]?.shares ?? 0;
   const exposure = Math.abs(longShares * stock.currentPrice) + Math.abs(shortShares * stock.currentPrice);
-  const netWorth = Math.max(1, getNetWorth(state));
-  return roundCurrency((exposure / netWorth) * 100);
+  const basis = exposureBasis(state);
+  return roundCurrency((exposure / basis) * 100);
 }
 
 function getPositionLabel(state: GameState, stockId: string): string {

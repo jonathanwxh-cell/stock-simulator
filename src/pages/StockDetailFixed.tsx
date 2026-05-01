@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { useGame } from '../context/GameContext';
 import { ArrowLeft, CheckCircle, Shield, TrendingDown, TrendingUp, X } from 'lucide-react';
 import { Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
@@ -35,6 +35,8 @@ export default function StockDetailFixed() {
   const [localError, setLocalError] = useState('');
   const [chartRange, setChartRange] = useState(30);
   const [lastFeedback, setLastFeedback] = useState<TradeFeedback | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const submitGuardRef = useRef<string | null>(null);
 
   if (!gameState) return null;
 
@@ -85,7 +87,11 @@ export default function StockDetailFixed() {
     return shortShares > 0 ? `Only ${shortShares} short shares available.` : 'No short position to cover.';
   }, [availableCash, canExecute, config.shortEnabled, longShares, neededForBuy, shortCashNeeded, shortShares, tradeType]);
 
-  const setWholeShares = (value: number) => setShares(Math.max(1, Math.floor(value) || 1));
+  const setWholeShares = (value: number) => {
+    setLastFeedback(null);
+    setLocalError('');
+    setShares(Math.max(1, Math.floor(value) || 1));
+  };
 
   const setMaxShares = () => {
     if (tradeType === 'sell') setWholeShares(longShares || 1);
@@ -98,8 +104,7 @@ export default function StockDetailFixed() {
     setTradeType(next);
     setLocalError('');
     setLastFeedback(null);
-    if (next === 'sell' && longShares > 0) setShares(s => Math.min(s, longShares));
-    if (next === 'cover' && shortShares > 0) setShares(s => Math.min(s, shortShares));
+    setShares(1);
   };
 
   const execute = () => {
@@ -109,11 +114,21 @@ export default function StockDetailFixed() {
       setLocalError(disabledReason);
       return;
     }
+    const submitKey = `${gameState.updatedAt instanceof Date ? gameState.updatedAt.getTime() : String(gameState.updatedAt)}:${tradeType}:${stockId}:${shares}`;
+    if (submitGuardRef.current === submitKey) return;
+    submitGuardRef.current = submitKey;
+    setIsSubmitting(true);
+    window.setTimeout(() => {
+      if (submitGuardRef.current === submitKey) submitGuardRef.current = null;
+      setIsSubmitting(false);
+    }, 750);
+
     if (tradePreview) setLastFeedback(tradePreview);
     if (tradeType === 'buy') buyStock(stockId, shares);
     if (tradeType === 'sell') sellStock(stockId, shares);
     if (tradeType === 'short') shortStock(stockId, shares);
     if (tradeType === 'cover') coverStock(stockId, shares);
+    setShares(1);
   };
 
   const cashImpact = tradeType === 'sell'
@@ -250,8 +265,8 @@ export default function StockDetailFixed() {
           </div>
 
           {(localError || lastError) && <p className="text-xs text-[var(--loss-red)] mb-2">{localError || lastError}</p>}
-          <button onClick={execute} disabled={!canExecute} title={!canExecute ? disabledReason : undefined} className={`w-full py-3 rounded-xl font-semibold text-sm transition-all ${canExecute ? tradeType === 'buy' ? 'bg-[var(--profit-green)] text-black hover:brightness-110' : tradeType === 'sell' ? 'bg-[var(--loss-red)] text-white hover:brightness-110' : tradeType === 'short' ? 'bg-[var(--neutral-amber)] text-black hover:brightness-110' : 'bg-[var(--info-blue)] text-white hover:brightness-110' : 'bg-[var(--surface-2)] text-[var(--text-muted)] cursor-not-allowed opacity-75'}`}>
-            {canExecute ? `${tradeType.charAt(0).toUpperCase() + tradeType.slice(1)} ${shares} ${stock.ticker}` : disabledReason}
+          <button onClick={execute} disabled={!canExecute || isSubmitting} title={!canExecute ? disabledReason : undefined} className={`w-full py-3 rounded-xl font-semibold text-sm transition-all ${canExecute && !isSubmitting ? tradeType === 'buy' ? 'bg-[var(--profit-green)] text-black hover:brightness-110' : tradeType === 'sell' ? 'bg-[var(--loss-red)] text-white hover:brightness-110' : tradeType === 'short' ? 'bg-[var(--neutral-amber)] text-black hover:brightness-110' : 'bg-[var(--info-blue)] text-white hover:brightness-110' : 'bg-[var(--surface-2)] text-[var(--text-muted)] cursor-not-allowed opacity-75'}`}>
+            {isSubmitting ? 'Processing…' : canExecute ? `${tradeType.charAt(0).toUpperCase() + tradeType.slice(1)} ${shares} ${stock.ticker}` : disabledReason}
           </button>
         </div>
       </div>
