@@ -27,7 +27,7 @@ export function createMission(state: GameState, rng: RNG): Mission {
     return { id: `mission_alpha_${state.currentTurn}`, title: 'Beat the Market', description: 'Finish this mission window with positive alpha versus the market index.', type: 'performance', startTurn: state.currentTurn, endTurn: state.currentTurn + 6, rewardCash, status: 'active', progress: getAlphaPct(state), target: 1 };
   }
   if (roll === 1) {
-    return { id: `mission_risk_${state.currentTurn}`, title: 'Control Risk', description: 'Keep portfolio risk below 50 until the mission expires.', type: 'risk', startTurn: state.currentTurn, endTurn: state.currentTurn + 8, rewardCash, status: 'active', progress: 100 - calculateRisk(state).totalScore, target: 50 };
+    return { id: `mission_risk_${state.currentTurn}`, title: 'Control Risk', description: 'Bring portfolio risk below 50 before the mission expires.', type: 'risk', startTurn: state.currentTurn, endTurn: state.currentTurn + 8, rewardCash, status: 'active', progress: 100 - calculateRisk(state).totalScore, target: 50 };
   }
   if (roll === 2) {
     return { id: `mission_diversify_${state.currentTurn}`, title: 'Diversify Across Sectors', description: 'Hold exposure to at least 3 sectors.', type: 'diversification', startTurn: state.currentTurn, endTurn: state.currentTurn + 6, rewardCash, status: 'active', progress: countHeldSectors(state), target: 3 };
@@ -42,6 +42,11 @@ function countHeldSectors(state: GameState): number {
     const stock = state.stocks.find(s => s.id === stockId);
     if (stock) sectors.add(stock.sector);
   }
+  for (const [stockId, pos] of Object.entries(state.shortPositions)) {
+    if (pos.shares <= 0) continue;
+    const stock = state.stocks.find(s => s.id === stockId);
+    if (stock) sectors.add(stock.sector);
+  }
   return sectors.size;
 }
 
@@ -51,7 +56,7 @@ export function updateMission(prevState: GameState, nextState: GameState, rng: R
     return;
   }
 
-  const mission = { ...nextState.activeMission };
+  const mission = { ...nextState.activeMission, status: 'active' as const };
   const startNetWorth = prevState.netWorthHistory.find(s => s.turn === mission.startTurn)?.netWorth ?? prevState.netWorthHistory[0]?.netWorth ?? netWorth(prevState);
 
   if (mission.id.includes('alpha')) mission.progress = getAlphaPct(nextState);
@@ -59,8 +64,10 @@ export function updateMission(prevState: GameState, nextState: GameState, rng: R
   else if (mission.id.includes('diversify')) mission.progress = countHeldSectors(nextState);
   else if (mission.id.includes('growth')) mission.progress = startNetWorth > 0 ? roundCurrency(((netWorth(nextState) - startNetWorth) / startNetWorth) * 100) : 0;
 
-  const completed = mission.id.includes('risk') ? mission.progress >= mission.target && nextState.currentTurn >= mission.endTurn : mission.progress >= mission.target;
-  const failed = !completed && nextState.currentTurn >= mission.endTurn;
+  const expired = nextState.currentTurn >= mission.endTurn;
+  const meetsTarget = mission.progress >= mission.target;
+  const completed = mission.id.includes('risk') ? expired && meetsTarget : meetsTarget;
+  const failed = expired && !meetsTarget;
 
   if (completed) {
     mission.status = 'completed';
