@@ -178,9 +178,7 @@ describe('Stock splits', () => {
       ...state,
       stocks: state.stocks.map(s => ({ ...s, currentPrice: 50, basePrice: 50 })),
     };
-    for (let i = 0; i < 200; i++) {
-      state = simulateTurn(state);
-    }
+    state = simulateTurn(state, makeSplitRng());
     expect(state.transactionHistory.some(t => t.type === 'split')).toBe(false);
   });
 

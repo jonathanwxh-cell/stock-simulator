@@ -43,7 +43,16 @@ export default function LoadSave() {
                   <Save className="w-4 h-4 text-[var(--text-muted)]" />
                   <span className="font-semibold text-[var(--text-primary)] capitalize">{slot.slot === 'auto' ? 'Auto-Save' : 'Slot ' + slot.slot}</span>
                 </div>
-                {slot.exists && <span className="text-xs text-[var(--text-muted)] flex items-center gap-1"><Clock className="w-3 h-3" />Turn {slot.currentTurn}</span>}
+                {slot.exists && (
+                  <div className="flex items-center gap-2">
+                    {slot.isGameOver && (
+                      <span className="text-[10px] px-2 py-0.5 rounded-full border border-[var(--border)] text-[var(--text-muted)] uppercase tracking-wide">
+                        Completed
+                      </span>
+                    )}
+                    <span className="text-xs text-[var(--text-muted)] flex items-center gap-1"><Clock className="w-3 h-3" />Turn {slot.currentTurn}</span>
+                  </div>
+                )}
               </div>
               {slot.exists ? (
                 <>
@@ -52,7 +61,7 @@ export default function LoadSave() {
                   <div className="flex gap-2 mt-3">
                     <button onClick={() => handleLoad(slot.slot)} disabled={loading}
                       className="flex-1 py-2 rounded-lg bg-[var(--profit-green)] text-black text-sm font-semibold hover:brightness-110 disabled:opacity-50 transition-all">
-                      {loading ? 'Loading...' : 'Load'}
+                      {loading ? 'Loading...' : slot.isGameOver ? 'View Results' : 'Load'}
                     </button>
                     <button onClick={() => handleDelete(slot.slot)}
                       className="px-3 py-2 rounded-lg border border-[var(--border)] text-[var(--loss-red)] hover:bg-[rgba(239,68,68,0.1)] transition-all">

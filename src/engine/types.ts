@@ -173,7 +173,7 @@ export interface RebalancePreview { mode: RebalanceMode; totalBasis: number; cas
 
 export interface LeaderboardEntry { id: string; runId?: string; playerName: string; difficulty: Difficulty; finalNetWorth: number; startingCash: number; grade: 'S' | 'A' | 'B' | 'C' | 'D' | 'F'; turnsPlayed: number; date: Date; }
 export interface GameSettings { soundEnabled: boolean; musicEnabled: boolean; animationSpeed: 'slow' | 'normal' | 'fast'; showTutorials: boolean; }
-export interface SaveMetadata { slot: 1 | 2 | 3 | 'auto'; playerName: string; difficulty: Difficulty; currentTurn: number; turnLimit: number; netWorth: number; cash: number; date: Date; updatedAt: Date; exists: boolean; }
+export interface SaveMetadata { slot: 1 | 2 | 3 | 'auto'; playerName: string; difficulty: Difficulty; currentTurn: number; turnLimit: number; netWorth: number; cash: number; date: Date; updatedAt: Date; exists: boolean; isGameOver: boolean; }
 export type Screen = 'title' | 'game' | 'stock-market' | 'stock-detail' | 'portfolio' | 'rebalance' | 'news' | 'next-turn' | 'game-over' | 'leaderboard' | 'settings' | 'how-to-play' | 'load-save';
 export const ALL_SECTORS: Sector[] = ['technology', 'semiconductors', 'healthcare', 'biotech', 'energy', 'financials', 'consumer', 'media', 'industrial', 'realestate', 'telecom', 'materials'];
 export type TradeError = 'insufficient_funds' | 'insufficient_shares' | 'invalid_shares' | 'invalid_target_price' | 'max_limit_orders_reached' | 'short_disabled' | 'no_position' | 'stock_not_found';

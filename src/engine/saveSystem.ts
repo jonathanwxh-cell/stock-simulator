@@ -2,6 +2,7 @@ import type { GameState, SaveMetadata } from './types';
 import { openDB, type DBSchema, type IDBPDatabase } from 'idb';
 import { z } from 'zod';
 import { cloudDeleteSave, cloudGetSaveMetadata, cloudLoadGame, cloudSaveGame, isCloudSaveConfigured } from './cloudSaveSystem';
+import { DIFFICULTY_CONFIGS } from './config';
 
 const SAVE_SLOTS_KEY = 'marketmaster_save_slots';
 const AUTO_SAVE_KEY = 'marketmaster_autosave';
@@ -75,6 +76,32 @@ export function initSaveSystem(): void {
 
 function getSlotKey(slot: 1 | 2 | 3 | 'auto'): string {
   return slot === 'auto' ? 'auto' : `slot_${slot}`;
+}
+
+function emptySaveMetadata(slot: SaveMetadata['slot']): SaveMetadata {
+  return {
+    slot,
+    playerName: '',
+    difficulty: 'normal',
+    currentTurn: 0,
+    turnLimit: 100,
+    netWorth: 0,
+    cash: 0,
+    date: new Date(),
+    updatedAt: new Date(),
+    exists: false,
+    isGameOver: false,
+  };
+}
+
+function parseStoredState(raw: string | null): GameState | null {
+  if (!raw || raw === 'null') return null;
+
+  try {
+    return JSON.parse(raw) as GameState;
+  } catch {
+    return null;
+  }
 }
 
 function stripLargeData(state: GameState): Omit<GameState, 'stocks' | 'transactionHistory' | 'newsHistory'> & {
@@ -229,12 +256,10 @@ async function loadGameLocal(slot: 1 | 2 | 3 | 'auto'): Promise<GameState | null
     raw = slots[slotKey] ? JSON.stringify(slots[slotKey]) : null;
   }
 
-  if (!raw || raw === 'null') return null;
-
-  let state: GameState;
-  try {
-    state = JSON.parse(raw) as GameState;
-  } catch {
+  const state = parseStoredState(raw);
+  if (!state) return null;
+  if (slot === 'auto' && state.isGameOver) {
+    await deleteSave('auto');
     return null;
   }
 
@@ -289,6 +314,10 @@ export async function loadGame(slot: 1 | 2 | 3 | 'auto'): Promise<GameState | nu
     try {
       const cloud = await cloudLoadGame(slot);
       if (cloud) {
+        if (slot === 'auto' && cloud.isGameOver) {
+          await deleteSave('auto');
+          return null;
+        }
         await saveGameLocal(slot, cloud);
         return cloud;
       }
@@ -339,50 +368,29 @@ async function getLocalSaveMetadata(): Promise<SaveMetadata[]> {
 
   // Check auto-save
   const autoRaw = localStorage.getItem(AUTO_SAVE_KEY);
-  if (autoRaw && autoRaw !== 'null') {
-    try {
-      const auto = JSON.parse(autoRaw);
-      const cash = auto.cash || 0;
-      const portfolioValue = (auto.netWorthHistory?.[auto.netWorthHistory.length - 1]?.portfolioValue) || 0;
-      slots.push({
-        slot: 'auto',
-        playerName: auto.playerName || 'Unknown',
-        difficulty: auto.difficulty || 'normal',
-        currentTurn: auto.currentTurn || 0,
-        turnLimit: auto.turnLimit || 100,
-        netWorth: (auto.netWorthHistory?.[auto.netWorthHistory.length - 1]?.netWorth) || cash + portfolioValue,
-        cash,
-        date: new Date(auto.createdAt || Date.now()),
-        updatedAt: new Date(auto.updatedAt || Date.now()),
-        exists: true,
-      });
-    } catch {
-      slots.push({
-        slot: 'auto',
-        playerName: '',
-        difficulty: 'normal',
-        currentTurn: 0,
-        turnLimit: 100,
-        netWorth: 0,
-        cash: 0,
-        date: new Date(),
-        updatedAt: new Date(),
-        exists: false,
-      });
-    }
-  } else {
+  const auto = parseStoredState(autoRaw);
+  if (auto?.isGameOver) {
+    await deleteSave('auto');
+    slots.push(emptySaveMetadata('auto'));
+  } else if (auto) {
+    const difficulty = auto.difficulty || 'normal';
+    const cash = auto.cash || 0;
+    const portfolioValue = (auto.netWorthHistory?.[auto.netWorthHistory.length - 1]?.portfolioValue) || 0;
     slots.push({
       slot: 'auto',
-      playerName: '',
-      difficulty: 'normal',
-      currentTurn: 0,
-      turnLimit: 100,
-      netWorth: 0,
-      cash: 0,
-      date: new Date(),
-      updatedAt: new Date(),
-      exists: false,
+      playerName: auto.playerName || 'Unknown',
+      difficulty,
+      currentTurn: auto.currentTurn || 0,
+      turnLimit: DIFFICULTY_CONFIGS[difficulty].turnLimit,
+      netWorth: (auto.netWorthHistory?.[auto.netWorthHistory.length - 1]?.netWorth) || cash + portfolioValue,
+      cash,
+      date: new Date(auto.createdAt || Date.now()),
+      updatedAt: new Date(auto.updatedAt || Date.now()),
+      exists: true,
+      isGameOver: Boolean(auto.isGameOver),
     });
+  } else {
+    slots.push(emptySaveMetadata('auto'));
   }
 
   // Check manual slots
@@ -391,33 +399,24 @@ async function getLocalSaveMetadata(): Promise<SaveMetadata[]> {
     const key = getSlotKey(slotNum);
     const data = slotsData[key];
     if (data) {
+      const difficulty = (data.difficulty || 'normal') as SaveMetadata['difficulty'];
       const cash = data.cash || 0;
       const portfolioValue = (data.netWorthHistory?.[data.netWorthHistory.length - 1]?.portfolioValue) || 0;
       slots.push({
         slot: slotNum,
         playerName: data.playerName || 'Unknown',
-        difficulty: data.difficulty || 'normal',
+        difficulty,
         currentTurn: data.currentTurn || 0,
-        turnLimit: data.turnLimit || 100,
+        turnLimit: DIFFICULTY_CONFIGS[difficulty].turnLimit,
         netWorth: (data.netWorthHistory?.[data.netWorthHistory.length - 1]?.netWorth) || cash + portfolioValue,
         cash,
         date: new Date(data.createdAt || Date.now()),
         updatedAt: new Date(data.updatedAt || Date.now()),
         exists: true,
+        isGameOver: Boolean(data.isGameOver),
       });
     } else {
-      slots.push({
-        slot: slotNum,
-        playerName: '',
-        difficulty: 'normal',
-        currentTurn: 0,
-        turnLimit: 100,
-        netWorth: 0,
-        cash: 0,
-        date: new Date(),
-        updatedAt: new Date(),
-        exists: false,
-      });
+      slots.push(emptySaveMetadata(slotNum));
     }
   }
 
@@ -434,6 +433,11 @@ export async function getSaveMetadata(): Promise<SaveMetadata[]> {
     const bySlot = new Map<SaveMetadata['slot'], SaveMetadata>();
     for (const item of local) bySlot.set(item.slot, item);
     for (const item of cloud) bySlot.set(item.slot, item);
+    const auto = bySlot.get('auto');
+    if (auto?.exists && auto.isGameOver) {
+      await deleteSave('auto');
+      bySlot.set('auto', emptySaveMetadata('auto'));
+    }
     return Array.from(bySlot.values()).sort((a, b) => {
       if (a.slot === 'auto') return -1;
       if (b.slot === 'auto') return 1;
@@ -446,6 +450,10 @@ export async function getSaveMetadata(): Promise<SaveMetadata[]> {
 }
 
 export async function autoSave(gameState: GameState): Promise<void> {
+  if (gameState.isGameOver) {
+    await deleteSave('auto');
+    return;
+  }
   await saveGame('auto', gameState);
 }
 

@@ -10,12 +10,16 @@ All notable changes to this project are documented here. Format follows
 
 - Completed runs now record to the leaderboard automatically with stable per-run ids, so reaching the turn limit or goal no longer depends on clicking `Save Score` on the Game Over screen.
 - Final turns now flow through the existing turn summary and then into `Game Over` instead of falling back into normal gameplay, restoring end-of-run closure and stats visibility.
+- Completed runs now clear the `auto-save` slot instead of lingering as resumable progress on the title screen and load menu after `Game Over`.
 - Same-turn random news generation now retries duplicate selections instead of showing the same headline twice in the same update.
 - Replaced EV-specific consumer headlines that could produce inaccurate company/news pairings such as Amazon being described as an EV manufacturer.
+- The load screen now marks completed manual saves clearly and labels their primary action as `View Results`, matching the `Game Over` screen players will reopen.
 
 ### Internal
 
 - Added regression coverage for completed-run recording, post-turn completion routing, same-turn news dedupe, and consumer-template data quality.
+- Added save-system regression coverage for completed auto-save cleanup and stale finished-save metadata scrubbing.
+- Stabilized the stock-split threshold regression so it exercises the eligibility rule deterministically instead of relying on a long random walk.
 
 ### Documentation
 

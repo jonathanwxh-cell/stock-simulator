@@ -198,6 +198,7 @@ export async function cloudGetSaveMetadata(): Promise<SaveMetadata[]> {
       date: new Date(row.created_at),
       updatedAt: new Date(row.updated_at),
       exists: true,
+      isGameOver: Boolean(row.is_game_over),
     };
   });
 }
