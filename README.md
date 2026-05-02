@@ -1,5 +1,9 @@
 # Stock Simulator
 
+[![CI](https://github.com/jonathanwxh-cell/stock-simulator/actions/workflows/ci.yml/badge.svg)](https://github.com/jonathanwxh-cell/stock-simulator/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![Version](https://img.shields.io/badge/version-1.5.7-green.svg)](CHANGELOG.md)
+
 A turn-based stock market simulation game built with React, TypeScript, and Vite.
 
 **▶ Play it live: [stocksim.alyoechosys.dev](https://stocksim.alyoechosys.dev)**

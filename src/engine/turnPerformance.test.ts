@@ -30,6 +30,7 @@ function makeState(netWorth: number, marketChange: number): GameState {
     portfolio: {},
     shortPositions: {},
     limitOrders: [],
+    conditionalOrders: [],
     marginUsed: 0,
     totalFeesPaid: 0,
     totalDividendsReceived: 0,
