@@ -11,6 +11,7 @@ import { simulateMarketIndex } from './marketIndex';
 import { calculateRisk } from './riskSystem';
 import { updateMission } from './missionSystem';
 import { generateAdvisorFeedback } from './advisorSystem';
+import { ensureUpcomingCatalysts, resolveDueCatalysts } from './catalystSystem';
 
 function genNewsId(): string { return `news_${crypto.randomUUID()}`; }
 
@@ -34,10 +35,17 @@ export function simulateTurn(gameState: GameState, rng: RNG = defaultRNG): GameS
     newState.currentScenario = generateScenario(newState, rng);
   }
 
+  const catalystResolution = resolveDueCatalysts(newState, rng);
+  newState.catalystCalendar = ensureUpcomingCatalysts(newState, catalystResolution.remainingCatalysts, rng);
+  for (const event of catalystResolution.resolvedEvents) {
+    newState.newsHistory.push(event);
+  }
+
   const numNews = rng.int(0, 2);
   const freshNews = generateDistinctNewsEvents(newState, numNews, rng);
   for (const event of freshNews) {
     event.id = genNewsId();
+    event.source = 'random';
     newState.newsHistory.push(event);
   }
 

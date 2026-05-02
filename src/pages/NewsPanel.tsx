@@ -2,13 +2,22 @@ import { useGame } from '../context/GameContext';
 import { motion } from 'framer-motion';
 import { Newspaper, TrendingUp, TrendingDown, Minus, AlertTriangle } from 'lucide-react';
 import { SECTOR_COLORS, SECTOR_LABELS } from '../engine/config';
+import { getMarketBreadthSummary, getUpcomingCatalysts } from '../engine/marketInsights';
+import MarketPulseCard from '../components/market/MarketPulseCard';
+import UpcomingCatalystsCard from '../components/market/UpcomingCatalystsCard';
 
 export default function NewsPanel() {
-  const { gameState } = useGame();
+  const { gameState, navigateTo } = useGame();
   if (!gameState) return null;
 
   const recentNews = [...gameState.newsHistory].reverse().slice(0, 20);
   const scenario = gameState.currentScenario;
+  const marketPulse = getMarketBreadthSummary(gameState);
+  const upcomingCatalysts = getUpcomingCatalysts(gameState, 6);
+  const openStock = (stockId: string) => {
+    localStorage.setItem('mm_selected', stockId);
+    navigateTo('stock-detail');
+  };
 
   return (
     <div className="min-h-[calc(100dvh-56px-72px)] p-4 max-w-2xl mx-auto">
@@ -38,6 +47,11 @@ export default function NewsPanel() {
             </div>
           </div>
         )}
+
+        <div className="space-y-4 mb-4">
+          <MarketPulseCard summary={marketPulse} />
+          <UpcomingCatalystsCard catalysts={upcomingCatalysts} stocks={gameState.stocks} currentTurn={gameState.currentTurn} onOpenStock={openStock} />
+        </div>
 
         {/* News Feed */}
         {recentNews.length === 0 ? (

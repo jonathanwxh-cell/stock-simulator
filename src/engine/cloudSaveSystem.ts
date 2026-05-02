@@ -84,6 +84,10 @@ function reviveDates(state: GameState): GameState {
       ...news,
       date: new Date(news.date),
     })) || [],
+    catalystCalendar: state.catalystCalendar?.map(event => ({
+      ...event,
+      scheduledDate: new Date(event.scheduledDate),
+    })) || [],
     currentScenario: state.currentScenario ? {
       ...state.currentScenario,
       events: state.currentScenario.events.map(event => ({

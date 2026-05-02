@@ -9,6 +9,7 @@ import { createInitialRegime } from './regimeSystem';
 import { calculateRisk } from './riskSystem';
 import { createMission } from './missionSystem';
 import { defaultRNG } from './rng';
+import { ensureUpcomingCatalysts } from './catalystSystem';
 
 export { getPortfolioValue, getNetWorth, getShortLiability };
 
@@ -22,10 +23,12 @@ export function createNewGame(playerName: string, difficulty: Difficulty): GameS
     totalFeesPaid: 0, totalDividendsReceived: 0, transactionHistory: [],
     netWorthHistory: [{ turn: 0, date: new Date(startDate), netWorth: config.startingCash, cash: config.startingCash, portfolioValue: 0, shortLiability: 0, marginUsed: 0 }],
     marketIndexHistory: initialMarketIndex(), currentRegime: createInitialRegime(), riskHistory: [], activeMission: null, completedMissions: [], lastAdvisorFeedback: [],
+    watchlist: [], catalystCalendar: [],
     stocks: cloneInitialStocks(), newsHistory: [], currentScenario: null, isGameOver: false, finalRank: null, finalGrade: null, createdAt: now, updatedAt: now,
   };
   state.riskHistory = [calculateRisk(state)];
   state.activeMission = createMission(state, defaultRNG);
+  state.catalystCalendar = ensureUpcomingCatalysts(state, [], defaultRNG);
   return state;
 }
 
@@ -43,6 +46,16 @@ export function executeShort(state: GameState, stockId: string, shares: number):
 export function executeCover(state: GameState, stockId: string, shares: number): TradeResult { const error = getCoverError(state, stockId, shares); if (error) return { ok: false, reason: error }; const stock = getTradeStock(state, stockId)!; const config = DIFFICULTY_CONFIGS[state.difficulty]; const coverCost = roundCurrency(stock.currentPrice * shares); const fee = calcBrokerFee(coverCost, config); const newState = deepCloneGameState(state); const pos = newState.shortPositions[stockId]; const marginRelease = roundCurrency((pos.marginUsed / pos.shares) * shares); const pnl = roundCurrency((pos.entryPrice - stock.currentPrice) * shares); newState.cash = roundCurrency(newState.cash + marginRelease + pnl - fee); newState.marginUsed = roundCurrency(newState.marginUsed - marginRelease); recordFee(newState, fee, stockId); pos.shares -= shares; pos.marginUsed = roundCurrency(pos.marginUsed - marginRelease); if (pos.shares <= 0) delete newState.shortPositions[stockId]; const transaction: Transaction = { id: `txn_${crypto.randomUUID()}`, date: new Date(state.currentDate), turn: state.currentTurn, stockId, type: 'cover', shares, price: roundCurrency(stock.currentPrice), total: coverCost, fee }; newState.transactionHistory.push(transaction); newState.updatedAt = new Date(); return { ok: true, state: newState, transaction }; }
 export function placeLimitOrder(state: GameState, stockId: string, type: 'buy' | 'sell', shares: number, targetPrice: number): TradeResult { const config = DIFFICULTY_CONFIGS[state.difficulty]; if (state.limitOrders.length >= config.maxLimitOrders) return { ok: false, reason: 'max_limit_orders_reached' }; if (!isPositiveCurrency(targetPrice)) return { ok: false, reason: 'invalid_target_price' }; if (!isPositiveWholeNumber(shares)) return { ok: false, reason: 'invalid_shares' }; const stock = getTradeStock(state, stockId); if (!stock) return { ok: false, reason: 'stock_not_found' }; if (type === 'sell' && !canSell(state, stockId, shares)) return { ok: false, reason: 'insufficient_shares' }; if (type === 'buy' && state.cash < roundCurrency(targetPrice * shares) + config.limitOrderFee) return { ok: false, reason: 'insufficient_funds' }; const newState = deepCloneGameState(state); const fee = roundCurrency(config.limitOrderFee); newState.cash = roundCurrency(newState.cash - fee); recordFee(newState, fee, stockId); const order: LimitOrder = { id: `lo_${crypto.randomUUID()}`, stockId, type, shares, targetPrice: roundCurrency(targetPrice), placedTurn: state.currentTurn }; newState.limitOrders.push(order); const transaction: Transaction = { id: `txn_${order.id}`, date: new Date(state.currentDate), turn: state.currentTurn, stockId, type: type === 'buy' ? 'limit_buy' : 'limit_sell', shares, price: roundCurrency(targetPrice), total: fee, fee }; newState.transactionHistory.push(transaction); newState.updatedAt = new Date(); return { ok: true, state: newState, transaction }; }
 export function cancelLimitOrder(state: GameState, orderId: string): GameState { const newState = deepCloneGameState(state); newState.limitOrders = newState.limitOrders.filter(o => o.id !== orderId); newState.updatedAt = new Date(); return newState; }
+export function toggleWatchlistStock(state: GameState, stockId: string): GameState {
+  if (!state.stocks.some((stock) => stock.id === stockId)) return state;
+  const newState = deepCloneGameState(state);
+  const existing = new Set(newState.watchlist || []);
+  if (existing.has(stockId)) existing.delete(stockId);
+  else existing.add(stockId);
+  newState.watchlist = [...existing];
+  newState.updatedAt = new Date();
+  return newState;
+}
 export function calculateGrade(state: GameState): 'S' | 'A' | 'B' | 'C' | 'D' | 'F' { const config = DIFFICULTY_CONFIGS[state.difficulty]; const ratio = getNetWorth(state) / (config.startingCash * config.goalMultiplier); if (ratio >= 3) return 'S'; if (ratio >= 1.5) return 'A'; if (ratio >= 1) return 'B'; if (ratio >= 0.75) return 'C'; if (ratio >= 0.5) return 'D'; return 'F'; }
 export function checkGameOver(state: GameState): 'win' | 'lose' | 'ongoing' { if (!state.isGameOver) return 'ongoing'; const config = DIFFICULTY_CONFIGS[state.difficulty]; return getNetWorth(state) >= config.startingCash * config.goalMultiplier ? 'win' : 'lose'; }
 export function tradeErrorMessage(reason: string): string { const messages: Record<string, string> = { insufficient_funds: 'Not enough cash for this trade', insufficient_shares: 'Not enough shares to sell', invalid_shares: 'Share count must be a positive whole number', invalid_target_price: 'Target price must be positive', max_limit_orders_reached: 'Maximum limit orders reached', short_disabled: 'Short selling is not available', no_position: 'No position to cover', stock_not_found: 'Stock not found' }; return messages[reason] || 'Trade failed'; }

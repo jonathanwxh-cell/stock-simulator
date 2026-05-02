@@ -20,6 +20,8 @@ export function deepCloneGameState(state: GameState): GameState {
     activeMission: state.activeMission ? { ...state.activeMission } : null,
     completedMissions: (state.completedMissions || []).map(m => ({ ...m })),
     lastAdvisorFeedback: (state.lastAdvisorFeedback || []).map(f => ({ ...f, tags: [...f.tags] })),
+    watchlist: [...(state.watchlist || [])],
+    catalystCalendar: (state.catalystCalendar || []).map(event => ({ ...event, scheduledDate: new Date(event.scheduledDate) })),
     newsHistory: state.newsHistory.map(n => ({ ...n, date: new Date(n.date) })),
     currentRegime: state.currentRegime ? {
       ...state.currentRegime,

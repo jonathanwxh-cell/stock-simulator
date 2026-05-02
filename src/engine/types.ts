@@ -93,6 +93,18 @@ export interface AdvisorFeedback {
   tags: string[];
 }
 
+export type CatalystType = 'earnings' | 'guidance' | 'product_launch' | 'analyst_day' | 'regulatory';
+export type CatalystVolatility = 'medium' | 'high';
+
+export interface CatalystEvent {
+  id: string;
+  stockId: string;
+  type: CatalystType;
+  volatility: CatalystVolatility;
+  scheduledTurn: number;
+  scheduledDate: Date;
+}
+
 export interface NewsEvent {
   id: string;
   turn: number;
@@ -103,6 +115,8 @@ export interface NewsEvent {
   impact: 'positive' | 'negative' | 'neutral';
   magnitude: number;
   affectedStocks: string[];
+  source?: 'random' | 'scenario' | 'catalyst';
+  catalystType?: CatalystType;
 }
 
 export interface ActiveScenario {
@@ -156,6 +170,8 @@ export interface GameState {
   activeMission: Mission | null;
   completedMissions: Mission[];
   lastAdvisorFeedback: AdvisorFeedback[];
+  watchlist: string[];
+  catalystCalendar: CatalystEvent[];
   stocks: Stock[];
   newsHistory: NewsEvent[];
   currentScenario: ActiveScenario | null;
@@ -178,3 +194,60 @@ export type Screen = 'title' | 'game' | 'stock-market' | 'stock-detail' | 'portf
 export const ALL_SECTORS: Sector[] = ['technology', 'semiconductors', 'healthcare', 'biotech', 'energy', 'financials', 'consumer', 'media', 'industrial', 'realestate', 'telecom', 'materials'];
 export type TradeError = 'insufficient_funds' | 'insufficient_shares' | 'invalid_shares' | 'invalid_target_price' | 'max_limit_orders_reached' | 'short_disabled' | 'no_position' | 'stock_not_found';
 export type TradeResult = { ok: true; state: GameState; transaction: Transaction } | { ok: false; reason: TradeError };
+
+export interface WatchlistAlert {
+  id: string;
+  stockId: string;
+  turn: number;
+  title: string;
+  description: string;
+  reason: 'price_move' | 'news' | 'catalyst';
+  tone: 'positive' | 'negative' | 'neutral';
+}
+
+export interface SectorPerformance {
+  sector: Sector;
+  avgChangePct: number;
+  advancers: number;
+  decliners: number;
+  unchanged: number;
+}
+
+export interface MarketBreadthSummary {
+  advances: number;
+  declines: number;
+  unchanged: number;
+  sectorPerformance: SectorPerformance[];
+  bestSector: SectorPerformance | null;
+  worstSector: SectorPerformance | null;
+}
+
+export interface SeasonRecapTurn {
+  turn: number;
+  changePct: number;
+}
+
+export interface SeasonRecapHolding {
+  stockId: string;
+  ticker: string;
+  kind: 'long' | 'short';
+  pnl: number;
+  pnlPct: number;
+}
+
+export interface SeasonRecap {
+  playerReturnPct: number;
+  marketReturnPct: number;
+  alphaPct: number;
+  bestTurn: SeasonRecapTurn | null;
+  worstTurn: SeasonRecapTurn | null;
+  maxDrawdownPct: number;
+  topWinner: SeasonRecapHolding | null;
+  biggestDrag: SeasonRecapHolding | null;
+  totalTrades: number;
+  totalFees: number;
+  totalDividends: number;
+  newsEvents: number;
+  catalystEvents: number;
+  watchedNewsHits: number;
+}

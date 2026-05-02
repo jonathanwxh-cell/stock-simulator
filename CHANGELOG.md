@@ -6,6 +6,12 @@ All notable changes to this project are documented here. Format follows
 
 ## [Unreleased]
 
+### Added
+
+- Added a watchlist system with one-click starring from the market and stock detail views, plus HUD and stock-detail alert surfaces that call out large moves, fresh news, and upcoming catalysts on watched names.
+- Added a rolling catalyst calendar that schedules earnings-style events, guidance, analyst days, product launches, and regulatory beats ahead of time so future turns feel more telegraphed and actionable.
+- Added reusable market insight panels for `Market Pulse`, `Upcoming Catalysts`, and an expanded `Season Recap` so players can read sector leadership, breadth, benchmark-relative performance, and end-of-run highlights at a glance.
+
 ### Fixed
 
 - Completed runs now record to the leaderboard automatically with stable per-run ids, so reaching the turn limit or goal no longer depends on clicking `Save Score` on the Game Over screen.
@@ -20,11 +26,15 @@ All notable changes to this project are documented here. Format follows
 - Added regression coverage for completed-run recording, post-turn completion routing, same-turn news dedupe, and consumer-template data quality.
 - Added save-system regression coverage for completed auto-save cleanup and stale finished-save metadata scrubbing.
 - Stabilized the stock-split threshold regression so it exercises the eligibility rule deterministically instead of relying on a long random walk.
+- Added deterministic regression coverage for catalyst scheduling/resolution, watchlist alert derivation, market breadth summaries, and season recap aggregation.
+- Extended state cloning and save/load migration coverage so older saves pick up empty watchlists and catalyst queues safely.
+- Added a reusable browser smoke harness for the market-depth surfaces so watchlists, catalysts, and the season recap can be spot-checked in one end-to-end flow.
 
 ### Documentation
 
 - Added a core gameplay milestone design spec and implementation plan under `docs/superpowers/` covering Portfolio rebalancing, advanced pending orders, and the portfolio-vs-benchmark performance chart.
 - Marked options trading as explicitly deferred in the planning docs so the next implementation round stays focused on the tighter milestone.
+- Added an actionable market depth design spec and implementation plan under `docs/superpowers/` covering watchlists, scheduled catalysts, market pulse surfaces, and the richer end-of-run recap.
 
 ## [1.5.7] — 2026-04-28
 

@@ -131,6 +131,12 @@ function stripLargeData(state: GameState): Omit<GameState, 'stocks' | 'transacti
         date: typeof e.date === 'string' ? e.date : (e.date as Date).toISOString(),
       })),
     } : null,
+    catalystCalendar: (state.catalystCalendar || []).map(event => ({
+      ...event,
+      scheduledDate: typeof event.scheduledDate === 'string'
+        ? event.scheduledDate
+        : (event.scheduledDate as Date).toISOString(),
+    })),
   } as unknown as Omit<GameState, 'stocks' | 'transactionHistory' | 'newsHistory'> & {
     stocks: Array<Omit<Stock, 'priceHistory'> & { priceHistory: [] }>;
     transactionHistory: [];
@@ -202,6 +208,10 @@ function reviveDates(state: GameState): GameState {
     newsHistory: state.newsHistory?.map(n => ({
       ...n,
       date: new Date(n.date),
+    })) || [],
+    catalystCalendar: state.catalystCalendar?.map(event => ({
+      ...event,
+      scheduledDate: new Date(event.scheduledDate),
     })) || [],
     currentScenario: state.currentScenario ? {
       ...state.currentScenario,

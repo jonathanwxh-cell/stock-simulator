@@ -48,6 +48,8 @@ function makeState(netWorth: number, marketChange: number): GameState {
     activeMission: null,
     completedMissions: [],
     lastAdvisorFeedback: [],
+    watchlist: [],
+    catalystCalendar: [],
     stocks: [amd],
     newsHistory: [],
     currentScenario: null,

@@ -1,9 +1,11 @@
 import { useState, useMemo } from 'react';
 import { useGame } from '../context/GameContext';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, SlidersHorizontal, ArrowDownUp } from 'lucide-react';
+import { Search, SlidersHorizontal, ArrowDownUp, Star } from 'lucide-react';
 import { SECTOR_COLORS, SECTOR_LABELS } from '../engine/config';
+import { getMarketBreadthSummary } from '../engine/marketInsights';
 import { getRegimeToneForSector } from '../utils/regimeUi';
+import MarketPulseCard from '../components/market/MarketPulseCard';
 
 const MARKET_CAPS = ['all', 'mega', 'large', 'mid', 'small'];
 const SORT_OPTIONS = [
@@ -17,7 +19,7 @@ const SORT_OPTIONS = [
 ];
 
 export default function StockMarket() {
-  const { gameState, navigateTo } = useGame();
+  const { gameState, navigateTo, toggleWatchlist } = useGame();
   const [search, setSearch] = useState('');
   const [selectedSector, setSelectedSector] = useState('all');
   const [selectedCap, setSelectedCap] = useState('all');
@@ -28,6 +30,8 @@ export default function StockMarket() {
   if (!gameState) return null;
 
   const currentRegime = gameState.currentRegime;
+  const marketPulse = getMarketBreadthSummary(gameState);
+  const watchedSet = new Set(gameState.watchlist || []);
 
   const sectorBreakdown = useMemo(() => {
     const counts: Record<string, number> = { all: gameState.stocks.length };
@@ -147,6 +151,10 @@ export default function StockMarket() {
           )}
         </AnimatePresence>
 
+        <div className="mb-4">
+          <MarketPulseCard summary={marketPulse} />
+        </div>
+
         <div className="flex gap-1 mb-3 overflow-x-auto pb-1 -mx-1 px-1">
           {SORT_OPTIONS.map(opt => (
             <button key={opt.id} onClick={() => toggleSort(opt.id)}
@@ -163,10 +171,10 @@ export default function StockMarket() {
             const position = gameState.portfolio[stock.id];
             const shortPosition = gameState.shortPositions[stock.id];
             const regimeTone = getRegimeToneForSector(currentRegime, stock.sector);
+            const isWatched = watchedSet.has(stock.id);
             return (
-              <button key={stock.id} onClick={() => openStock(stock.id)}
-                className="w-full flex items-center justify-between p-3 bg-[var(--surface-0)] border border-[var(--border)] rounded-xl hover:border-[var(--border-hover)] hover:bg-[var(--surface-1)] transition-all text-left">
-                <div className="flex items-center gap-3 min-w-0">
+              <div key={stock.id} className="w-full flex items-center justify-between gap-3 p-3 bg-[var(--surface-0)] border border-[var(--border)] rounded-xl hover:border-[var(--border-hover)] hover:bg-[var(--surface-1)] transition-all text-left">
+                <button type="button" onClick={() => openStock(stock.id)} className="flex items-center gap-3 min-w-0 flex-1 text-left">
                   <div className="w-9 h-9 rounded-lg flex items-center justify-center text-[11px] font-bold shrink-0"
                     style={{ backgroundColor: SECTOR_COLORS[stock.sector] + '20', color: SECTOR_COLORS[stock.sector] }}>
                     {stock.ticker.slice(0, 2)}
@@ -175,6 +183,7 @@ export default function StockMarket() {
                     <div className="flex items-center gap-1.5 flex-wrap">
                       <span className="text-sm font-semibold text-[var(--text-primary)]">{stock.ticker}</span>
                       {stock.dividendYield > 0 && <span className="text-[10px] px-1 py-0.5 rounded bg-[var(--neutral-amber)]/15 text-[var(--neutral-amber)]">DIV</span>}
+                      {isWatched && <span className="text-[10px] px-1 py-0.5 rounded bg-[rgba(59,130,246,0.15)] text-[var(--info-blue)]">WATCH</span>}
                       {position && position.shares > 0 && <span className="text-[10px] px-1 py-0.5 rounded bg-[var(--profit-green)]/15 text-[var(--profit-green)]">HOLD</span>}
                       {shortPosition && shortPosition.shares > 0 && <span className="text-[10px] px-1 py-0.5 rounded bg-[var(--loss-red)]/15 text-[var(--loss-red)]">SHORT</span>}
                       {regimeTone === 'tailwind' && <span className="text-[10px] px-1 py-0.5 rounded bg-[rgba(34,197,94,0.15)] text-[var(--profit-green)]">TAILWIND</span>}
@@ -182,14 +191,24 @@ export default function StockMarket() {
                     </div>
                     <span className="text-xs text-[var(--text-muted)] truncate block max-w-[180px]">{stock.name}</span>
                   </div>
-                </div>
-                <div className="text-right shrink-0">
+                </button>
+                <div className="flex items-center gap-2 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => toggleWatchlist(stock.id)}
+                    className={`w-9 h-9 rounded-lg border flex items-center justify-center transition-all ${isWatched ? 'border-[var(--info-blue)] bg-[rgba(59,130,246,0.12)] text-[var(--info-blue)]' : 'border-[var(--border)] bg-[var(--surface-1)] text-[var(--text-muted)] hover:text-[var(--text-primary)]'}`}
+                    aria-label={isWatched ? `Remove ${stock.ticker} from watchlist` : `Add ${stock.ticker} to watchlist`}
+                  >
+                    <Star className={`w-4 h-4 ${isWatched ? 'fill-current' : ''}`} />
+                  </button>
+                  <div className="text-right shrink-0">
                   <div className="text-sm font-mono-data font-semibold text-[var(--text-primary)]">${stock.currentPrice.toFixed(2)}</div>
                   <div className={`text-xs font-mono-data ${change >= 0 ? 'text-[var(--profit-green)]' : 'text-[var(--loss-red)]'}`}>
                     {change >= 0 ? '+' : ''}{change.toFixed(2)}%
                   </div>
                 </div>
-              </button>
+                </div>
+              </div>
             );
           })}
         </div>

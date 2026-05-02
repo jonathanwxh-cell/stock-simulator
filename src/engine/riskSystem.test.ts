@@ -41,6 +41,8 @@ function makeState(overrides: Partial<GameState> = {}): GameState {
     activeMission: null,
     completedMissions: [],
     lastAdvisorFeedback: [],
+    watchlist: [],
+    catalystCalendar: [],
     stocks: [amd],
     newsHistory: [],
     currentScenario: null,

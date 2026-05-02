@@ -14,3 +14,5 @@ export * from './marketIndex';
 export * from './missionSystem';
 export * from './advisorSystem';
 export * from './turnPerformance';
+export * from './catalystSystem';
+export * from './marketInsights';

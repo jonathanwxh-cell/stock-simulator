@@ -5,7 +5,7 @@ import {
   placeLimitOrder, cancelLimitOrder, simulateTurn, autoSave,
   saveGame as saveGameEngine, loadGame as loadGameEngine,
   loadSettings, saveSettings, initSaveSystem, tradeErrorMessage,
-  initialMarketIndex, createInitialRegime, calculateRisk, createMission, defaultRNG,
+  initialMarketIndex, createInitialRegime, calculateRisk, createMission, defaultRNG, ensureUpcomingCatalysts, toggleWatchlistStock,
 } from '../engine';
 import { recordCompletedGame } from '../engine/completion';
 import { useAudio } from '@/hooks/useAudio';
@@ -25,6 +25,7 @@ interface GameContextType {
   coverStock: (stockId: string, shares: number) => void;
   placeOrder: (stockId: string, type: 'buy' | 'sell', shares: number, targetPrice: number) => void;
   cancelOrder: (orderId: string) => void;
+  toggleWatchlist: (stockId: string) => void;
   lastError: string | null;
   clearError: () => void;
   navigateTo: (screen: Screen) => void;
@@ -80,10 +81,16 @@ function migrateGameState(loaded: GameState): GameState {
     activeMission: loaded.activeMission || null,
     completedMissions: loaded.completedMissions || [],
     lastAdvisorFeedback: loaded.lastAdvisorFeedback || [],
+    watchlist: loaded.watchlist || [],
+    catalystCalendar: (loaded.catalystCalendar || []).map(event => ({
+      ...event,
+      scheduledDate: new Date(event.scheduledDate),
+    })),
     stocks: loaded.stocks.map(s => ({ ...s, beta: s.beta || 1, splitMultiplier: s.splitMultiplier || 1 })),
   };
   if (!migrated.riskHistory.length) migrated.riskHistory = [calculateRisk(migrated)];
   if (!migrated.activeMission && !migrated.isGameOver) migrated.activeMission = createMission(migrated, defaultRNG);
+  if (!migrated.isGameOver) migrated.catalystCalendar = ensureUpcomingCatalysts(migrated, migrated.catalystCalendar, defaultRNG);
   return migrated;
 }
 
@@ -138,13 +145,14 @@ export function GameProvider({ children }: { children: ReactNode }) {
   const coverStock = useCallback((stockId: string, shares: number) => { if (!state.gameState) return; const result = executeCover(state.gameState, stockId, shares); if (result.ok) { dispatch({ type: 'UPDATE_GAME_STATE', payload: result.state }); saveAuto(result.state); cover(); } else { dispatch({ type: 'SET_ERROR', payload: tradeErrorMessage(result.reason) }); error(); } }, [state.gameState, cover, error]);
   const placeOrder = useCallback((stockId: string, type: 'buy' | 'sell', shares: number, targetPrice: number) => { if (!state.gameState) return; const result = placeLimitOrder(state.gameState, stockId, type, shares, targetPrice); if (result.ok) { dispatch({ type: 'UPDATE_GAME_STATE', payload: result.state }); saveAuto(result.state); click(); } else { dispatch({ type: 'SET_ERROR', payload: tradeErrorMessage(result.reason) }); error(); } }, [state.gameState, click, error]);
   const cancelOrder = useCallback((orderId: string) => { if (!state.gameState) return; const newState = cancelLimitOrder(state.gameState, orderId); dispatch({ type: 'UPDATE_GAME_STATE', payload: newState }); saveAuto(newState); click(); }, [state.gameState, click]);
+  const toggleWatchlist = useCallback((stockId: string) => { if (!state.gameState) return; const newState = toggleWatchlistStock(state.gameState, stockId); dispatch({ type: 'UPDATE_GAME_STATE', payload: newState }); saveAuto(newState); click(); }, [state.gameState, click]);
   const navigateTo = useCallback((screen: Screen) => dispatch({ type: 'SET_SCREEN', payload: screen }), []);
   const goBack = useCallback(() => dispatch({ type: 'SET_SCREEN', payload: state.previousScreen }), [state.previousScreen]);
   const updateSettings = useCallback((partial: Partial<GameSettings>) => { dispatch({ type: 'UPDATE_SETTINGS', payload: partial }); saveSettings({ ...state.settings, ...partial }); }, [state.settings]);
   const clearError = useCallback(() => dispatch({ type: 'CLEAR_ERROR' }), []);
   const resetGame = useCallback(() => dispatch({ type: 'RESET' }), []);
 
-  const value: GameContextType = { gameState: state.gameState, settings: state.settings, screen: state.screen, previousScreen: state.previousScreen, lastError: state.lastError, clearError, newGame, loadGame, saveGame, advanceTurn, buyStock, sellStock, shortStock, coverStock, placeOrder, cancelOrder, navigateTo, goBack, updateSettings, resetGame };
+  const value: GameContextType = { gameState: state.gameState, settings: state.settings, screen: state.screen, previousScreen: state.previousScreen, lastError: state.lastError, clearError, newGame, loadGame, saveGame, advanceTurn, buyStock, sellStock, shortStock, coverStock, placeOrder, cancelOrder, toggleWatchlist, navigateTo, goBack, updateSettings, resetGame };
   return <GameContext.Provider value={value}>{children}</GameContext.Provider>;
 }
 

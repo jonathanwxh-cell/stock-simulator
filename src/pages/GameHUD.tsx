@@ -6,8 +6,12 @@ import { getAlphaPct, getMarketReturnPct, getPlayerReturnPct } from '../engine/m
 import { getLatestRisk } from '../engine/riskSystem';
 import { SECTOR_LABELS } from '../engine/config';
 import type { GameState } from '../engine/types';
+import { getMarketBreadthSummary, getUpcomingCatalysts, getWatchlistAlerts } from '../engine/marketInsights';
 import { getMissionProgressLabel, getMissionProgressPercent, getMissionTargetLabel } from '../utils/missionFormatting';
 import { getRegimeHeadwindSectors, getRegimeTailwindSectors } from '../utils/regimeUi';
+import WatchlistAlertsCard from '../components/market/WatchlistAlertsCard';
+import UpcomingCatalystsCard from '../components/market/UpcomingCatalystsCard';
+import MarketPulseCard from '../components/market/MarketPulseCard';
 
 function pct(value: number) {
   return `${value >= 0 ? '+' : ''}${value.toFixed(1)}%`;
@@ -45,6 +49,9 @@ export default function GameHUD() {
   const marketReturn = getMarketReturnPct(gameState);
   const playerReturn = getPlayerReturnPct(gameState);
   const alpha = getAlphaPct(gameState);
+  const marketPulse = getMarketBreadthSummary(gameState);
+  const upcomingCatalysts = getUpcomingCatalysts(gameState, 4);
+  const watchlistAlerts = getWatchlistAlerts(gameState, 4);
   const risk = getLatestRisk(gameState);
   const mission = gameState.activeMission;
   const regime = gameState.currentRegime;
@@ -62,6 +69,11 @@ export default function GameHUD() {
     const prev = s.priceHistory.length > 1 ? s.priceHistory[s.priceHistory.length - 2].price : s.currentPrice;
     return { ...s, change: ((s.currentPrice - prev) / prev) * 100 };
   }).sort((a, b) => Math.abs(b.change) - Math.abs(a.change)).slice(0, 4);
+
+  const openStock = (stockId: string) => {
+    localStorage.setItem('mm_selected', stockId);
+    navigateTo('stock-detail');
+  };
 
   return (
     <div className="min-h-[100dvh] p-4 max-w-2xl mx-auto space-y-4">
@@ -159,6 +171,8 @@ export default function GameHUD() {
             </div>
           </div>
 
+          <MarketPulseCard summary={marketPulse} />
+
           <div className="bg-[var(--surface-0)] border border-[var(--border)] rounded-2xl p-4">
             <div className="flex items-center justify-between mb-2">
               <h3 className="text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wider">Current Regime</h3>
@@ -171,6 +185,10 @@ export default function GameHUD() {
               <div className="rounded-lg bg-[var(--surface-1)] p-2"><span className="text-[10px] text-[var(--loss-red)] uppercase tracking-wider">Headwinds</span><p className="text-xs text-[var(--text-secondary)] mt-1">{negativeSectors.length ? negativeSectors.map(sector => SECTOR_LABELS[sector] || sector).join(', ') : 'None'}</p></div>
             </div>
           </div>
+
+          <WatchlistAlertsCard alerts={watchlistAlerts} stocks={gameState.stocks} onOpenStock={openStock} />
+
+          <UpcomingCatalystsCard catalysts={upcomingCatalysts} stocks={gameState.stocks} currentTurn={gameState.currentTurn} onOpenStock={openStock} />
 
           <div className={`border rounded-2xl p-4 ${riskBorderClass(risk.level)}`}>
             <div className="flex items-center justify-between mb-2">
@@ -199,7 +217,7 @@ export default function GameHUD() {
           <div className="flex items-center justify-between mb-3"><h3 className="text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wider">Top Movers</h3><button onClick={() => navigateTo('stock-market')} className="text-[10px] text-[var(--profit-green)] hover:underline">View All</button></div>
           <div className="grid grid-cols-2 gap-2">
             {movers.map(s => (
-              <button key={s.id} onClick={() => { localStorage.setItem('mm_selected', s.id); navigateTo('stock-detail'); }} className="bg-[var(--surface-1)] rounded-lg p-2.5 text-left hover:bg-[var(--surface-2)] transition-all border border-transparent hover:border-[var(--border)]">
+              <button key={s.id} onClick={() => openStock(s.id)} className="bg-[var(--surface-1)] rounded-lg p-2.5 text-left hover:bg-[var(--surface-2)] transition-all border border-transparent hover:border-[var(--border)]">
                 <div className="flex items-center justify-between mb-1"><span className="text-xs font-semibold text-[var(--text-primary)]">{s.ticker}</span><span className={`text-[10px] font-mono-data ${s.change >= 0 ? 'text-[var(--profit-green)]' : 'text-[var(--loss-red)]'}`}>{s.change >= 0 ? '+' : ''}{s.change.toFixed(2)}%</span></div>
                 <span className="text-[10px] text-[var(--text-muted)]">\${s.currentPrice.toFixed(2)}</span>
               </button>

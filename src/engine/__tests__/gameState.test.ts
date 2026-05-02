@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { createNewGame, executeBuy, executeShort, placeLimitOrder, simulateTurn } from '../index';
+import { createNewGame, executeBuy, executeShort, placeLimitOrder, simulateTurn, toggleWatchlistStock } from '../index';
 import { getTradeFeedback } from '../tradeFeedback';
 import { SeededRNG } from '../rng';
 
@@ -58,5 +58,16 @@ describe('game state trade invariants', () => {
     expect(feedback?.sectorExposureBefore).toBe(0);
     expect(feedback?.sectorExposureAfter).toBeGreaterThan(0);
     expect(feedback?.sectorExposureAfter).toBeLessThan(1);
+  });
+
+  it('toggles watchlist membership without duplicates', () => {
+    const state = createNewGame('Tester', 'normal');
+
+    const added = toggleWatchlistStock(state, 'aapl');
+    const removed = toggleWatchlistStock(added, 'aapl');
+
+    expect(added.watchlist).toEqual(['aapl']);
+    expect(toggleWatchlistStock(added, 'aapl').watchlist).toEqual([]);
+    expect(removed.watchlist).toEqual([]);
   });
 });

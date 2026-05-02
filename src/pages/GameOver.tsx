@@ -4,7 +4,9 @@ import { motion } from 'framer-motion';
 import { Trophy, RotateCcw, Star } from 'lucide-react';
 import { getNetWorth } from '../engine/marketSimulator';
 import { DIFFICULTY_CONFIGS } from '../engine/config';
+import { buildSeasonRecap } from '../engine/marketInsights';
 import { recordCompletedGame } from '../engine/completion';
+import SeasonRecapCard from '../components/gameover/SeasonRecapCard';
 
 const GRADE_COLORS: Record<string, string> = {
   S: '#FFD700', A: '#22C55E', B: '#3B82F6', C: '#F59E0B', D: '#EF4444', F: '#6B7280',
@@ -74,6 +76,7 @@ export default function GameOver() {
   const splits = gameState.transactionHistory.filter(t => t.type === 'split');
   const peakNetWorth = Math.max(...gameState.netWorthHistory.map(n => n.netWorth));
   const isSaved = saved || Boolean(gameState.leaderboardEntryId);
+  const recap = buildSeasonRecap(gameState);
 
   const handleSave = () => {
     const updated = recordCompletedGame(gameState);
@@ -133,6 +136,10 @@ export default function GameOver() {
             </div>
             <div><span className="text-xs text-[var(--text-muted)] block">Difficulty</span><span className="font-mono-data text-[var(--text-secondary)] capitalize">{gameState.difficulty}</span></div>
           </div>
+        </motion.div>
+
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 1.0 }}>
+          <SeasonRecapCard recap={recap} />
         </motion.div>
 
         {/* Actions */}

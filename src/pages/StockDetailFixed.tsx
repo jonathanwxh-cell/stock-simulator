@@ -1,8 +1,10 @@
 import { useMemo, useRef, useState } from 'react';
 import { useGame } from '../context/GameContext';
-import { ArrowLeft, CheckCircle, Shield, TrendingDown, TrendingUp, X } from 'lucide-react';
+import { ArrowLeft, CalendarClock, CheckCircle, Shield, Star, TrendingDown, TrendingUp, X } from 'lucide-react';
 import { Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { calcBrokerFee, DIFFICULTY_CONFIGS, SECTOR_COLORS, SECTOR_LABELS } from '../engine/config';
+import { CATALYST_TYPE_LABELS } from '../engine/catalystSystem';
+import { getUpcomingCatalysts, getWatchlistAlerts } from '../engine/marketInsights';
 import { getTradeFeedback, tradeFeedbackFormat, type FeedbackTone, type TradeAction, type TradeFeedback } from '../engine/tradeFeedback';
 
 type TradeType = TradeAction;
@@ -29,7 +31,7 @@ function FeedbackDetails({ feedback, compact = false }: { feedback: TradeFeedbac
 }
 
 export default function StockDetailFixed() {
-  const { gameState, navigateTo, buyStock, sellStock, shortStock, coverStock, lastError, clearError } = useGame();
+  const { gameState, navigateTo, buyStock, sellStock, shortStock, coverStock, toggleWatchlist, lastError, clearError } = useGame();
   const [tradeType, setTradeType] = useState<TradeType>('buy');
   const [shares, setShares] = useState(1);
   const [localError, setLocalError] = useState('');
@@ -49,6 +51,9 @@ export default function StockDetailFixed() {
   const longShares = longPosition?.shares ?? 0;
   const shortShares = shortPosition?.shares ?? 0;
   const config = DIFFICULTY_CONFIGS[gameState.difficulty];
+  const isWatched = (gameState.watchlist || []).includes(stockId);
+  const stockAlerts = getWatchlistAlerts(gameState, 10).filter((alert) => alert.stockId === stockId);
+  const nextCatalyst = getUpcomingCatalysts(gameState, 20).find((event) => event.stockId === stockId);
 
   const previous = stock.priceHistory.length > 1 ? stock.priceHistory[stock.priceHistory.length - 2] : stock.priceHistory[0];
   const change = previous ? ((stock.currentPrice - previous.price) / previous.price) * 100 : 0;
@@ -146,7 +151,7 @@ export default function StockDetailFixed() {
           <button onClick={() => navigateTo('stock-market')} className="w-9 h-9 rounded-lg bg-[var(--surface-1)] border border-[var(--border)] flex items-center justify-center hover:bg-[var(--surface-2)]">
             <ArrowLeft className="w-4 h-4 text-[var(--text-secondary)]" />
           </button>
-          <div className="min-w-0">
+          <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2">
               <h1 className="text-lg font-bold text-[var(--text-primary)]">{stock.ticker}</h1>
               <span className="text-[10px] px-1.5 py-0.5 rounded" style={{ backgroundColor: SECTOR_COLORS[stock.sector] + '20', color: SECTOR_COLORS[stock.sector] }}>
@@ -155,6 +160,14 @@ export default function StockDetailFixed() {
             </div>
             <p className="text-xs text-[var(--text-muted)] truncate">{stock.name}</p>
           </div>
+          <button
+            type="button"
+            onClick={() => toggleWatchlist(stockId)}
+            className={`w-9 h-9 rounded-lg border flex items-center justify-center transition-all ${isWatched ? 'border-[var(--info-blue)] bg-[rgba(59,130,246,0.12)] text-[var(--info-blue)]' : 'border-[var(--border)] bg-[var(--surface-1)] text-[var(--text-muted)] hover:text-[var(--text-primary)]'}`}
+            aria-label={isWatched ? `Remove ${stock.ticker} from watchlist` : `Add ${stock.ticker} to watchlist`}
+          >
+            <Star className={`w-4 h-4 ${isWatched ? 'fill-current' : ''}`} />
+          </button>
         </div>
 
         <div className="flex items-baseline gap-3">
@@ -216,6 +229,40 @@ export default function StockDetailFixed() {
           <div className="pt-2 border-t border-[var(--border)] text-xs space-y-1">
             {longPosition && <p className="flex items-center gap-2"><Shield className="w-3 h-3 text-[var(--text-muted)]" /><span className="text-[var(--text-muted)]">Long:</span><span className="font-semibold text-[var(--profit-green)]">+{longPosition.shares} @ ${longPosition.avgCost.toFixed(2)}</span></p>}
             {shortPosition && <p className="flex items-center gap-2"><Shield className="w-3 h-3 text-[var(--text-muted)]" /><span className="text-[var(--text-muted)]">Short:</span><span className="font-semibold text-[var(--loss-red)]">-{shortPosition.shares} @ ${shortPosition.entryPrice.toFixed(2)}</span></p>}
+          </div>
+        )}
+
+        {(nextCatalyst || stockAlerts.length > 0 || isWatched) && (
+          <div className="space-y-3">
+            {nextCatalyst && (
+              <div className="bg-[var(--surface-0)] border border-[var(--border)] rounded-2xl p-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <CalendarClock className="w-4 h-4 text-[var(--info-blue)]" />
+                  <h3 className="text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wider">Next Catalyst</h3>
+                </div>
+                <p className="text-sm font-semibold text-[var(--text-primary)]">{CATALYST_TYPE_LABELS[nextCatalyst.type]}</p>
+                <p className="text-xs text-[var(--text-secondary)] mt-1">
+                  Due in {nextCatalyst.scheduledTurn - gameState.currentTurn} turn{nextCatalyst.scheduledTurn - gameState.currentTurn === 1 ? '' : 's'} · expected {nextCatalyst.volatility} volatility
+                </p>
+              </div>
+            )}
+
+            {stockAlerts.length > 0 && (
+              <div className="bg-[var(--surface-0)] border border-[var(--border)] rounded-2xl p-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <Star className="w-4 h-4 text-[var(--neutral-amber)]" />
+                  <h3 className="text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wider">Watchlist Context</h3>
+                </div>
+                <div className="space-y-2">
+                  {stockAlerts.map((alert) => (
+                    <div key={alert.id} className="rounded-xl border border-[var(--border)] bg-[var(--surface-1)] p-3">
+                      <p className="text-sm font-medium text-[var(--text-primary)]">{alert.title}</p>
+                      <p className="text-xs text-[var(--text-muted)] mt-1">{alert.description}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         )}
 
