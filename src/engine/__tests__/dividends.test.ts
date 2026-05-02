@@ -5,9 +5,9 @@ import { simulateTurn } from '../marketSimulator';
 import type { GameState } from '../types';
 
 /**
- * simulateTurn advances the date by 1 month FIRST, then pays dividends.
- * So to test January dividends, we set the date to December (month 11).
- * Quarterly months (after advance): Jan(0), Apr(3), Jul(6), Oct(9)
+ * simulateTurn advances the date by 1 month first, then pays dividends.
+ * To test January dividends, set the date to December (month 11).
+ * Quarterly months after advance: Jan(0), Apr(3), Jul(6), Oct(9)
  * Set date to: Dec(11), Mar(2), Jun(5), Sep(8)
  */
 
@@ -24,7 +24,7 @@ describe('Dividends', () => {
     state = unwrap(state, s => executeBuy(s, divStock.id, 10));
     const cashBefore = state.cash;
 
-    // Set to December → simulateTurn advances to January → dividend pays
+    // Set to December -> simulateTurn advances to January -> dividend pays
     state = forceDateToMonth(state, 11);
     state = simulateTurn(state);
 
@@ -43,7 +43,7 @@ describe('Dividends', () => {
     state = unwrap(state, s => executeBuy(s, divStock.id, 5));
     const cashBefore = state.cash;
 
-    state = forceDateToMonth(state, 2); // March → April
+    state = forceDateToMonth(state, 2); // March -> April
     state = simulateTurn(state);
 
     expect(state.cash).toBeGreaterThan(cashBefore);
@@ -54,7 +54,7 @@ describe('Dividends', () => {
     const divStock = state.stocks.find(s => s.dividendYield > 0)!;
     state = unwrap(state, s => executeBuy(s, divStock.id, 10));
 
-    state = forceDateToMonth(state, 0); // January → February (non-quarterly)
+    state = forceDateToMonth(state, 0); // January -> February
     state = simulateTurn(state);
 
     const divTxn = state.transactionHistory.find(
@@ -68,7 +68,7 @@ describe('Dividends', () => {
     const noDivStock = state.stocks.find(s => s.dividendYield === 0)!;
     state = unwrap(state, s => executeBuy(s, noDivStock.id, 10));
 
-    state = forceDateToMonth(state, 11); // Dec → Jan
+    state = forceDateToMonth(state, 11); // Dec -> Jan
     state = simulateTurn(state);
 
     const divTxn = state.transactionHistory.find(
@@ -77,22 +77,22 @@ describe('Dividends', () => {
     expect(divTxn).toBeUndefined();
   });
 
-  it('short position pays dividend (negative cash impact)', () => {
+  it('short position records a negative dividend transaction', () => {
     let state = createNewGame('Test', 'normal');
     const divStock = state.stocks.find(s => s.dividendYield > 0)!;
     state = unwrap(state, s => executeShort(s, divStock.id, 10));
-    const cashBefore = state.cash;
 
-    state = forceDateToMonth(state, 11); // Dec → Jan
+    state = forceDateToMonth(state, 11); // Dec -> Jan
     state = simulateTurn(state);
 
-    // Cash should decrease (short pays dividend)
-    expect(state.cash).toBeLessThan(cashBefore);
-
+    // Assert the short dividend directly instead of using net cash,
+    // because simulateTurn can also apply mission rewards and interest.
     const shortDivTxn = state.transactionHistory.find(
       t => t.type === 'dividend' && t.stockId === divStock.id && t.total < 0
     );
     expect(shortDivTxn).toBeDefined();
+    expect(shortDivTxn!.shares).toBe(10);
+    expect(shortDivTxn!.price).toBeLessThan(0);
   });
 
   it('long + short on same stock: net dividend effect correct', () => {
@@ -101,10 +101,11 @@ describe('Dividends', () => {
     state = unwrap(state, s => executeBuy(s, divStock.id, 10));
     state = unwrap(state, s => executeShort(s, divStock.id, 5));
 
-    state = forceDateToMonth(state, 11); // Dec → Jan
+    state = forceDateToMonth(state, 11); // Dec -> Jan
     state = simulateTurn(state);
 
-    // Find dividend transactions directly (don't rely on net cash, which includes margin interest)
+    // Find dividend transactions directly; do not rely on net cash,
+    // which can include margin interest and mission rewards.
     const longDiv = state.transactionHistory.find(
       t => t.type === 'dividend' && t.stockId === divStock.id && t.total > 0
     );
@@ -119,15 +120,11 @@ describe('Dividends', () => {
     const shortDebit = Math.abs(shortDiv!.total);
     const netDividend = longCredit - shortDebit;
 
-    // Long 10 shares should receive exactly 2× what short 5 shares pays
+    // Long 10 shares should receive exactly 2x what short 5 shares pays.
     expect(longCredit).toBeCloseTo(shortDebit * 2, 1);
 
-    // Net dividend should be positive (long > short)
+    // Net dividend should be positive (long > short).
     expect(netDividend).toBeGreaterThan(0);
-
-    // Verify against expected formula: quarterlyDiv = price * yield / 4
-    // longCredit ≈ quarterlyDiv * 10, shortDebit ≈ quarterlyDiv * 5
-    // We can't know exact price (random walk), but the ratio should hold
     expect(longCredit).toBeGreaterThan(0);
     expect(shortDebit).toBeGreaterThan(0);
   });
@@ -137,7 +134,7 @@ describe('Dividends', () => {
     const divStock = state.stocks.find(s => s.dividendYield > 0)!;
     state = unwrap(state, s => executeBuy(s, divStock.id, 10));
 
-    state = forceDateToMonth(state, 11); // Dec → Jan
+    state = forceDateToMonth(state, 11); // Dec -> Jan
     state = simulateTurn(state);
 
     const txn = state.transactionHistory.find(

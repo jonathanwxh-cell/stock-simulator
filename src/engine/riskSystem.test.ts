@@ -67,8 +67,8 @@ describe('calculateRisk', () => {
       portfolio: { amd: { stockId: 'amd', shares: 50, avgCost: 100 } },
     }));
     expect(risk.level).toBe('low');
-    expect(risk.totalScore).toBeGreaterThanOrEqual(5);
-    expect(risk.totalScore).toBeLessThanOrEqual(15);
+    expect(risk.totalScore).toBeLessThanOrEqual(5);
+    expect(risk.warnings).toHaveLength(0);
   });
 
   it('raises risk for a 40% concentrated long position', () => {
