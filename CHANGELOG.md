@@ -4,6 +4,13 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Documentation
+
+- Added a core gameplay milestone design spec and implementation plan under `docs/superpowers/` covering Portfolio rebalancing, advanced pending orders, and the portfolio-vs-benchmark performance chart.
+- Marked options trading as explicitly deferred in the planning docs so the next implementation round stays focused on the tighter milestone.
+
 ## [1.5.7] — 2026-04-28
 
 ### Fixed
@@ -314,6 +321,7 @@ Engine correctness pass. No breaking changes; existing saves load unchanged.
 Initial commit. Turn-based stock market sim — 60 stocks across 12 sectors,
 4 difficulty levels, margin trading, short selling, 600+ market events.
 
+[Unreleased]: https://github.com/jonathanwxh-cell/stock-simulator/compare/v1.5.7...HEAD
 [1.5.7]: https://github.com/jonathanwxh-cell/stock-simulator/compare/v1.5.6...v1.5.7
 [1.5.6]: https://github.com/jonathanwxh-cell/stock-simulator/compare/v1.5.5...v1.5.6
 [1.5.5]: https://github.com/jonathanwxh-cell/stock-simulator/compare/v1.5.4...v1.5.5
