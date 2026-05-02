@@ -11,8 +11,8 @@ class FixedIntRng implements RNG {
   }
 
   next(): number { return 0.5; }
-  int(_min: number, _max: number): number { return this.values[this.index++] ?? 0; }
-  range(min: number, _max: number): number { return min; }
+  int(): number { return this.values[this.index++] ?? 0; }
+  range(min: number): number { return min; }
   pick<T>(arr: T[]): T { return arr[0]; }
   pickN<T>(arr: T[], n: number): T[] { return arr.slice(0, n); }
 }

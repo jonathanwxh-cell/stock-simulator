@@ -23,7 +23,7 @@ describe('Scenario generator', () => {
 
   it('adaptive difficulty: doing well → fewer positive scenarios', () => {
     const state = createNewGame('Test', 'normal');
-    let wellState: GameState = { ...state, cash: state.cash * 10 };
+    const wellState: GameState = { ...state, cash: state.cash * 10 };
 
     let positiveCount = 0;
     const runs = 1000;
@@ -41,7 +41,7 @@ describe('Scenario generator', () => {
   it('adaptive difficulty: struggling → more positive scenarios', () => {
     const state = createNewGame('Test', 'normal');
     // Zero out portfolio to minimize net worth
-    let struggleState: GameState = {
+    const struggleState: GameState = {
       ...state,
       cash: 100,
       portfolio: {},
