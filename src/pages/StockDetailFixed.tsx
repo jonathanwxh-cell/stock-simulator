@@ -6,6 +6,7 @@ import { calcBrokerFee, DIFFICULTY_CONFIGS, SECTOR_COLORS, SECTOR_LABELS } from 
 import { CATALYST_TYPE_LABELS } from '../engine/catalystSystem';
 import { getUpcomingCatalysts, getWatchlistAlerts } from '../engine/marketInsights';
 import { getTradeFeedback, tradeFeedbackFormat, type FeedbackTone, type TradeAction, type TradeFeedback } from '../engine/tradeFeedback';
+import PendingOrdersCard from '../components/trading/PendingOrdersCard';
 
 type TradeType = TradeAction;
 
@@ -31,7 +32,7 @@ function FeedbackDetails({ feedback, compact = false }: { feedback: TradeFeedbac
 }
 
 export default function StockDetailFixed() {
-  const { gameState, navigateTo, buyStock, sellStock, shortStock, coverStock, toggleWatchlist, lastError, clearError } = useGame();
+  const { gameState, navigateTo, buyStock, sellStock, shortStock, coverStock, placeOrder, cancelOrder, placeProtectiveOrder, cancelProtectiveOrder, toggleWatchlist, lastError, clearError } = useGame();
   const [tradeType, setTradeType] = useState<TradeType>('buy');
   const [shares, setShares] = useState(1);
   const [localError, setLocalError] = useState('');
@@ -51,6 +52,7 @@ export default function StockDetailFixed() {
   const longShares = longPosition?.shares ?? 0;
   const shortShares = shortPosition?.shares ?? 0;
   const config = DIFFICULTY_CONFIGS[gameState.difficulty];
+  const pendingUsed = gameState.limitOrders.length + (gameState.conditionalOrders?.length || 0);
   const isWatched = (gameState.watchlist || []).includes(stockId);
   const stockAlerts = getWatchlistAlerts(gameState, 10).filter((alert) => alert.stockId === stockId);
   const nextCatalyst = getUpcomingCatalysts(gameState, 20).find((event) => event.stockId === stockId);
@@ -265,6 +267,21 @@ export default function StockDetailFixed() {
             )}
           </div>
         )}
+
+        <PendingOrdersCard
+          stock={stock}
+          currentPrice={stock.currentPrice}
+          longShares={longShares}
+          pendingUsed={pendingUsed}
+          pendingCap={config.maxLimitOrders}
+          limitOrders={gameState.limitOrders}
+          conditionalOrders={gameState.conditionalOrders || []}
+          lastError={lastError}
+          onPlaceLimitOrder={placeOrder}
+          onCancelLimitOrder={cancelOrder}
+          onPlaceProtectiveOrder={placeProtectiveOrder}
+          onCancelProtectiveOrder={cancelProtectiveOrder}
+        />
 
         <div className="bg-[var(--surface-0)] border border-[var(--border)] rounded-2xl p-5">
           <h2 className="text-sm font-semibold text-[var(--text-primary)] mb-3">Trade {stock.ticker}</h2>

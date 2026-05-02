@@ -16,3 +16,6 @@ export * from './advisorSystem';
 export * from './turnPerformance';
 export * from './catalystSystem';
 export * from './marketInsights';
+export { resolvePendingOrders, applyPendingOrderSplitAdjustment } from './orders';
+export * from './performanceSeries';
+export * from './rebalancing';

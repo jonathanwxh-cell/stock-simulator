@@ -2,7 +2,7 @@ import { deepCloneGameState } from './cloneState';
 import type { GameState, Stock } from './types';
 import type { RNG } from './rng';
 import { defaultRNG } from './rng';
-import { DIFFICULTY_CONFIGS, SCENARIO_FREQUENCY_MAP, calcBrokerFee } from './config';
+import { DIFFICULTY_CONFIGS, SCENARIO_FREQUENCY_MAP } from './config';
 import { roundCurrency } from './financialMath';
 import { generateDistinctNewsEvents, generateScenario } from './scenarioGenerator';
 import { calculateGrade } from './gameState';
@@ -12,13 +12,14 @@ import { calculateRisk } from './riskSystem';
 import { updateMission } from './missionSystem';
 import { generateAdvisorFeedback } from './advisorSystem';
 import { ensureUpcomingCatalysts, resolveDueCatalysts } from './catalystSystem';
+import { applyPendingOrderSplitAdjustment, resolvePendingOrders } from './orders';
 
 function genNewsId(): string { return `news_${crypto.randomUUID()}`; }
 
 export function simulateTurn(gameState: GameState, rng: RNG = defaultRNG): GameState {
   const config = DIFFICULTY_CONFIGS[gameState.difficulty];
   const prevState = deepCloneGameState(gameState);
-  const newState = deepCloneGameState(gameState);
+  let newState = deepCloneGameState(gameState);
 
   newState.currentTurn += 1;
   const currentDate = new Date(newState.currentDate);
@@ -55,7 +56,7 @@ export function simulateTurn(gameState: GameState, rng: RNG = defaultRNG): GameS
     stock.priceHistory.push({ turn: newState.currentTurn, price: stock.currentPrice });
   }
 
-  executeLimitOrders(newState);
+  newState = resolvePendingOrders(newState);
   maybeStockSplit(newState, rng);
   if (currentDate.getMonth() % 3 === 0) payDividends(newState);
   chargeMarginInterest(newState);
@@ -99,51 +100,6 @@ export function simulateTurn(gameState: GameState, rng: RNG = defaultRNG): GameS
   return newState;
 }
 
-function recordExecutionFee(state: GameState, fee: number, stockId: string) {
-  if (fee <= 0) return;
-  const roundedFee = roundCurrency(fee);
-  state.totalFeesPaid = roundCurrency(state.totalFeesPaid + roundedFee);
-  state.transactionHistory.push({ id: `fee_${crypto.randomUUID()}`, date: new Date(state.currentDate), turn: state.currentTurn, stockId, type: 'fee', shares: 0, price: 0, total: roundedFee, fee: roundedFee });
-}
-
-function executeLimitOrders(state: GameState) {
-  const config = DIFFICULTY_CONFIGS[state.difficulty];
-  const consumed: string[] = [];
-  for (const order of state.limitOrders) {
-    const stock = state.stocks.find(s => s.id === order.stockId);
-    if (!stock || !Number.isFinite(stock.currentPrice) || stock.currentPrice <= 0) { consumed.push(order.id); continue; }
-    const shouldExecute = (order.type === 'buy' && stock.currentPrice <= order.targetPrice) || (order.type === 'sell' && stock.currentPrice >= order.targetPrice);
-    if (!shouldExecute) continue;
-    const total = roundCurrency(stock.currentPrice * order.shares);
-    const fee = calcBrokerFee(total, config);
-    if (order.type === 'buy') {
-      if (state.cash >= total + fee) {
-        state.cash = roundCurrency(state.cash - total - fee);
-        recordExecutionFee(state, fee, order.stockId);
-        const existing = state.portfolio[order.stockId];
-        if (existing) {
-          const ts = existing.shares + order.shares;
-          existing.avgCost = roundCurrency(((existing.avgCost * existing.shares) + total) / ts);
-          existing.shares = ts;
-        } else state.portfolio[order.stockId] = { stockId: order.stockId, shares: order.shares, avgCost: roundCurrency(stock.currentPrice) };
-        state.transactionHistory.push({ id: `txn_${order.id}_exec`, date: new Date(state.currentDate), turn: state.currentTurn, stockId: order.stockId, type: 'limit_buy', shares: order.shares, price: roundCurrency(stock.currentPrice), total, fee });
-      }
-      consumed.push(order.id);
-    } else {
-      const pos = state.portfolio[order.stockId];
-      if (pos && pos.shares >= order.shares) {
-        state.cash = roundCurrency(state.cash + total - fee);
-        recordExecutionFee(state, fee, order.stockId);
-        pos.shares -= order.shares;
-        if (pos.shares === 0) delete state.portfolio[order.stockId];
-        state.transactionHistory.push({ id: `txn_${order.id}_exec`, date: new Date(state.currentDate), turn: state.currentTurn, stockId: order.stockId, type: 'limit_sell', shares: order.shares, price: roundCurrency(stock.currentPrice), total, fee });
-      }
-      consumed.push(order.id);
-    }
-  }
-  state.limitOrders = state.limitOrders.filter(o => !consumed.includes(o.id));
-}
-
 function maybeStockSplit(state: GameState, rng: RNG = defaultRNG) {
   if (rng.next() > 0.02) return;
   const eligible = state.stocks.filter(s => s.currentPrice >= 500);
@@ -157,7 +113,7 @@ function maybeStockSplit(state: GameState, rng: RNG = defaultRNG) {
   if (pos) { pos.shares *= splitRatio; pos.avgCost = roundCurrency(pos.avgCost / splitRatio); }
   const short = state.shortPositions[stock.id];
   if (short) { short.shares *= splitRatio; short.entryPrice = roundCurrency(short.entryPrice / splitRatio); }
-  for (const order of state.limitOrders) if (order.stockId === stock.id) { order.shares *= splitRatio; order.targetPrice = roundCurrency(order.targetPrice / splitRatio); }
+  applyPendingOrderSplitAdjustment(state, stock.id, splitRatio);
   state.transactionHistory.push({ id: `split_${crypto.randomUUID()}`, date: new Date(state.currentDate), turn: state.currentTurn, stockId: stock.id, type: 'split', shares: splitRatio, price: roundCurrency(stock.currentPrice), total: 0, fee: 0 });
 }
 

@@ -8,6 +8,9 @@ All notable changes to this project are documented here. Format follows
 
 ### Added
 
+- Added a portfolio performance chart with 12-month, 24-month, and full-history views so players can track normalized net worth vs the benchmark from the Portfolio screen.
+- Added advanced pending-order tooling on stock detail, including one-click limit orders plus long-only stop-loss and take-profit exits with per-stock order management.
+- Added a portfolio rebalancer that accepts stock or sector target weights, auto-balances the cash row, previews the required trades, and executes the rebalance in one action.
 - Added a watchlist system with one-click starring from the market and stock detail views, plus HUD and stock-detail alert surfaces that call out large moves, fresh news, and upcoming catalysts on watched names.
 - Added a rolling catalyst calendar that schedules earnings-style events, guidance, analyst days, product launches, and regulatory beats ahead of time so future turns feel more telegraphed and actionable.
 - Added reusable market insight panels for `Market Pulse`, `Upcoming Catalysts`, and an expanded `Season Recap` so players can read sector leadership, breadth, benchmark-relative performance, and end-of-run highlights at a glance.
@@ -23,6 +26,8 @@ All notable changes to this project are documented here. Format follows
 
 ### Internal
 
+- Added deterministic regression coverage for conditional pending orders, performance-series normalization, negative-cash rebalance validation, and trade-order sequencing in rebalance previews.
+- Extended the browser smoke harness to buy a live position, place pending exits, verify the new portfolio chart and open-order surfaces, and execute a full rebalance before the endgame pass.
 - Added regression coverage for completed-run recording, post-turn completion routing, same-turn news dedupe, and consumer-template data quality.
 - Added save-system regression coverage for completed auto-save cleanup and stale finished-save metadata scrubbing.
 - Stabilized the stock-split threshold regression so it exercises the eligibility rule deterministically instead of relying on a long random walk.

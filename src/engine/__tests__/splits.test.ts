@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { createNewGame, executeBuy, executeShort, placeLimitOrder } from '../gameState';
 import { unwrap } from './_helpers';
 import { simulateTurn } from '../marketSimulator';
+import { placeConditionalOrder } from '../orders';
 import type { RNG } from '../rng';
 import { SeededRNG } from '../rng';
 
@@ -202,5 +203,28 @@ describe('Stock splits', () => {
     expect(order).toBeDefined();
     expect(order?.shares).toBe(8);
     expect(order?.targetPrice).toBeCloseTo(275, 2);
+  });
+
+  it('adjusts outstanding conditional orders for the split stock', () => {
+    let state = createNewGame('Test', 'normal');
+    const stockId = state.stocks[0].id;
+
+    state = {
+      ...state,
+      stocks: state.stocks.map((stock, index) =>
+        index === 0
+          ? { ...stock, currentPrice: 600, basePrice: 600 }
+          : { ...stock, currentPrice: 50, basePrice: 50 }
+      ),
+    };
+    state = unwrap(state, s => executeBuy(s, stockId, 6));
+    state = unwrap(state, s => placeConditionalOrder(s, stockId, 'stop_loss', 4, 540));
+
+    state = simulateTurn(state, makeSplitRng());
+
+    const order = state.conditionalOrders?.find(o => o.stockId === stockId);
+    expect(order).toBeDefined();
+    expect(order?.shares).toBe(8);
+    expect(order?.triggerPrice).toBeCloseTo(270, 2);
   });
 });

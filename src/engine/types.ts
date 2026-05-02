@@ -184,7 +184,7 @@ export interface GameState {
 
 export type RebalanceMode = 'sector' | 'stock';
 export interface AllocationTarget { id: string; weight: number; }
-export interface RebalanceTrade { stockId: string; type: 'buy' | 'sell'; shares: number; estimatedValue: number; fee: number; reason: string; }
+export interface RebalanceTrade { stockId: string; type: 'buy' | 'sell' | 'short' | 'cover'; shares: number; estimatedValue: number; fee: number; reason: string; }
 export interface RebalancePreview { mode: RebalanceMode; totalBasis: number; cashAfter: number; trades: RebalanceTrade[]; warnings: string[]; }
 
 export interface LeaderboardEntry { id: string; runId?: string; playerName: string; difficulty: Difficulty; finalNetWorth: number; startingCash: number; grade: 'S' | 'A' | 'B' | 'C' | 'D' | 'F'; turnsPlayed: number; date: Date; }

@@ -174,6 +174,14 @@ const ImportSaveSchema = z.object({
     targetPrice: z.number(),
     placedTurn: z.number(),
   })),
+  conditionalOrders: z.array(z.object({
+    id: z.string(),
+    stockId: z.string(),
+    type: z.enum(['stop_loss', 'take_profit']),
+    shares: z.number(),
+    triggerPrice: z.number(),
+    placedTurn: z.number(),
+  })).optional(),
   marginUsed: z.number(),
   stocks: z.array(z.object({
     id: z.string(),

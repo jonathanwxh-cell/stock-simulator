@@ -4,6 +4,7 @@ import { createNewGame, executeBuy, placeLimitOrder, cancelLimitOrder } from '..
 import { simulateTurn } from '../marketSimulator';
 import { DIFFICULTY_CONFIGS } from '../config';
 import type { GameState, LimitOrder } from '../types';
+import { resolvePendingOrders } from '../orders';
 
 function withPrice(state: GameState, stockId: string, price: number): GameState {
   return {
@@ -22,10 +23,22 @@ function insertOrder(state: GameState, order: LimitOrder): GameState {
 describe('Limit orders', () => {
   const stockId = 'aapl';
 
+  it('resolvePendingOrders executes a triggered limit buy directly', () => {
+    let state = createNewGame('Test', 'normal');
+    state = withPrice(state, stockId, 100);
+    state = unwrap(state, s => placeLimitOrder(s, stockId, 'buy', 3, 100));
+
+    state = withPrice(state, stockId, 80);
+    state = resolvePendingOrders(state);
+
+    expect(state.limitOrders.find(o => o.stockId === stockId)).toBeUndefined();
+    expect(state.portfolio[stockId]?.shares).toBe(3);
+  });
+
   it('buy limit triggers when price ≤ target', () => {
     let state = createNewGame('Test', 'normal');
     state = withPrice(state, stockId, 100);
-    state = unwrap(state, s => placeLimitOrder(s, stockId, 'buy', 5, 100));
+    state = unwrap(state, s => placeLimitOrder(s, stockId, 'buy', 5, 500));
 
     state = withPrice(state, stockId, 80);
     state = simulateTurn(state);
@@ -39,7 +52,7 @@ describe('Limit orders', () => {
     state = withPrice(state, stockId, 100);
     state = unwrap(state, s => executeBuy(s, stockId, 10));
 
-    state = unwrap(state, s => placeLimitOrder(s, stockId, 'sell', 5, 110));
+    state = unwrap(state, s => placeLimitOrder(s, stockId, 'sell', 5, 1));
 
     state = withPrice(state, stockId, 120);
     state = simulateTurn(state);

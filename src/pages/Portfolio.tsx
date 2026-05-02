@@ -6,6 +6,9 @@ import { getPortfolioValue, getNetWorth, getShortLiability } from '../engine/mar
 import { getAlphaPct, getMarketReturnPct, getPlayerReturnPct } from '../engine/marketIndex';
 import { getLatestRisk } from '../engine/riskSystem';
 import type { Stock } from '../engine/types';
+import PerformanceChartCard from '../components/portfolio/PerformanceChartCard';
+import OpenOrdersCard from '../components/portfolio/OpenOrdersCard';
+import RebalanceCard from '../components/portfolio/RebalanceCard';
 
 function pct(value: number) { return `${value >= 0 ? '+' : ''}${value.toFixed(1)}%`; }
 function money(value: number) { return `$${Math.abs(value).toFixed(2)}`; }
@@ -17,7 +20,7 @@ type HoldingRow =
   | { kind: 'short'; stockId: string; stock: Stock; shares: number; basis: number; value: number; pnl: number; pnlPct: number };
 
 export default function Portfolio() {
-  const { gameState, navigateTo } = useGame();
+  const { gameState, navigateTo, cancelOrder, cancelProtectiveOrder, executeRebalance } = useGame();
   if (!gameState) return null;
 
   const portfolioValue = getPortfolioValue(gameState);
@@ -53,6 +56,10 @@ export default function Portfolio() {
   const sectorBreakdown: Record<string, number> = {};
   for (const holding of holdings) sectorBreakdown[holding.stock.sector] = (sectorBreakdown[holding.stock.sector] || 0) + holding.value;
   const totalPnL = holdings.reduce((sum, holding) => sum + holding.pnl, 0);
+  const openStock = (stockId: string) => {
+    localStorage.setItem('mm_selected', stockId);
+    navigateTo('stock-detail');
+  };
 
   return (
     <div className="min-h-[calc(100dvh-56px-72px)] p-4 max-w-2xl mx-auto">
@@ -73,6 +80,20 @@ export default function Portfolio() {
             <div><span className="text-[10px] text-[var(--text-muted)] block">Index</span><span className="text-sm font-mono-data text-[var(--text-primary)]">{latestIndex.value.toFixed(0)}</span></div>
           </div>
         </div>
+
+        <PerformanceChartCard gameState={gameState} />
+
+        <OpenOrdersCard
+          gameState={gameState}
+          onOpenStock={openStock}
+          onCancelLimitOrder={cancelOrder}
+          onCancelProtectiveOrder={cancelProtectiveOrder}
+        />
+
+        <RebalanceCard
+          gameState={gameState}
+          onExecute={executeRebalance}
+        />
 
         <div className="bg-[var(--surface-0)] border border-[var(--border)] rounded-2xl p-4 mb-4">
           <div className="flex items-center justify-between mb-3"><div className="flex items-center gap-2"><AlertTriangle className="w-4 h-4 text-[var(--neutral-amber)]" /><h2 className="text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wider">Risk Breakdown</h2></div><span className={`text-xs font-semibold uppercase ${riskTextClass(risk.level)}`}>{risk.level} · {risk.totalScore}/100</span></div>
@@ -99,7 +120,7 @@ export default function Portfolio() {
         ) : (
           <div className="space-y-2">
             {holdings.map(holding => (
-              <motion.button key={`${holding.kind}-${holding.stockId}`} initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} onClick={() => { localStorage.setItem('mm_selected', holding.stockId); navigateTo('stock-detail'); }} className="w-full bg-[var(--surface-0)] border border-[var(--border)] rounded-xl p-4 text-left hover:border-[var(--border-hover)] transition-all">
+              <motion.button key={`${holding.kind}-${holding.stockId}`} initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} onClick={() => openStock(holding.stockId)} className="w-full bg-[var(--surface-0)] border border-[var(--border)] rounded-xl p-4 text-left hover:border-[var(--border-hover)] transition-all">
                 <div className="flex items-center justify-between">
                   <div>
                     <div className="flex items-center gap-2"><span className="font-semibold text-[var(--text-primary)]">{holding.stock.ticker}</span><span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded ${holding.kind === 'long' ? 'bg-[rgba(34,197,94,0.15)] text-[var(--profit-green)]' : 'bg-[rgba(239,68,68,0.15)] text-[var(--loss-red)]'}`}>{holding.kind.toUpperCase()}</span><span className="text-xs text-[var(--text-muted)]">{holding.shares} shares</span></div>

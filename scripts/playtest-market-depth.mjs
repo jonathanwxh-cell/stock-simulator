@@ -100,13 +100,22 @@ async function findNextTurnCatalystTicker(page) {
 
 async function playToCompletion(page) {
   for (let turn = 0; turn < 140; turn++) {
-    const currentState = await waitForHudOrGameOver(page);
-    if (currentState === 'game-over') return;
+    const isGameOver =
+      (await isVisible(page.getByText('Game Over', { exact: true }))) ||
+      (await isVisible(page.getByText('Market Conquered', { exact: true }))) ||
+      (await isVisible(page.getByText('Season Recap', { exact: true })));
+    if (isGameOver) return;
     const nextState = await advanceOneTurn(page);
     if (nextState === 'game-over') return;
   }
 
   throw new Error('The run did not reach Game Over within the expected turn budget.');
+}
+
+async function clickNTimes(locator, times) {
+  for (let index = 0; index < times; index++) {
+    await locator.click();
+  }
 }
 
 async function main() {
@@ -181,7 +190,23 @@ async function main() {
     await stockButton.click();
     await waitForVisible(page.getByText('Next Catalyst', { exact: true }), 'stock detail catalyst card');
     await waitForVisible(page.getByText('Watchlist Context', { exact: true }), 'stock detail watchlist context');
+    await waitForVisible(page.getByText('Orders & Automation', { exact: true }), 'stock detail pending orders card');
     log('Stock detail shows catalyst and watchlist context');
+
+    log(`Buying four ${catalystTicker} shares to exercise the order tools`);
+    await clickNTimes(page.getByRole('button', { name: '+', exact: true }), 3);
+    await page.getByRole('button', { name: new RegExp(`Buy 4 ${escapeRegex(catalystTicker)}`) }).click();
+    await waitForVisible(page.getByText('Long:', { exact: true }), 'long position badge');
+
+    const limitCard = page.locator('div').filter({ has: page.getByText('Limit Order', { exact: true }) }).first();
+    await limitCard.getByRole('button', { name: 'Limit Sell' }).click();
+    await limitCard.getByLabel('Target Price').fill('0.01');
+    await limitCard.getByRole('button', { name: 'Place Limit Sell' }).click();
+
+    const protectiveCard = page.locator('div').filter({ has: page.getByText('Protective Exit', { exact: true }) }).first();
+    await protectiveCard.getByLabel('Trigger Price').fill('999999');
+    await protectiveCard.getByRole('button', { name: 'Place Stop-Loss' }).click();
+    log('Placed an immediate limit sell and stop-loss for the selected stock');
 
     await page.getByRole('button', { name: /News/ }).click();
     await waitForVisible(page.getByText('Market News', { exact: true }), 'news screen');
@@ -199,6 +224,20 @@ async function main() {
       'watchlist news alert after catalyst resolution',
     );
     log('Resolved catalyst produced a watchlist alert on the HUD');
+
+    await page.getByRole('button', { name: /Portfolio/ }).click();
+    await waitForVisible(page.getByText('Performance Chart', { exact: true }), 'portfolio performance chart');
+    await waitForVisible(page.getByText('Open Orders', { exact: true }), 'portfolio open orders card');
+    await waitForVisible(page.getByText('No pending orders yet. Use limit orders, stop-losses, or take-profits to automate exits and entries.', { exact: true }), 'resolved pending orders state');
+    await waitForVisible(page.getByText('Portfolio Rebalancer', { exact: true }), 'portfolio rebalancer');
+    log('Portfolio shows the new chart, cleared orders, and rebalance card');
+
+    await page.getByRole('button', { name: 'Clear' }).click();
+    await waitForVisible(page.getByText('Trade Preview', { exact: true }), 'rebalance trade preview');
+    await waitForVisible(page.getByText(/planned trade/i), 'rebalance plan summary');
+    await page.getByRole('button', { name: 'Rebalance Now' }).click();
+    await waitForVisible(page.getByText('No holdings yet. Visit the Market to buy stocks or open shorts.', { exact: true }), 'post-rebalance empty portfolio');
+    log('Rebalance preview and execution work on the portfolio screen');
 
     log('Fast-forwarding to the end of the run');
     await playToCompletion(page);
