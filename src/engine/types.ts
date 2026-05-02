@@ -134,6 +134,8 @@ export interface GameConfig {
 
 export interface GameState {
   saveSlot: 1 | 2 | 3 | 'auto';
+  runId?: string;
+  leaderboardEntryId?: string | null;
   playerName: string;
   difficulty: Difficulty;
   currentTurn: number;
@@ -142,7 +144,7 @@ export interface GameState {
   portfolio: Record<string, Position>;
   shortPositions: Record<string, ShortPosition>;
   limitOrders: LimitOrder[];
-  conditionalOrders: ConditionalOrder[];
+  conditionalOrders?: ConditionalOrder[];
   marginUsed: number;
   totalFeesPaid: number;
   totalDividendsReceived: number;
@@ -169,7 +171,7 @@ export interface AllocationTarget { id: string; weight: number; }
 export interface RebalanceTrade { stockId: string; type: 'buy' | 'sell'; shares: number; estimatedValue: number; fee: number; reason: string; }
 export interface RebalancePreview { mode: RebalanceMode; totalBasis: number; cashAfter: number; trades: RebalanceTrade[]; warnings: string[]; }
 
-export interface LeaderboardEntry { id: string; playerName: string; difficulty: Difficulty; finalNetWorth: number; startingCash: number; grade: 'S' | 'A' | 'B' | 'C' | 'D' | 'F'; turnsPlayed: number; date: Date; }
+export interface LeaderboardEntry { id: string; runId?: string; playerName: string; difficulty: Difficulty; finalNetWorth: number; startingCash: number; grade: 'S' | 'A' | 'B' | 'C' | 'D' | 'F'; turnsPlayed: number; date: Date; }
 export interface GameSettings { soundEnabled: boolean; musicEnabled: boolean; animationSpeed: 'slow' | 'normal' | 'fast'; showTutorials: boolean; }
 export interface SaveMetadata { slot: 1 | 2 | 3 | 'auto'; playerName: string; difficulty: Difficulty; currentTurn: number; turnLimit: number; netWorth: number; cash: number; date: Date; updatedAt: Date; exists: boolean; }
 export type Screen = 'title' | 'game' | 'stock-market' | 'stock-detail' | 'portfolio' | 'rebalance' | 'news' | 'next-turn' | 'game-over' | 'leaderboard' | 'settings' | 'how-to-play' | 'load-save';

@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { TrendingUp, TrendingDown, Clock, DollarSign, BarChart3 } from 'lucide-react';
 import { useEffect } from 'react';
 import { getLatestTurnPerformance } from '../engine/turnPerformance';
+import { getPostTurnDestination } from '../engine/completion';
 
 function pct(value: number) {
   return `${value >= 0 ? '+' : ''}${value.toFixed(1)}%`;
@@ -20,10 +21,11 @@ export default function NextTurn() {
 
   useEffect(() => {
     const timer = setTimeout(() => {
-      navigateTo('game');
+      if (!gameState) return;
+      navigateTo(getPostTurnDestination(gameState));
     }, 3000);
     return () => clearTimeout(timer);
-  }, [navigateTo]);
+  }, [gameState, navigateTo]);
 
   if (!gameState) return null;
 

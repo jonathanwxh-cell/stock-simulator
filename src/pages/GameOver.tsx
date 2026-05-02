@@ -4,8 +4,7 @@ import { motion } from 'framer-motion';
 import { Trophy, RotateCcw, Star } from 'lucide-react';
 import { getNetWorth } from '../engine/marketSimulator';
 import { DIFFICULTY_CONFIGS } from '../engine/config';
-import { addLeaderboardEntry } from '../engine/leaderboard';
-import type { LeaderboardEntry } from '../engine/types';
+import { recordCompletedGame } from '../engine/completion';
 
 const GRADE_COLORS: Record<string, string> = {
   S: '#FFD700', A: '#22C55E', B: '#3B82F6', C: '#F59E0B', D: '#EF4444', F: '#6B7280',
@@ -56,7 +55,6 @@ function Confetti() {
 
 export default function GameOver() {
   const { gameState, resetGame } = useGame();
-  const [saved, setSaved] = useState(false);
 
   if (!gameState || !gameState.isGameOver) return null;
 
@@ -67,6 +65,7 @@ export default function GameOver() {
   const grade = gameState.finalGrade || 'F';
   const gradeColor = GRADE_COLORS[grade];
   const gradeBg = GRADE_BG[grade];
+  const [saved, setSaved] = useState(Boolean(gameState.leaderboardEntryId));
 
   // Transaction stats
   const totalTrades = gameState.transactionHistory.filter(t => t.type === 'buy' || t.type === 'sell' || t.type === 'short' || t.type === 'cover').length;
@@ -74,20 +73,11 @@ export default function GameOver() {
   const totalDividends = gameState.transactionHistory.filter(t => t.type === 'dividend').reduce((sum, t) => sum + t.total, 0);
   const splits = gameState.transactionHistory.filter(t => t.type === 'split');
   const peakNetWorth = Math.max(...gameState.netWorthHistory.map(n => n.netWorth));
+  const isSaved = saved || Boolean(gameState.leaderboardEntryId);
 
   const handleSave = () => {
-    const entry: LeaderboardEntry = {
-      id: `lb_${Date.now()}`,
-      playerName: gameState.playerName,
-      difficulty: gameState.difficulty,
-      finalNetWorth: netWorth,
-      startingCash: config.startingCash,
-      grade,
-      turnsPlayed: gameState.currentTurn,
-      date: new Date(),
-    };
-    addLeaderboardEntry(entry);
-    setSaved(true);
+    const updated = recordCompletedGame(gameState);
+    setSaved(Boolean(updated.leaderboardEntryId));
   };
 
   return (
@@ -147,9 +137,9 @@ export default function GameOver() {
 
         {/* Actions */}
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1.1 }} className="flex gap-3">
-          <button onClick={handleSave} disabled={saved}
-            className={`flex-1 py-3 rounded-xl border border-[var(--border)] font-semibold text-sm flex items-center justify-center gap-2 transition-all ${saved ? 'bg-[var(--surface-1)] text-[var(--text-muted)]' : 'text-[var(--text-primary)] hover:bg-[var(--surface-1)]'}`}>
-            <Star className="w-4 h-4" /> {saved ? 'Saved!' : 'Save Score'}
+          <button onClick={handleSave} disabled={isSaved}
+            className={`flex-1 py-3 rounded-xl border border-[var(--border)] font-semibold text-sm flex items-center justify-center gap-2 transition-all ${isSaved ? 'bg-[var(--surface-1)] text-[var(--text-muted)]' : 'text-[var(--text-primary)] hover:bg-[var(--surface-1)]'}`}>
+            <Star className="w-4 h-4" /> {isSaved ? 'Leaderboard Saved' : 'Save Score'}
           </button>
           <button onClick={resetGame}
             className="flex-1 py-3 rounded-xl bg-[var(--profit-green)] text-black font-semibold text-sm hover:brightness-110 transition-all flex items-center justify-center gap-2">

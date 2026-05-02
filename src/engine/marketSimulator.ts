@@ -4,7 +4,7 @@ import type { RNG } from './rng';
 import { defaultRNG } from './rng';
 import { DIFFICULTY_CONFIGS, SCENARIO_FREQUENCY_MAP, calcBrokerFee } from './config';
 import { roundCurrency } from './financialMath';
-import { generateScenario, generateNewsEvent } from './scenarioGenerator';
+import { generateDistinctNewsEvents, generateScenario } from './scenarioGenerator';
 import { calculateGrade } from './gameState';
 import { advanceRegime, getRegimeSectorMultiplier } from './regimeSystem';
 import { simulateMarketIndex } from './marketIndex';
@@ -35,8 +35,8 @@ export function simulateTurn(gameState: GameState, rng: RNG = defaultRNG): GameS
   }
 
   const numNews = rng.int(0, 2);
-  for (let i = 0; i < numNews; i++) {
-    const event = generateNewsEvent(newState, undefined, undefined, rng);
+  const freshNews = generateDistinctNewsEvents(newState, numNews, rng);
+  for (const event of freshNews) {
     event.id = genNewsId();
     newState.newsHistory.push(event);
   }

@@ -19,19 +19,25 @@ function saveEntries(entries: LeaderboardEntry[]): void {
 
 export function addLeaderboardEntry(entry: LeaderboardEntry): void {
   const entries = loadEntries();
-  entries.push({
+  const normalizedEntry = {
     ...entry,
     date: new Date(entry.date),
+  };
+  const deduped = entries.filter(existing => {
+    if (existing.id === normalizedEntry.id) return false;
+    if (existing.runId && normalizedEntry.runId && existing.runId === normalizedEntry.runId) return false;
+    return true;
   });
+  deduped.push(normalizedEntry);
   // Sort by finalNetWorth descending, then by date
-  entries.sort((a, b) => {
+  deduped.sort((a, b) => {
     if (b.finalNetWorth !== a.finalNetWorth) {
       return b.finalNetWorth - a.finalNetWorth;
     }
     return new Date(b.date).getTime() - new Date(a.date).getTime();
   });
   // Keep top 100
-  saveEntries(entries.slice(0, 100));
+  saveEntries(deduped.slice(0, 100));
 }
 
 export function getLeaderboard(difficulty?: Difficulty): LeaderboardEntry[] {

@@ -78,11 +78,13 @@ export function generateScenario(gameState: GameState, rng: RNG = defaultRNG): A
     energy: 1.0, financials: 1.0, consumer: 1.0, media: 1.0,
     industrial: 1.0, realestate: 1.0, telecom: 1.0, materials: 1.0,
   };
+  const seenEvents = new Set<string>();
 
   for (let i = 0; i < numEvents; i++) {
     const sector = rng.pick(sectors);
     const impact = scenarioType === 'mixed' ? undefined : scenarioType;
-    const event = generateNewsEvent(gameState, sector, impact, rng);
+    const event = generateUniqueNewsEvent(gameState, seenEvents, rng, sector, impact);
+    if (!event) continue;
     events.push(event);
 
     if (event.sector === 'all') {
@@ -160,6 +162,49 @@ export function generateNewsEvent(
     magnitude,
     affectedStocks,
   };
+}
+
+function newsEventSignature(event: NewsEvent): string {
+  return `${event.sector}|${event.impact}|${event.headline}|${event.affectedStocks.join(',')}`;
+}
+
+function generateUniqueNewsEvent(
+  gameState: GameState,
+  seenEvents: Set<string>,
+  rng: RNG,
+  forcedSector?: Sector | 'all',
+  forcedImpact?: 'positive' | 'negative' | 'neutral',
+): NewsEvent | null {
+  for (let attempt = 0; attempt < 8; attempt++) {
+    const event = generateNewsEvent(gameState, forcedSector, forcedImpact, rng);
+    const signature = newsEventSignature(event);
+    if (seenEvents.has(signature)) continue;
+    seenEvents.add(signature);
+    return event;
+  }
+
+  return null;
+}
+
+export function generateDistinctNewsEvents(
+  gameState: GameState,
+  count: number,
+  rng: RNG = defaultRNG,
+  options: {
+    sector?: Sector | 'all';
+    impact?: 'positive' | 'negative' | 'neutral';
+  } = {},
+): NewsEvent[] {
+  const events: NewsEvent[] = [];
+  const seenEvents = new Set<string>();
+
+  for (let i = 0; i < count; i++) {
+    const event = generateUniqueNewsEvent(gameState, seenEvents, rng, options.sector, options.impact);
+    if (!event) break;
+    events.push(event);
+  }
+
+  return events;
 }
 
 function getNetWorthRatio(state: GameState): number {

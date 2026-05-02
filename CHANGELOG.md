@@ -6,6 +6,17 @@ All notable changes to this project are documented here. Format follows
 
 ## [Unreleased]
 
+### Fixed
+
+- Completed runs now record to the leaderboard automatically with stable per-run ids, so reaching the turn limit or goal no longer depends on clicking `Save Score` on the Game Over screen.
+- Final turns now flow through the existing turn summary and then into `Game Over` instead of falling back into normal gameplay, restoring end-of-run closure and stats visibility.
+- Same-turn random news generation now retries duplicate selections instead of showing the same headline twice in the same update.
+- Replaced EV-specific consumer headlines that could produce inaccurate company/news pairings such as Amazon being described as an EV manufacturer.
+
+### Internal
+
+- Added regression coverage for completed-run recording, post-turn completion routing, same-turn news dedupe, and consumer-template data quality.
+
 ### Documentation
 
 - Added a core gameplay milestone design spec and implementation plan under `docs/superpowers/` covering Portfolio rebalancing, advanced pending orders, and the portfolio-vs-benchmark performance chart.

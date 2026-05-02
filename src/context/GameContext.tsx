@@ -7,6 +7,7 @@ import {
   loadSettings, saveSettings, initSaveSystem, tradeErrorMessage,
   initialMarketIndex, createInitialRegime, calculateRisk, createMission, defaultRNG,
 } from '../engine';
+import { recordCompletedGame } from '../engine/completion';
 import { useAudio } from '@/hooks/useAudio';
 
 interface GameContextType {
@@ -65,8 +66,11 @@ function saveAuto(state: GameState) {
 function migrateGameState(loaded: GameState): GameState {
   const migrated: GameState = {
     ...loaded,
+    runId: loaded.runId || `legacy:${loaded.playerName}:${loaded.difficulty}:${new Date(loaded.createdAt).toISOString()}`,
+    leaderboardEntryId: loaded.leaderboardEntryId || null,
     shortPositions: loaded.shortPositions || {},
     limitOrders: loaded.limitOrders || [],
+    conditionalOrders: loaded.conditionalOrders || [],
     marginUsed: loaded.marginUsed || 0,
     totalFeesPaid: loaded.totalFeesPaid || 0,
     totalDividendsReceived: loaded.totalDividendsReceived || 0,
@@ -105,7 +109,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
   const loadGame = useCallback(async (slot: 1 | 2 | 3 | 'auto') => {
     const loaded = await loadGameEngine(slot);
     if (loaded) {
-      const migrated = migrateGameState(loaded);
+      const migrated = recordCompletedGame(migrateGameState(loaded));
       dispatch({ type: 'SET_GAME_STATE', payload: migrated });
       dispatch({ type: 'SET_SCREEN', payload: migrated.isGameOver ? 'game-over' : 'game' });
       if (!migrated.isGameOver) turn();
@@ -117,7 +121,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
   const advanceTurn = useCallback(() => {
     if (!state.gameState || state.gameState.isGameOver) return;
     const prev = state.gameState;
-    const newState = simulateTurn(state.gameState);
+    const newState = recordCompletedGame(simulateTurn(state.gameState));
     dispatch({ type: 'UPDATE_GAME_STATE', payload: newState });
     dispatch({ type: 'SET_SCREEN', payload: 'next-turn' });
     saveAuto(newState);

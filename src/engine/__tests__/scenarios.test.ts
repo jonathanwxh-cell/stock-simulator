@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { createNewGame } from '../gameState';
-import { generateScenario, generateNewsEvent } from '../scenarioGenerator';
+import { generateDistinctNewsEvents, generateScenario, generateNewsEvent } from '../scenarioGenerator';
+import type { RNG } from '../rng';
 import type { GameState } from '../types';
 
 const POSITIVE_TITLES = [
@@ -11,6 +12,34 @@ const POSITIVE_TITLES = [
 
 function isPositive(title: string): boolean {
   return POSITIVE_TITLES.includes(title);
+}
+
+class DuplicateThenUniqueConsumerNewsRNG implements RNG {
+  private pickNCalls = 0;
+
+  next(): number {
+    return 0.1;
+  }
+
+  int(min: number, _max: number): number {
+    return min;
+  }
+
+  range(min: number, _max: number): number {
+    return min;
+  }
+
+  pick<T>(arr: T[]): T {
+    return arr[0];
+  }
+
+  pickN<T>(arr: T[], _n: number): T[] {
+    this.pickNCalls += 1;
+    if (this.pickNCalls < 3) {
+      return [arr[0]];
+    }
+    return [arr[1] ?? arr[0]];
+  }
 }
 
 describe('Scenario generator', () => {
@@ -71,6 +100,19 @@ describe('Scenario generator', () => {
     expect(event.sector).toBeTruthy();
     expect(event.magnitude).toBeGreaterThan(0);
   });
+
+  it('avoids duplicate same-turn consumer headlines when a retry can produce a unique stock', () => {
+    const state = createNewGame('Test', 'normal');
+    const events = generateDistinctNewsEvents(
+      state,
+      2,
+      new DuplicateThenUniqueConsumerNewsRNG(),
+      { sector: 'consumer', impact: 'positive' },
+    );
+
+    expect(events).toHaveLength(2);
+    expect(new Set(events.map(event => event.headline)).size).toBe(2);
+  });
 });
 
 describe('News templates (JSON data)', () => {
@@ -91,5 +133,13 @@ describe('News templates (JSON data)', () => {
     expect(sectors.length).toBeGreaterThan(5);
     expect(sectors).toContain('technology');
     expect(sectors).toContain('industrial');
+  });
+
+  it('consumer templates avoid EV-specific headlines that misfit most consumer stocks', async () => {
+    const data = await import('../data/news-templates.json');
+    const consumer = (data.default as Record<string, { positive: Array<{ headline: string }> }>).consumer;
+    const headlines = consumer.positive.map(template => template.headline);
+
+    expect(headlines).not.toContain('{company} EV Deliveries Exceed Production Targets');
   });
 });
