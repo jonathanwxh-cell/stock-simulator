@@ -18,7 +18,7 @@ export function createNewGame(playerName: string, difficulty: Difficulty): GameS
   const startDate = new Date(2024, 0, 1);
   const state: GameState = {
     saveSlot: 'auto', playerName: playerName || 'Trader', difficulty, currentTurn: 0, currentDate: startDate,
-    cash: config.startingCash, portfolio: {}, shortPositions: {}, limitOrders: [], marginUsed: 0,
+    cash: config.startingCash, portfolio: {}, shortPositions: {}, limitOrders: [], conditionalOrders: [], marginUsed: 0,
     totalFeesPaid: 0, totalDividendsReceived: 0, transactionHistory: [],
     netWorthHistory: [{ turn: 0, date: new Date(startDate), netWorth: config.startingCash, cash: config.startingCash, portfolioValue: 0, shortLiability: 0, marginUsed: 0 }],
     marketIndexHistory: initialMarketIndex(), currentRegime: createInitialRegime(), riskHistory: [], activeMission: null, completedMissions: [], lastAdvisorFeedback: [],

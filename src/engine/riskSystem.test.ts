@@ -29,6 +29,7 @@ function makeState(overrides: Partial<GameState> = {}): GameState {
     portfolio: {},
     shortPositions: {},
     limitOrders: [],
+    conditionalOrders: [],
     marginUsed: 0,
     totalFeesPaid: 0,
     totalDividendsReceived: 0,
