@@ -33,13 +33,15 @@ export interface Stock {
 export interface Position { stockId: string; shares: number; avgCost: number; }
 export interface ShortPosition { stockId: string; shares: number; entryPrice: number; marginUsed: number; }
 export interface LimitOrder { id: string; stockId: string; type: 'buy' | 'sell'; shares: number; targetPrice: number; placedTurn: number; }
+export interface ConditionalOrder { id: string; stockId: string; type: 'stop_loss' | 'take_profit'; shares: number; triggerPrice: number; placedTurn: number; }
+export type PlayerTradeType = 'buy' | 'sell' | 'short' | 'cover' | 'limit_buy' | 'limit_sell' | 'stop_loss' | 'take_profit';
 
 export interface Transaction {
   id: string;
   date: Date;
   turn: number;
   stockId: string;
-  type: 'buy' | 'sell' | 'short' | 'cover' | 'dividend' | 'fee' | 'margin_call' | 'split' | 'limit_buy' | 'limit_sell' | 'mission_reward';
+  type: PlayerTradeType | 'dividend' | 'fee' | 'margin_call' | 'split' | 'mission_reward';
   shares: number;
   price: number;
   total: number;
@@ -140,6 +142,7 @@ export interface GameState {
   portfolio: Record<string, Position>;
   shortPositions: Record<string, ShortPosition>;
   limitOrders: LimitOrder[];
+  conditionalOrders: ConditionalOrder[];
   marginUsed: number;
   totalFeesPaid: number;
   totalDividendsReceived: number;
@@ -161,10 +164,15 @@ export interface GameState {
   updatedAt: Date;
 }
 
+export type RebalanceMode = 'sector' | 'stock';
+export interface AllocationTarget { id: string; weight: number; }
+export interface RebalanceTrade { stockId: string; type: 'buy' | 'sell'; shares: number; estimatedValue: number; fee: number; reason: string; }
+export interface RebalancePreview { mode: RebalanceMode; totalBasis: number; cashAfter: number; trades: RebalanceTrade[]; warnings: string[]; }
+
 export interface LeaderboardEntry { id: string; playerName: string; difficulty: Difficulty; finalNetWorth: number; startingCash: number; grade: 'S' | 'A' | 'B' | 'C' | 'D' | 'F'; turnsPlayed: number; date: Date; }
 export interface GameSettings { soundEnabled: boolean; musicEnabled: boolean; animationSpeed: 'slow' | 'normal' | 'fast'; showTutorials: boolean; }
 export interface SaveMetadata { slot: 1 | 2 | 3 | 'auto'; playerName: string; difficulty: Difficulty; currentTurn: number; turnLimit: number; netWorth: number; cash: number; date: Date; updatedAt: Date; exists: boolean; }
-export type Screen = 'title' | 'game' | 'stock-market' | 'stock-detail' | 'portfolio' | 'news' | 'next-turn' | 'game-over' | 'leaderboard' | 'settings' | 'how-to-play' | 'load-save';
+export type Screen = 'title' | 'game' | 'stock-market' | 'stock-detail' | 'portfolio' | 'rebalance' | 'news' | 'next-turn' | 'game-over' | 'leaderboard' | 'settings' | 'how-to-play' | 'load-save';
 export const ALL_SECTORS: Sector[] = ['technology', 'semiconductors', 'healthcare', 'biotech', 'energy', 'financials', 'consumer', 'media', 'industrial', 'realestate', 'telecom', 'materials'];
 export type TradeError = 'insufficient_funds' | 'insufficient_shares' | 'invalid_shares' | 'invalid_target_price' | 'max_limit_orders_reached' | 'short_disabled' | 'no_position' | 'stock_not_found';
 export type TradeResult = { ok: true; state: GameState; transaction: Transaction } | { ok: false; reason: TradeError };
