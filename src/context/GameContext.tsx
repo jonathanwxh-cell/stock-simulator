@@ -84,18 +84,23 @@ function migrateGameState(loaded: GameState): GameState {
 }
 
 export function GameProvider({ children }: { children: ReactNode }) {
-  try { initSaveSystem(); } catch {}
+  try {
+    initSaveSystem();
+  } catch {
+    // Save initialization is best-effort. The engine falls back to local-only behavior.
+  }
+
   const savedSettings = loadSettings();
   const [state, dispatch] = useReducer(reducer, { gameState: null, settings: savedSettings || defaultSettings, screen: 'title', previousScreen: 'title', lastError: null });
-  const audio = useAudio({ soundEnabled: state.settings.soundEnabled, musicEnabled: state.settings.musicEnabled, screen: state.screen });
+  const { buy, sell, short, cover, dividend, gameOver, turn, marginCall, click, error } = useAudio({ soundEnabled: state.settings.soundEnabled, musicEnabled: state.settings.musicEnabled, screen: state.screen });
 
   const newGame = useCallback((name: string, difficulty: Difficulty) => {
     const game = createNewGame(name, difficulty);
     dispatch({ type: 'SET_GAME_STATE', payload: game });
     dispatch({ type: 'SET_SCREEN', payload: 'game' });
-    audio.turn();
+    turn();
     saveAuto(game);
-  }, [audio.turn]);
+  }, [turn]);
 
   const loadGame = useCallback(async (slot: 1 | 2 | 3 | 'auto') => {
     const loaded = await loadGameEngine(slot);
@@ -103,9 +108,9 @@ export function GameProvider({ children }: { children: ReactNode }) {
       const migrated = migrateGameState(loaded);
       dispatch({ type: 'SET_GAME_STATE', payload: migrated });
       dispatch({ type: 'SET_SCREEN', payload: migrated.isGameOver ? 'game-over' : 'game' });
-      if (!migrated.isGameOver) audio.turn();
+      if (!migrated.isGameOver) turn();
     }
-  }, [audio.turn]);
+  }, [turn]);
 
   const saveGame = useCallback((slot: 1 | 2 | 3 | 'auto') => { if (state.gameState) saveGameEngine(slot, { ...state.gameState, saveSlot: slot }).catch(e => console.warn('save:', e)); }, [state.gameState]);
 
@@ -116,19 +121,19 @@ export function GameProvider({ children }: { children: ReactNode }) {
     dispatch({ type: 'UPDATE_GAME_STATE', payload: newState });
     dispatch({ type: 'SET_SCREEN', payload: 'next-turn' });
     saveAuto(newState);
-    audio.turn();
+    turn();
     const newTxns = newState.transactionHistory.slice(prev.transactionHistory.length);
-    if (newTxns.some(t => t.type === 'dividend')) setTimeout(() => audio.dividend(), 300);
-    if (newTxns.some(t => t.type === 'margin_call')) setTimeout(() => audio.marginCall(), 400);
-    if (newState.isGameOver) setTimeout(() => audio.gameOver(), 800);
-  }, [state.gameState, audio.turn, audio.dividend, audio.marginCall, audio.gameOver]);
+    if (newTxns.some(t => t.type === 'dividend')) setTimeout(() => dividend(), 300);
+    if (newTxns.some(t => t.type === 'margin_call')) setTimeout(() => marginCall(), 400);
+    if (newState.isGameOver) setTimeout(() => gameOver(), 800);
+  }, [state.gameState, turn, dividend, marginCall, gameOver]);
 
-  const buyStock = useCallback((stockId: string, shares: number) => { if (!state.gameState) return; const result = executeBuy(state.gameState, stockId, shares); if (result.ok) { dispatch({ type: 'UPDATE_GAME_STATE', payload: result.state }); saveAuto(result.state); audio.buy(); } else { dispatch({ type: 'SET_ERROR', payload: tradeErrorMessage(result.reason) }); audio.error(); } }, [state.gameState, audio.buy, audio.error]);
-  const sellStock = useCallback((stockId: string, shares: number) => { if (!state.gameState) return; const result = executeSell(state.gameState, stockId, shares); if (result.ok) { dispatch({ type: 'UPDATE_GAME_STATE', payload: result.state }); saveAuto(result.state); audio.sell(); } else { dispatch({ type: 'SET_ERROR', payload: tradeErrorMessage(result.reason) }); audio.error(); } }, [state.gameState, audio.sell, audio.error]);
-  const shortStock = useCallback((stockId: string, shares: number) => { if (!state.gameState) return; const result = executeShort(state.gameState, stockId, shares); if (result.ok) { dispatch({ type: 'UPDATE_GAME_STATE', payload: result.state }); saveAuto(result.state); audio.short(); } else { dispatch({ type: 'SET_ERROR', payload: tradeErrorMessage(result.reason) }); audio.error(); } }, [state.gameState, audio.short, audio.error]);
-  const coverStock = useCallback((stockId: string, shares: number) => { if (!state.gameState) return; const result = executeCover(state.gameState, stockId, shares); if (result.ok) { dispatch({ type: 'UPDATE_GAME_STATE', payload: result.state }); saveAuto(result.state); audio.cover(); } else { dispatch({ type: 'SET_ERROR', payload: tradeErrorMessage(result.reason) }); audio.error(); } }, [state.gameState, audio.cover, audio.error]);
-  const placeOrder = useCallback((stockId: string, type: 'buy' | 'sell', shares: number, targetPrice: number) => { if (!state.gameState) return; const result = placeLimitOrder(state.gameState, stockId, type, shares, targetPrice); if (result.ok) { dispatch({ type: 'UPDATE_GAME_STATE', payload: result.state }); saveAuto(result.state); audio.click(); } else { dispatch({ type: 'SET_ERROR', payload: tradeErrorMessage(result.reason) }); audio.error(); } }, [state.gameState, audio.click, audio.error]);
-  const cancelOrder = useCallback((orderId: string) => { if (!state.gameState) return; const newState = cancelLimitOrder(state.gameState, orderId); dispatch({ type: 'UPDATE_GAME_STATE', payload: newState }); saveAuto(newState); audio.click(); }, [state.gameState, audio.click]);
+  const buyStock = useCallback((stockId: string, shares: number) => { if (!state.gameState) return; const result = executeBuy(state.gameState, stockId, shares); if (result.ok) { dispatch({ type: 'UPDATE_GAME_STATE', payload: result.state }); saveAuto(result.state); buy(); } else { dispatch({ type: 'SET_ERROR', payload: tradeErrorMessage(result.reason) }); error(); } }, [state.gameState, buy, error]);
+  const sellStock = useCallback((stockId: string, shares: number) => { if (!state.gameState) return; const result = executeSell(state.gameState, stockId, shares); if (result.ok) { dispatch({ type: 'UPDATE_GAME_STATE', payload: result.state }); saveAuto(result.state); sell(); } else { dispatch({ type: 'SET_ERROR', payload: tradeErrorMessage(result.reason) }); error(); } }, [state.gameState, sell, error]);
+  const shortStock = useCallback((stockId: string, shares: number) => { if (!state.gameState) return; const result = executeShort(state.gameState, stockId, shares); if (result.ok) { dispatch({ type: 'UPDATE_GAME_STATE', payload: result.state }); saveAuto(result.state); short(); } else { dispatch({ type: 'SET_ERROR', payload: tradeErrorMessage(result.reason) }); error(); } }, [state.gameState, short, error]);
+  const coverStock = useCallback((stockId: string, shares: number) => { if (!state.gameState) return; const result = executeCover(state.gameState, stockId, shares); if (result.ok) { dispatch({ type: 'UPDATE_GAME_STATE', payload: result.state }); saveAuto(result.state); cover(); } else { dispatch({ type: 'SET_ERROR', payload: tradeErrorMessage(result.reason) }); error(); } }, [state.gameState, cover, error]);
+  const placeOrder = useCallback((stockId: string, type: 'buy' | 'sell', shares: number, targetPrice: number) => { if (!state.gameState) return; const result = placeLimitOrder(state.gameState, stockId, type, shares, targetPrice); if (result.ok) { dispatch({ type: 'UPDATE_GAME_STATE', payload: result.state }); saveAuto(result.state); click(); } else { dispatch({ type: 'SET_ERROR', payload: tradeErrorMessage(result.reason) }); error(); } }, [state.gameState, click, error]);
+  const cancelOrder = useCallback((orderId: string) => { if (!state.gameState) return; const newState = cancelLimitOrder(state.gameState, orderId); dispatch({ type: 'UPDATE_GAME_STATE', payload: newState }); saveAuto(newState); click(); }, [state.gameState, click]);
   const navigateTo = useCallback((screen: Screen) => dispatch({ type: 'SET_SCREEN', payload: screen }), []);
   const goBack = useCallback(() => dispatch({ type: 'SET_SCREEN', payload: state.previousScreen }), [state.previousScreen]);
   const updateSettings = useCallback((partial: Partial<GameSettings>) => { dispatch({ type: 'UPDATE_SETTINGS', payload: partial }); saveSettings({ ...state.settings, ...partial }); }, [state.settings]);
@@ -139,6 +144,8 @@ export function GameProvider({ children }: { children: ReactNode }) {
   return <GameContext.Provider value={value}>{children}</GameContext.Provider>;
 }
 
+// useGame intentionally lives beside GameProvider to avoid a broad import churn pass.
+// eslint-disable-next-line react-refresh/only-export-components
 export function useGame(): GameContextType {
   const ctx = useContext(GameContext);
   if (!ctx) throw new Error('useGame must be used within a GameProvider');
