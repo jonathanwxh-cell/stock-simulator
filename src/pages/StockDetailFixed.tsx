@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useState } from 'react';
 import { useGame } from '../context/GameContext';
 import { ArrowLeft, CalendarClock, CheckCircle, Shield, Star, TrendingDown, TrendingUp, X } from 'lucide-react';
 import { Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
@@ -41,7 +41,6 @@ export default function StockDetailFixed() {
   const [chartRange, setChartRange] = useState(30);
   const [lastFeedback, setLastFeedback] = useState<TradeFeedback | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const submitGuardRef = useRef<string | null>(null);
 
   if (!gameState) return null;
 
@@ -124,21 +123,14 @@ export default function StockDetailFixed() {
       setLocalError(disabledReason);
       return;
     }
-    const submitKey = `${gameState.updatedAt instanceof Date ? gameState.updatedAt.getTime() : String(gameState.updatedAt)}:${tradeType}:${stockId}:${shares}`;
-    if (submitGuardRef.current === submitKey) return;
-    submitGuardRef.current = submitKey;
     setIsSubmitting(true);
-    window.setTimeout(() => {
-      if (submitGuardRef.current === submitKey) submitGuardRef.current = null;
-      setIsSubmitting(false);
-    }, 750);
 
     if (tradePreview) setLastFeedback(tradePreview);
     if (tradeType === 'buy') buyStock(stockId, shares);
     if (tradeType === 'sell') sellStock(stockId, shares);
     if (tradeType === 'short') shortStock(stockId, shares);
     if (tradeType === 'cover') coverStock(stockId, shares);
-    setShares(1);
+    window.setTimeout(() => setIsSubmitting(false), 600);
   };
 
   const cashImpact = tradeType === 'sell'

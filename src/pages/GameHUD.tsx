@@ -158,6 +158,28 @@ export default function GameHUD() {
                 <div className="w-full h-1.5 rounded-full bg-[var(--surface-2)] mt-1 overflow-hidden">
                   <div className="h-full rounded-full bg-[var(--profit-green)]" style={{ width: `${getMissionProgressPercent(mission)}%` }} />
                 </div>
+                {mission.id.includes('diversify') && (
+                  <div className="mt-2 flex flex-wrap gap-1.5">
+                    {(() => {
+                      const heldSectors = new Set<string>();
+                      for (const [, pos] of Object.entries(gameState.portfolio)) {
+                        if (pos.shares <= 0) continue;
+                        const s = gameState.stocks.find(st => st.id === pos.stockId);
+                        if (s) heldSectors.add(s.sector);
+                      }
+                      for (const [, pos] of Object.entries(gameState.shortPositions)) {
+                        if (pos.shares <= 0) continue;
+                        const s = gameState.stocks.find(st => st.id === pos.stockId);
+                        if (s) heldSectors.add(s.sector);
+                      }
+                      return Object.entries(SECTOR_LABELS).map(([key, label]) => (
+                        <span key={key} className={`text-[10px] px-1.5 py-0.5 rounded ${heldSectors.has(key) ? 'bg-[rgba(34,197,94,0.15)] text-[var(--profit-green)] font-medium' : 'bg-[var(--surface-1)] text-[var(--text-muted)]'}`}>
+                          {label}
+                        </span>
+                      ));
+                    })()}
+                  </div>
+                )}
                 <div className="text-[10px] text-[var(--text-muted)] mt-2">Turns left: {Math.max(0, mission.endTurn - gameState.currentTurn)}</div>
               </>
             ) : (

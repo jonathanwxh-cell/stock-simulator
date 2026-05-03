@@ -27,12 +27,6 @@ export function getMissionTargetLabel(mission: Mission): string {
 
 export function getMissionProgressPercent(mission: Mission): number {
   const target = Math.max(1, mission.target);
-  if (mission.id.includes('alpha') || mission.id.includes('growth')) {
-    return Math.max(0, Math.min(100, (mission.progress / target) * 100));
-  }
-  if (mission.id.includes('risk')) {
-    return Math.max(0, Math.min(100, (mission.progress / target) * 100));
-  }
   return Math.max(0, Math.min(100, (mission.progress / target) * 100));
 }
 

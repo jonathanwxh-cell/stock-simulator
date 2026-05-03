@@ -105,12 +105,40 @@ function macroFitLabel(score: number): ResearchBrief['macroFit']['label'] {
 }
 
 function traitThesis(stock: Stock): string {
-  if (stock.traits.includes('growth') && stock.traits.includes('momentum')) return 'A growth compounder where sentiment and execution matter most.';
-  if (stock.traits.includes('income')) return 'An income-oriented holding where yield support and rate pressure matter most.';
-  if (stock.traits.includes('cyclical')) return 'A cyclical trade that should respond strongly to growth, credit, and commodity conditions.';
-  if (stock.traits.includes('defensive')) return 'A defensive stabilizer that can anchor the portfolio when the tape gets rough.';
-  if (stock.traits.includes('turnaround')) return 'A higher-variance recovery candidate that needs careful sizing.';
-  return 'A balanced stock where valuation, catalysts, and macro fit should drive the thesis.';
+  const t = stock.traits;
+  if (t.includes('growth') && t.includes('momentum')) {
+    if (stock.sector === 'technology') return `${stock.name} combines top-line expansion with strong price momentum. Watch for earnings acceleration and multiple expansion.`;
+    if (stock.sector === 'semiconductors') return `Chip-cycle upswings amplify ${stock.name}'s revenue leverage. Position sizing should respect the sector's boom-bust rhythm.`;
+    return `${stock.name} rides a growth-and-momentum wave. Sentiment shifts can turn quickly — track insider selling and guidance tone.`;
+  }
+  if (t.includes('income')) {
+    if (stock.dividendYield >= 0.04) return `At ${(stock.dividendYield * 100).toFixed(1)}% yield, ${stock.name} is a core income holding. Watch payout ratio and free-cash-flow coverage for sustainability signals.`;
+    if (stock.sector === 'energy') return `${stock.name} offers energy-sector income with commodity price sensitivity. Hedge exposure if oil volatility spikes.`;
+    if (stock.sector === 'telecom') return `Steady subscriber revenue underpins ${stock.name}'s dividend. Capital intensity and 5G rollout costs are the key variables.`;
+    return `${stock.name} balances yield with modest growth. Rate shifts and credit spreads drive relative attractiveness.`;
+  }
+  if (t.includes('cyclical')) {
+    if (stock.sector === 'energy') return `${stock.name} trades with the commodity cycle. Position around inventory data, OPEC signals, and rig-count trends.`;
+    if (stock.sector === 'financials') return `Net interest margin expansion benefits ${stock.name} in rising-rate environments. Credit quality is the main swing factor.`;
+    if (stock.sector === 'industrial') return `${stock.name} tracks capex cycles and infrastructure spending. Order backlog provides near-term visibility.`;
+    return `${stock.name} is a cyclical bet that responds strongly to growth, credit, and commodity conditions.`;
+  }
+  if (t.includes('defensive')) {
+    if (stock.sector === 'healthcare') return `${stock.name} provides defensive exposure through recurring demand. Pipeline risk and regulatory events are the main variables.`;
+    if (stock.sector === 'consumer') return `Stable demand patterns make ${stock.name} a portfolio anchor during drawdowns. Margins compress in inflationary environments.`;
+    return `${stock.name} is a defensive stabilizer that can anchor the portfolio when the tape gets rough.`;
+  }
+  if (t.includes('turnaround')) {
+    if (stock.sector === 'technology') return `${stock.name} is mid-turnaround with new product bets and cost restructuring. Proof points will come in quarterly margins and guidance.`;
+    return `${stock.name} is a higher-variance recovery candidate. Catalysts are binary — size positions accordingly and set clear exit levels.`;
+  }
+  if (t.includes('speculative')) {
+    return `${stock.name} carries elevated volatility and event-driven risk. Position only with defined risk and tight stop levels.`;
+  }
+  if (t.includes('momentum')) {
+    return `${stock.name} is on the momentum screen with strong recent price action. Fade risk increases after extended runs without consolidation.`;
+  }
+  return `${stock.name} is a balanced holding where valuation, catalysts, and macro fit should drive the thesis.`;
 }
 
 function riskNotes(stock: Stock, macroScore: number): string[] {

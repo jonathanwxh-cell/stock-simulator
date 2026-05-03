@@ -1,5 +1,5 @@
 import { useGame } from '../context/GameContext';
-import { DollarSign, Briefcase, BarChart3, Newspaper, ChevronRight } from 'lucide-react';
+import { DollarSign, Briefcase, BarChart3, Newspaper, ChevronRight, Home } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 export default function Footer() {
@@ -8,22 +8,25 @@ export default function Footer() {
   if (!gameState) return null;
 
   const tabs = [
+    { id: 'game' as const, label: 'Home', icon: Home },
     { id: 'portfolio' as const, label: 'Portfolio', icon: Briefcase },
     { id: 'stock-market' as const, label: 'Market', icon: BarChart3 },
     { id: 'news' as const, label: 'News', icon: Newspaper },
   ];
 
   const handleTabClick = (tabId: typeof tabs[number]['id']) => {
-    if (tabId === 'portfolio') navigateTo('portfolio');
-    if (tabId === 'stock-market') navigateTo('stock-market');
-    if (tabId === 'news') navigateTo('news');
+    navigateTo(tabId);
   };
 
-  const currentTab = screen === 'portfolio' || screen === 'stock-market' || screen === 'news'
-    ? screen
-    : screen === 'stock-detail'
+  const currentTab = screen === 'game' || screen === 'next-turn'
+    ? 'game'
+    : screen === 'portfolio'
+    ? 'portfolio'
+    : screen === 'stock-market' || screen === 'stock-detail'
     ? 'stock-market'
-    : 'portfolio';
+    : screen === 'news'
+    ? 'news'
+    : 'game';
 
   return (
     <motion.footer
