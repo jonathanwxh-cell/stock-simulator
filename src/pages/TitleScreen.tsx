@@ -206,7 +206,7 @@ export default function TitleScreen() {
           transition={{ delay: 1.3, duration: 0.3 }}
           className="mt-10 flex flex-col items-center gap-2"
         >
-          <span className="text-xs text-[var(--text-muted)]">v1.0.0</span>
+          <span className="text-xs text-[var(--text-muted)]">v{import.meta.env.VITE_APP_VERSION}</span>
 
           {hasAutoSave && (
             <motion.button
