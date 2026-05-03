@@ -38,7 +38,7 @@ function getClient(): SupabaseClient | null {
       auth: {
         persistSession: true,
         autoRefreshToken: true,
-        detectSessionInUrl: true,
+        detectSessionInUrl: false,
         storageKey: 'stocksim_supabase_auth',
       },
     });

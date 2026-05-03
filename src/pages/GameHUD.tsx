@@ -4,7 +4,7 @@ import { TrendingUp, TrendingDown, DollarSign, PieChart, Zap, AlertTriangle, Bar
 import { getNetWorth } from '../engine/marketSimulator';
 import { getAlphaPct, getMarketReturnPct, getPlayerReturnPct } from '../engine/marketIndex';
 import { getLatestRisk } from '../engine/riskSystem';
-import { SECTOR_LABELS } from '../engine/config';
+import { DIFFICULTY_CONFIGS, SECTOR_LABELS } from '../engine/config';
 import type { GameState } from '../engine/types';
 import { getMarketBreadthSummary, getUpcomingCatalysts, getWatchlistAlerts } from '../engine/marketInsights';
 import { getScannerSignals } from '../engine/scannerSystem';
@@ -42,7 +42,8 @@ export default function GameHUD() {
     if (!gameState) return null;
 
   const netWorth = getNetWorth(gameState);
-    const goalAmount = gameState.difficulty === 'easy' ? 150000 : gameState.difficulty === 'normal' ? 125000 : gameState.difficulty === 'hard' ? 100000 : 100000;
+  const config = DIFFICULTY_CONFIGS[gameState.difficulty];
+  const goalAmount = config.startingCash * config.goalMultiplier;
   const progress = Math.min(100, (netWorth / goalAmount) * 100);
 
   const prevSnap = gameState.netWorthHistory.length > 1 ? gameState.netWorthHistory[gameState.netWorthHistory.length - 2] : null;
@@ -132,7 +133,7 @@ export default function GameHUD() {
           <div className="bg-[var(--surface-0)] border border-[var(--border)] rounded-xl p-3 text-center">
             <Target className="w-4 h-4 text-[var(--profit-green)] mx-auto mb-1" />
             <span className="text-[10px] text-[var(--text-muted)] block">Turns Left</span>
-            <span className="text-sm font-mono-data font-semibold text-[var(--text-primary)]">{Math.max(0, (gameState.difficulty === 'easy' ? 120 : gameState.difficulty === 'normal' ? 100 : gameState.difficulty === 'hard' ? 80 : 60) - gameState.currentTurn)}</span>
+            <span className="text-sm font-mono-data font-semibold text-[var(--text-primary)]">{Math.max(0, config.turnLimit - gameState.currentTurn)}</span>
           </div>
           <div className="bg-[var(--surface-0)] border border-[var(--border)] rounded-xl p-3 text-center">
             <BarChart3 className="w-4 h-4 text-[var(--purple)] mx-auto mb-1" />

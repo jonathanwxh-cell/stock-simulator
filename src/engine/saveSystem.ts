@@ -1,4 +1,4 @@
-import type { GameState, SaveMetadata } from './types';
+import type { GameState, SaveMetadata, Stock } from './types';
 import { openDB, type DBSchema, type IDBPDatabase } from 'idb';
 import { z } from 'zod';
 import { cloudDeleteSave, cloudGetSaveMetadata, cloudLoadGame, cloudSaveGame, isCloudSaveConfigured } from './cloudSaveSystem';
@@ -9,6 +9,7 @@ const SAVE_SLOTS_KEY = 'marketmaster_save_slots';
 const AUTO_SAVE_KEY = 'marketmaster_autosave';
 const SETTINGS_KEY = 'marketmaster_settings';
 const LEADERBOARD_KEY = 'marketmaster_leaderboard';
+const AUTO_CLOUD_SAVE_INTERVAL_MS = 5_000;
 
 const DB_NAME = 'MarketMasterDB';
 const DB_VERSION = 1;
@@ -32,6 +33,9 @@ interface MarketMasterDB extends DBSchema {
 }
 
 let dbPromise: Promise<IDBPDatabase<MarketMasterDB>> | null = null;
+let lastAutoCloudSaveAt: number | null = null;
+let queuedAutoCloudSave: GameState | null = null;
+let autoCloudSaveTimer: ReturnType<typeof setTimeout> | null = null;
 
 function getDB(): Promise<IDBPDatabase<MarketMasterDB>> {
   if (!dbPromise) {
@@ -145,56 +149,233 @@ function stripLargeData(state: GameState): Omit<GameState, 'stocks' | 'transacti
   };
 }
 
-import type { Stock } from './types';
+const DateValueSchema = z.union([z.string(), z.date()]);
+const SectorSchema = z.enum([
+  'technology',
+  'semiconductors',
+  'healthcare',
+  'biotech',
+  'energy',
+  'financials',
+  'consumer',
+  'media',
+  'industrial',
+  'realestate',
+  'telecom',
+  'materials',
+]);
+const CompanyTraitSchema = z.enum([
+  'growth',
+  'value',
+  'defensive',
+  'cyclical',
+  'income',
+  'speculative',
+  'turnaround',
+  'momentum',
+]);
+const StockSchema = z.object({
+  id: z.string(),
+  ticker: z.string(),
+  name: z.string(),
+  sector: SectorSchema,
+  description: z.string().optional(),
+  basePrice: z.number().optional(),
+  currentPrice: z.number(),
+  priceHistory: z.array(z.object({ turn: z.number(), price: z.number() }).strict()).optional(),
+  volatility: z.number().optional(),
+  marketCap: z.enum(['small', 'mid', 'large', 'mega']).optional(),
+  dividendYield: z.number().optional(),
+  beta: z.number().optional(),
+  splitMultiplier: z.number().optional(),
+  traits: z.array(CompanyTraitSchema).optional(),
+}).strict();
+const PositionSchema = z.object({
+  stockId: z.string(),
+  shares: z.number(),
+  avgCost: z.number(),
+}).strict();
+const ShortPositionSchema = z.object({
+  stockId: z.string(),
+  shares: z.number(),
+  entryPrice: z.number(),
+  marginUsed: z.number(),
+}).strict();
+const LimitOrderSchema = z.object({
+  id: z.string(),
+  stockId: z.string(),
+  type: z.enum(['buy', 'sell']),
+  shares: z.number(),
+  targetPrice: z.number(),
+  placedTurn: z.number(),
+}).strict();
+const ConditionalOrderSchema = z.object({
+  id: z.string(),
+  stockId: z.string(),
+  type: z.enum(['stop_loss', 'take_profit']),
+  shares: z.number(),
+  triggerPrice: z.number(),
+  placedTurn: z.number(),
+}).strict();
+const TransactionSchema = z.object({
+  id: z.string(),
+  date: DateValueSchema,
+  turn: z.number(),
+  stockId: z.string(),
+  type: z.enum([
+    'buy',
+    'sell',
+    'short',
+    'cover',
+    'limit_buy',
+    'limit_sell',
+    'stop_loss',
+    'take_profit',
+    'dividend',
+    'fee',
+    'margin_call',
+    'split',
+    'mission_reward',
+  ]),
+  shares: z.number(),
+  price: z.number(),
+  total: z.number(),
+  fee: z.number(),
+}).strict();
+const NetWorthSnapshotSchema = z.object({
+  turn: z.number(),
+  date: DateValueSchema,
+  netWorth: z.number(),
+  cash: z.number(),
+  portfolioValue: z.number(),
+  shortLiability: z.number(),
+  marginUsed: z.number(),
+}).strict();
+const MarketIndexSnapshotSchema = z.object({
+  turn: z.number(),
+  value: z.number(),
+  changePct: z.number(),
+}).strict();
+const RiskSnapshotSchema = z.object({
+  turn: z.number(),
+  totalScore: z.number(),
+  level: z.enum(['low', 'medium', 'high', 'extreme']),
+  concentrationScore: z.number(),
+  sectorScore: z.number(),
+  cashBufferScore: z.number(),
+  shortExposureScore: z.number(),
+  drawdownScore: z.number(),
+  warnings: z.array(z.string()),
+}).strict();
+const MarketRegimeSchema = z.object({
+  id: z.string(),
+  title: z.string(),
+  description: z.string(),
+  startTurn: z.number(),
+  remainingTurns: z.number(),
+  sectorEffects: z.record(z.string(), z.number()),
+  volatilityMultiplier: z.number(),
+  newsBias: z.record(z.string(), z.enum(['positive', 'negative'])).optional(),
+}).strict();
+const MissionSchema = z.object({
+  id: z.string(),
+  title: z.string(),
+  description: z.string(),
+  type: z.enum(['performance', 'risk', 'diversification', 'income', 'tactical']),
+  startTurn: z.number(),
+  endTurn: z.number(),
+  rewardCash: z.number(),
+  status: z.enum(['active', 'completed', 'failed']),
+  progress: z.number(),
+  target: z.number(),
+}).strict();
+const AdvisorFeedbackSchema = z.object({
+  headline: z.string(),
+  body: z.string(),
+  severity: z.enum(['info', 'warning', 'positive', 'danger']),
+  tags: z.array(z.string()),
+}).strict();
+const MacroEnvironmentSchema = z.object({
+  turn: z.number(),
+  interestRate: z.number(),
+  inflation: z.number(),
+  growth: z.number(),
+  creditStress: z.number(),
+  oilPrice: z.number(),
+  sentiment: z.number(),
+  trends: z.record(z.string(), z.enum(['falling', 'stable', 'rising'])),
+  narrative: z.string(),
+}).strict();
+const CatalystEventSchema = z.object({
+  id: z.string(),
+  stockId: z.string(),
+  type: z.enum(['earnings', 'guidance', 'product_launch', 'analyst_day', 'regulatory']),
+  volatility: z.enum(['medium', 'high']),
+  scheduledTurn: z.number(),
+  scheduledDate: DateValueSchema,
+}).strict();
+const NewsEventSchema = z.object({
+  id: z.string(),
+  turn: z.number(),
+  date: DateValueSchema,
+  headline: z.string(),
+  description: z.string(),
+  sector: z.union([SectorSchema, z.literal('all')]),
+  impact: z.enum(['positive', 'negative', 'neutral']),
+  magnitude: z.number(),
+  affectedStocks: z.array(z.string()),
+  source: z.enum(['random', 'scenario', 'catalyst']).optional(),
+  catalystType: z.enum(['earnings', 'guidance', 'product_launch', 'analyst_day', 'regulatory']).optional(),
+}).strict();
+const ActiveScenarioSchema = z.object({
+  id: z.string(),
+  title: z.string(),
+  description: z.string(),
+  duration: z.number(),
+  totalDuration: z.number(),
+  sectorEffects: z.record(z.string(), z.number()),
+  events: z.array(NewsEventSchema),
+}).strict();
 
-// Loose schema for imported saves. We don't try to fully model every nested
-// shape — just the essentials needed to load a game without crashing on
-// access. Anything else falls through and is treated as best-effort data.
+// Version-tolerant for older saves, but strict about unknown keys at every
+// modeled level so imports cannot smuggle arbitrary state into the engine.
 const ImportSaveSchema = z.object({
+  saveSlot: z.union([z.literal('auto'), z.literal(1), z.literal(2), z.literal(3)]).optional(),
+  runId: z.string().optional(),
+  leaderboardEntryId: z.string().nullable().optional(),
   playerName: z.string(),
   difficulty: z.enum(['easy', 'normal', 'hard', 'expert']),
   currentTurn: z.number().int().nonnegative(),
-  currentDate: z.union([z.string(), z.date()]),
+  currentDate: DateValueSchema,
   cash: z.number(),
-  portfolio: z.record(z.string(), z.object({
-    stockId: z.string(),
-    shares: z.number(),
-    avgCost: z.number(),
-  })),
-  shortPositions: z.record(z.string(), z.object({
-    stockId: z.string(),
-    shares: z.number(),
-    entryPrice: z.number(),
-    marginUsed: z.number(),
-  })),
-  limitOrders: z.array(z.object({
-    id: z.string(),
-    stockId: z.string(),
-    type: z.enum(['buy', 'sell']),
-    shares: z.number(),
-    targetPrice: z.number(),
-    placedTurn: z.number(),
-  })),
-  conditionalOrders: z.array(z.object({
-    id: z.string(),
-    stockId: z.string(),
-    type: z.enum(['stop_loss', 'take_profit']),
-    shares: z.number(),
-    triggerPrice: z.number(),
-    placedTurn: z.number(),
-  })).optional(),
+  portfolio: z.record(z.string(), PositionSchema),
+  shortPositions: z.record(z.string(), ShortPositionSchema),
+  limitOrders: z.array(LimitOrderSchema),
+  conditionalOrders: z.array(ConditionalOrderSchema).optional(),
   marginUsed: z.number(),
-  stocks: z.array(z.object({
-    id: z.string(),
-    ticker: z.string(),
-    name: z.string(),
-    sector: z.string(),
-    currentPrice: z.number(),
-  }).passthrough()),
+  totalFeesPaid: z.number().optional(),
+  totalDividendsReceived: z.number().optional(),
+  transactionHistory: z.array(TransactionSchema).optional(),
+  netWorthHistory: z.array(NetWorthSnapshotSchema).optional(),
+  marketIndexHistory: z.array(MarketIndexSnapshotSchema).optional(),
+  currentRegime: MarketRegimeSchema.nullable().optional(),
+  riskHistory: z.array(RiskSnapshotSchema).optional(),
+  activeMission: MissionSchema.nullable().optional(),
+  completedMissions: z.array(MissionSchema).optional(),
+  lastAdvisorFeedback: z.array(AdvisorFeedbackSchema).optional(),
+  macroEnvironment: MacroEnvironmentSchema.optional(),
+  macroHistory: z.array(MacroEnvironmentSchema).optional(),
+  watchlist: z.array(z.string()).optional(),
+  catalystCalendar: z.array(CatalystEventSchema).optional(),
+  stocks: z.array(StockSchema),
+  newsHistory: z.array(NewsEventSchema).optional(),
+  currentScenario: ActiveScenarioSchema.nullable().optional(),
   isGameOver: z.boolean(),
-  createdAt: z.union([z.string(), z.date()]),
-  updatedAt: z.union([z.string(), z.date()]),
-}).passthrough();
+  finalRank: z.string().nullable().optional(),
+  finalGrade: z.enum(['S', 'A', 'B', 'C', 'D', 'F']).nullable().optional(),
+  createdAt: DateValueSchema,
+  updatedAt: DateValueSchema,
+}).strict();
 
 function reviveDates(state: GameState): GameState {
   const macroEnvironment = state.macroEnvironment || createInitialMacroEnvironment();
@@ -324,11 +505,43 @@ async function loadGameLocal(slot: 1 | 2 | 3 | 'auto'): Promise<GameState | null
 export async function saveGame(slot: 1 | 2 | 3 | 'auto', gameState: GameState): Promise<void> {
   await saveGameLocal(slot, gameState);
   if (!isCloudSaveConfigured()) return;
+  if (slot === 'auto') {
+    scheduleAutoCloudSave(gameState);
+    return;
+  }
+
+  await persistCloudSave(slot, gameState);
+}
+
+async function persistCloudSave(slot: 1 | 2 | 3 | 'auto', gameState: GameState): Promise<void> {
   try {
     await cloudSaveGame(slot, gameState);
   } catch (e) {
     console.warn('Cloud save failed; local save preserved:', e);
   }
+}
+
+function scheduleAutoCloudSave(gameState: GameState): void {
+  const now = Date.now();
+  if (lastAutoCloudSaveAt === null || now - lastAutoCloudSaveAt >= AUTO_CLOUD_SAVE_INTERVAL_MS) {
+    lastAutoCloudSaveAt = now;
+    void persistCloudSave('auto', gameState);
+    return;
+  }
+
+  queuedAutoCloudSave = gameState;
+  if (autoCloudSaveTimer !== null) return;
+
+  const delay = AUTO_CLOUD_SAVE_INTERVAL_MS - (now - lastAutoCloudSaveAt);
+  autoCloudSaveTimer = setTimeout(() => {
+    autoCloudSaveTimer = null;
+    const pending = queuedAutoCloudSave;
+    queuedAutoCloudSave = null;
+    if (!pending) return;
+
+    lastAutoCloudSaveAt = Date.now();
+    void persistCloudSave('auto', pending);
+  }, delay);
 }
 
 export async function loadGame(slot: 1 | 2 | 3 | 'auto'): Promise<GameState | null> {
