@@ -74,7 +74,7 @@ async function waitForHudOrGameOver(page, timeout = WAIT_MS) {
 }
 
 async function advanceOneTurn(page) {
-  const nextButton = page.getByRole('button', { name: /Next Turn|Next/ });
+  const nextButton = page.getByRole('button', { name: /^(Next Turn|Next)$/ });
   await waitForVisible(nextButton, 'Next Turn button');
   await nextButton.click();
   await page.waitForTimeout(TURN_SETTLE_MS);
