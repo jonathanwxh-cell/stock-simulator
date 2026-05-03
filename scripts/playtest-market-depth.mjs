@@ -59,6 +59,8 @@ async function waitForHudOrGameOver(page, timeout = WAIT_MS) {
 
     if (
       (await isVisible(page.getByText('Market Pulse', { exact: true }))) &&
+      (await isVisible(page.getByText('Macro Backdrop', { exact: true }))) &&
+      (await isVisible(page.getByText('Scanner Signals', { exact: true }))) &&
       (await isVisible(page.getByText('Watchlist Alerts', { exact: true }))) &&
       (await isVisible(page.getByText('Upcoming Catalysts', { exact: true })))
     ) {
@@ -171,6 +173,8 @@ async function main() {
     await page.getByRole('button', { name: 'Start Game' }).click();
 
     await waitForHudOrGameOver(page);
+    await waitForVisible(page.getByText('Macro Backdrop', { exact: true }), 'HUD Macro Backdrop card');
+    await waitForVisible(page.getByText('Scanner Signals', { exact: true }), 'HUD Scanner Signals card');
     await waitForVisible(page.getByText('Market Pulse', { exact: true }), 'HUD Market Pulse card');
     await waitForVisible(page.getByText('Watchlist Alerts', { exact: true }), 'HUD Watchlist Alerts card');
     await waitForVisible(page.getByText('Upcoming Catalysts', { exact: true }), 'HUD Upcoming Catalysts card');
@@ -181,6 +185,7 @@ async function main() {
 
     await page.getByRole('button', { name: /Market/ }).click();
     await waitForVisible(page.getByText('Stock Market', { exact: false }), 'stock market screen');
+    await waitForVisible(page.getByText('Scanner Signals', { exact: true }), 'market scanner card');
     await page.getByPlaceholder('Search tickers or names...').fill(catalystTicker);
     await page.getByRole('button', { name: new RegExp(`Add ${escapeRegex(catalystTicker)} to watchlist`) }).click();
     await waitForVisible(page.getByText('WATCH', { exact: true }), 'watch badge');
@@ -189,6 +194,7 @@ async function main() {
     const stockButton = page.locator('button').filter({ hasText: catalystTicker }).first();
     await stockButton.click();
     await waitForVisible(page.getByText('Next Catalyst', { exact: true }), 'stock detail catalyst card');
+    await waitForVisible(page.getByText('Research Brief', { exact: true }), 'stock detail research brief');
     await waitForVisible(page.getByText('Watchlist Context', { exact: true }), 'stock detail watchlist context');
     await waitForVisible(page.getByText('Orders & Automation', { exact: true }), 'stock detail pending orders card');
     log('Stock detail shows catalyst and watchlist context');
@@ -210,6 +216,7 @@ async function main() {
 
     await page.getByRole('button', { name: /News/ }).click();
     await waitForVisible(page.getByText('Market News', { exact: true }), 'news screen');
+    await waitForVisible(page.getByText('Macro Backdrop', { exact: true }), 'news macro card');
     await waitForVisible(page.getByText('Market Pulse', { exact: true }), 'news pulse card');
     await waitForVisible(page.getByText('Upcoming Catalysts', { exact: true }), 'news catalysts card');
     log('News screen shows the shared insight cards');

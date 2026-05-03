@@ -3,6 +3,7 @@ import { openDB, type DBSchema, type IDBPDatabase } from 'idb';
 import { z } from 'zod';
 import { cloudDeleteSave, cloudGetSaveMetadata, cloudLoadGame, cloudSaveGame, isCloudSaveConfigured } from './cloudSaveSystem';
 import { DIFFICULTY_CONFIGS } from './config';
+import { createInitialMacroEnvironment } from './macroSystem';
 
 const SAVE_SLOTS_KEY = 'marketmaster_save_slots';
 const AUTO_SAVE_KEY = 'marketmaster_autosave';
@@ -196,6 +197,7 @@ const ImportSaveSchema = z.object({
 }).passthrough();
 
 function reviveDates(state: GameState): GameState {
+  const macroEnvironment = state.macroEnvironment || createInitialMacroEnvironment();
   return {
     ...state,
     currentDate: new Date(state.currentDate),
@@ -221,6 +223,8 @@ function reviveDates(state: GameState): GameState {
       ...event,
       scheduledDate: new Date(event.scheduledDate),
     })) || [],
+    macroEnvironment,
+    macroHistory: state.macroHistory?.length ? state.macroHistory : [macroEnvironment],
     currentScenario: state.currentScenario ? {
       ...state.currentScenario,
       events: state.currentScenario.events.map(e => ({

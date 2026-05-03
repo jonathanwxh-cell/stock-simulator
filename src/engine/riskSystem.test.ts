@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { calculateRisk } from './riskSystem';
+import { createInitialMacroEnvironment } from './macroSystem';
 import type { GameState, Stock } from './types';
 
 const amd: Stock = {
@@ -16,9 +17,11 @@ const amd: Stock = {
   dividendYield: 0,
   beta: 1.2,
   splitMultiplier: 1,
+  traits: ['growth', 'momentum'],
 };
 
 function makeState(overrides: Partial<GameState> = {}): GameState {
+  const macroEnvironment = createInitialMacroEnvironment();
   const state: GameState = {
     saveSlot: 'auto',
     playerName: 'Tester',
@@ -41,6 +44,8 @@ function makeState(overrides: Partial<GameState> = {}): GameState {
     activeMission: null,
     completedMissions: [],
     lastAdvisorFeedback: [],
+    macroEnvironment,
+    macroHistory: [macroEnvironment],
     watchlist: [],
     catalystCalendar: [],
     stocks: [amd],

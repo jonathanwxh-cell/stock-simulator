@@ -13,6 +13,7 @@ import { updateMission } from './missionSystem';
 import { generateAdvisorFeedback } from './advisorSystem';
 import { ensureUpcomingCatalysts, resolveDueCatalysts } from './catalystSystem';
 import { applyPendingOrderSplitAdjustment, resolvePendingOrders } from './orders';
+import { advanceMacroEnvironment, createInitialMacroEnvironment, getMacroStockDrift } from './macroSystem';
 
 function genNewsId(): string { return `news_${crypto.randomUUID()}`; }
 
@@ -27,6 +28,12 @@ export function simulateTurn(gameState: GameState, rng: RNG = defaultRNG): GameS
   newState.currentDate = currentDate;
 
   newState.currentRegime = advanceRegime(newState.currentRegime, newState.currentTurn, rng);
+  newState.macroEnvironment = advanceMacroEnvironment(
+    newState.macroEnvironment || createInitialMacroEnvironment(),
+    newState.currentTurn,
+    rng,
+  );
+  newState.macroHistory = [...(newState.macroHistory || []), newState.macroEnvironment];
 
   if (newState.currentScenario) {
     newState.currentScenario.duration -= 1;
@@ -171,6 +178,7 @@ function calculateNewPrice(stock: Stock, state: GameState, volatilityMult: numbe
   const prevPrice = stock.currentPrice;
   const regimeMultiplier = getRegimeSectorMultiplier(state.currentRegime, stock.sector);
   const regimeDrift = (regimeMultiplier - 1) * prevPrice * 0.25;
+  const macroDrift = state.macroEnvironment ? getMacroStockDrift(stock, state.macroEnvironment) * prevPrice : 0;
   const meanReversion = (stock.basePrice - prevPrice) * 0.03;
   const volatility = stock.volatility * volatilityMult * (state.currentRegime?.volatilityMultiplier ?? 1);
   const betaAdj = stock.beta ? stock.beta * 0.3 : 0.3;
@@ -183,7 +191,7 @@ function calculateNewPrice(stock: Stock, state: GameState, volatilityMult: numbe
     newsImpact += dir * news.magnitude * prevPrice * betaAdj;
   }
   const drift = prevPrice * 0.002;
-  return Math.max(0.01, prevPrice + meanReversion + randomWalk + sectorEffect + regimeDrift + newsImpact + drift);
+  return Math.max(0.01, prevPrice + meanReversion + randomWalk + sectorEffect + regimeDrift + macroDrift + newsImpact + drift);
 }
 
 export function getPortfolioValue(state: GameState): number { let total = 0; for (const [stockId, position] of Object.entries(state.portfolio)) { if (position.shares <= 0) continue; const stock = state.stocks.find(s => s.id === stockId); if (stock) total += stock.currentPrice * position.shares; } return roundCurrency(total); }

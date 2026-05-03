@@ -1,12 +1,14 @@
-import { useMemo, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import { useGame } from '../context/GameContext';
 import { ArrowLeft, CalendarClock, CheckCircle, Shield, Star, TrendingDown, TrendingUp, X } from 'lucide-react';
 import { Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { calcBrokerFee, DIFFICULTY_CONFIGS, SECTOR_COLORS, SECTOR_LABELS } from '../engine/config';
 import { CATALYST_TYPE_LABELS } from '../engine/catalystSystem';
 import { getUpcomingCatalysts, getWatchlistAlerts } from '../engine/marketInsights';
+import { buildResearchBrief } from '../engine/scannerSystem';
 import { getTradeFeedback, tradeFeedbackFormat, type FeedbackTone, type TradeAction, type TradeFeedback } from '../engine/tradeFeedback';
 import PendingOrdersCard from '../components/trading/PendingOrdersCard';
+import ResearchBriefCard from '../components/market/ResearchBriefCard';
 
 type TradeType = TradeAction;
 
@@ -56,6 +58,7 @@ export default function StockDetailFixed() {
   const isWatched = (gameState.watchlist || []).includes(stockId);
   const stockAlerts = getWatchlistAlerts(gameState, 10).filter((alert) => alert.stockId === stockId);
   const nextCatalyst = getUpcomingCatalysts(gameState, 20).find((event) => event.stockId === stockId);
+  const researchBrief = buildResearchBrief(gameState, stockId);
 
   const previous = stock.priceHistory.length > 1 ? stock.priceHistory[stock.priceHistory.length - 2] : stock.priceHistory[0];
   const change = previous ? ((stock.currentPrice - previous.price) / previous.price) * 100 : 0;
@@ -76,7 +79,7 @@ export default function StockDetailFixed() {
   const neededForBuy = tradeValue + fee;
   const availableCash = gameState.cash;
 
-  const tradePreview = useMemo(() => getTradeFeedback(gameState, stockId, shares, tradeType), [gameState, stockId, shares, tradeType]);
+  const tradePreview = getTradeFeedback(gameState, stockId, shares, tradeType);
 
   const canExecute = tradeType === 'buy'
     ? gameState.cash >= neededForBuy
@@ -86,13 +89,13 @@ export default function StockDetailFixed() {
     ? config.shortEnabled && gameState.cash >= shortCashNeeded
     : shortShares >= shares && coverCashAfter >= 0;
 
-  const disabledReason = useMemo(() => {
+  const disabledReason = (() => {
     if (canExecute) return '';
     if (tradeType === 'buy') return `Need ${tradeFeedbackFormat.money(neededForBuy)}, available ${tradeFeedbackFormat.money(availableCash)}.`;
     if (tradeType === 'sell') return longShares > 0 ? `Only ${longShares} long shares available.` : 'No long position to sell.';
     if (tradeType === 'short') return config.shortEnabled ? `Need ${tradeFeedbackFormat.money(shortCashNeeded)} cash for margin and fee.` : 'Short selling is disabled.';
     return shortShares > 0 ? `Only ${shortShares} short shares available.` : 'No short position to cover.';
-  }, [availableCash, canExecute, config.shortEnabled, longShares, neededForBuy, shortCashNeeded, shortShares, tradeType]);
+  })();
 
   const setWholeShares = (value: number) => {
     setLastFeedback(null);
@@ -226,6 +229,8 @@ export default function StockDetailFixed() {
           <div><span className="text-[var(--text-muted)] block">Beta</span><span className="font-mono-data text-[var(--text-primary)]">{stock.beta.toFixed(2)}</span></div>
           <div><span className="text-[var(--text-muted)] block">Dividend</span><span className="font-mono-data text-[var(--text-primary)]">{(stock.dividendYield * 100).toFixed(1)}%</span></div>
         </div>
+
+        <ResearchBriefCard brief={researchBrief} />
 
         {(longPosition || shortPosition) && (
           <div className="pt-2 border-t border-[var(--border)] text-xs space-y-1">

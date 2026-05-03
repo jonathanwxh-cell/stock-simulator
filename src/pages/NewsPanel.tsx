@@ -5,6 +5,7 @@ import { SECTOR_COLORS, SECTOR_LABELS } from '../engine/config';
 import { getMarketBreadthSummary, getUpcomingCatalysts } from '../engine/marketInsights';
 import MarketPulseCard from '../components/market/MarketPulseCard';
 import UpcomingCatalystsCard from '../components/market/UpcomingCatalystsCard';
+import MacroBackdropCard from '../components/market/MacroBackdropCard';
 
 export default function NewsPanel() {
   const { gameState, navigateTo } = useGame();
@@ -49,6 +50,7 @@ export default function NewsPanel() {
         )}
 
         <div className="space-y-4 mb-4">
+          <MacroBackdropCard macro={gameState.macroEnvironment} />
           <MarketPulseCard summary={marketPulse} />
           <UpcomingCatalystsCard catalysts={upcomingCatalysts} stocks={gameState.stocks} currentTurn={gameState.currentTurn} onOpenStock={openStock} />
         </div>

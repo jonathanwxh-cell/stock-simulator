@@ -8,6 +8,7 @@ All notable changes to this project are documented here. Format follows
 
 ### Added
 
+- Added a Phase 2 strategy layer with company traits, a monthly macro backdrop, scanner signals, and stock research briefs across the HUD, market, news, and stock detail screens.
 - Added a portfolio performance chart with 12-month, 24-month, and full-history views so players can track normalized net worth vs the benchmark from the Portfolio screen.
 - Added advanced pending-order tooling on stock detail, including one-click limit orders plus long-only stop-loss and take-profit exits with per-stock order management.
 - Added a portfolio rebalancer that accepts stock or sector target weights, auto-balances the cash row, previews the required trades, and executes the rebalance in one action.
@@ -26,6 +27,7 @@ All notable changes to this project are documented here. Format follows
 
 ### Internal
 
+- Added deterministic regression coverage for company trait derivation, macro advancement and stock drift, scanner ranking, and research brief generation.
 - Added deterministic regression coverage for conditional pending orders, performance-series normalization, negative-cash rebalance validation, and trade-order sequencing in rebalance previews.
 - Extended the browser smoke harness to buy a live position, place pending exits, verify the new portfolio chart and open-order surfaces, and execute a full rebalance before the endgame pass.
 - Added regression coverage for completed-run recording, post-turn completion routing, same-turn news dedupe, and consumer-template data quality.
@@ -37,6 +39,7 @@ All notable changes to this project are documented here. Format follows
 
 ### Documentation
 
+- Added a Phase 2 strategy layer design spec and implementation plan under `docs/superpowers/` covering company traits, macro conditions, scanners, and research briefs.
 - Added a core gameplay milestone design spec and implementation plan under `docs/superpowers/` covering Portfolio rebalancing, advanced pending orders, and the portfolio-vs-benchmark performance chart.
 - Marked options trading as explicitly deferred in the planning docs so the next implementation round stays focused on the tighter milestone.
 - Added an actionable market depth design spec and implementation plan under `docs/superpowers/` covering watchlists, scheduled catalysts, market pulse surfaces, and the richer end-of-run recap.

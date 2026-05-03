@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { generateAdvisorFeedback } from './advisorSystem';
 import { getLatestTurnPerformance } from './turnPerformance';
+import { createInitialMacroEnvironment } from './macroSystem';
 import type { GameState, Stock } from './types';
 
 const amd: Stock = {
@@ -17,9 +18,11 @@ const amd: Stock = {
   dividendYield: 0,
   beta: 1.2,
   splitMultiplier: 1,
+  traits: ['growth', 'momentum'],
 };
 
 function makeState(netWorth: number, marketChange: number): GameState {
+  const macroEnvironment = createInitialMacroEnvironment();
   return {
     saveSlot: 'auto',
     playerName: 'Tester',
@@ -48,6 +51,8 @@ function makeState(netWorth: number, marketChange: number): GameState {
     activeMission: null,
     completedMissions: [],
     lastAdvisorFeedback: [],
+    macroEnvironment,
+    macroHistory: [macroEnvironment],
     watchlist: [],
     catalystCalendar: [],
     stocks: [amd],

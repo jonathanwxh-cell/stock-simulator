@@ -57,6 +57,7 @@ function Confetti() {
 
 export default function GameOver() {
   const { gameState, resetGame } = useGame();
+  const [saved, setSaved] = useState(false);
 
   if (!gameState || !gameState.isGameOver) return null;
 
@@ -67,7 +68,6 @@ export default function GameOver() {
   const grade = gameState.finalGrade || 'F';
   const gradeColor = GRADE_COLORS[grade];
   const gradeBg = GRADE_BG[grade];
-  const [saved, setSaved] = useState(Boolean(gameState.leaderboardEntryId));
 
   // Transaction stats
   const totalTrades = gameState.transactionHistory.filter(t => t.type === 'buy' || t.type === 'sell' || t.type === 'short' || t.type === 'cover').length;

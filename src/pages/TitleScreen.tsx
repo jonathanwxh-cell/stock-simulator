@@ -37,6 +37,19 @@ const MENU_ITEMS = [
   { id: 'how-to-play', label: 'HOW TO PLAY', icon: HelpCircle, variant: 'ghost' as const },
 ];
 
+function pseudoRandom(seed: number): number {
+  const value = Math.sin(seed * 12.9898) * 43758.5453;
+  return value - Math.floor(value);
+}
+
+const PARTICLES = Array.from({ length: 25 }).map((_, index) => ({
+  id: index,
+  size: 3 + pseudoRandom(index + 1) * 4,
+  left: pseudoRandom(index + 101) * 100,
+  delay: pseudoRandom(index + 201) * 20,
+  duration: 15 + pseudoRandom(index + 301) * 10,
+}));
+
 export default function TitleScreen() {
   const { navigateTo, newGame } = useGame();
   const [showDifficulty, setShowDifficulty] = useState(false);
@@ -108,18 +121,18 @@ export default function TitleScreen() {
 
       {/* Floating particles */}
       <div className="absolute inset-0 z-[1] pointer-events-none overflow-hidden">
-        {Array.from({ length: 25 }).map((_, i) => (
+        {PARTICLES.map((particle) => (
           <div
-            key={i}
+            key={particle.id}
             className="absolute rounded-full bg-[var(--profit-green)] animate-float-up"
             style={{
-              width: `${3 + Math.random() * 4}px`,
-              height: `${3 + Math.random() * 4}px`,
-              left: `${Math.random() * 100}%`,
+              width: `${particle.size}px`,
+              height: `${particle.size}px`,
+              left: `${particle.left}%`,
               bottom: '-10px',
               opacity: 0,
-              animationDelay: `${Math.random() * 20}s`,
-              animationDuration: `${15 + Math.random() * 10}s`,
+              animationDelay: `${particle.delay}s`,
+              animationDuration: `${particle.duration}s`,
             }}
           />
         ))}

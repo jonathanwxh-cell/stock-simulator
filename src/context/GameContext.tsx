@@ -5,7 +5,7 @@ import {
   placeLimitOrder, cancelLimitOrder, placeConditionalOrder, cancelConditionalOrder, executeRebalancePreview, simulateTurn, autoSave,
   saveGame as saveGameEngine, loadGame as loadGameEngine,
   loadSettings, saveSettings, initSaveSystem, tradeErrorMessage,
-  initialMarketIndex, createInitialRegime, calculateRisk, createMission, defaultRNG, ensureUpcomingCatalysts, toggleWatchlistStock,
+  initialMarketIndex, createInitialRegime, createInitialMacroEnvironment, calculateRisk, createMission, defaultRNG, ensureUpcomingCatalysts, toggleWatchlistStock,
 } from '../engine';
 import { recordCompletedGame } from '../engine/completion';
 import { useAudio } from '@/hooks/useAudio';
@@ -68,6 +68,7 @@ function saveAuto(state: GameState) {
 }
 
 function migrateGameState(loaded: GameState): GameState {
+  const macroEnvironment = loaded.macroEnvironment || createInitialMacroEnvironment();
   const migrated: GameState = {
     ...loaded,
     runId: loaded.runId || `legacy:${loaded.playerName}:${loaded.difficulty}:${new Date(loaded.createdAt).toISOString()}`,
@@ -84,6 +85,8 @@ function migrateGameState(loaded: GameState): GameState {
     activeMission: loaded.activeMission || null,
     completedMissions: loaded.completedMissions || [],
     lastAdvisorFeedback: loaded.lastAdvisorFeedback || [],
+    macroEnvironment,
+    macroHistory: loaded.macroHistory?.length ? loaded.macroHistory : [macroEnvironment],
     watchlist: loaded.watchlist || [],
     catalystCalendar: (loaded.catalystCalendar || []).map(event => ({
       ...event,

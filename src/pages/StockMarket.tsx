@@ -1,11 +1,15 @@
-import { useState, useMemo } from 'react';
+import { useState } from 'react';
 import { useGame } from '../context/GameContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Search, SlidersHorizontal, ArrowDownUp, Star } from 'lucide-react';
 import { SECTOR_COLORS, SECTOR_LABELS } from '../engine/config';
 import { getMarketBreadthSummary } from '../engine/marketInsights';
+import { getTraitLabel } from '../engine/companyTraits';
+import { getScannerSignals } from '../engine/scannerSystem';
 import { getRegimeToneForSector } from '../utils/regimeUi';
 import MarketPulseCard from '../components/market/MarketPulseCard';
+import ScannerSignalsCard from '../components/market/ScannerSignalsCard';
+import type { Stock } from '../engine/types';
 
 const MARKET_CAPS = ['all', 'mega', 'large', 'mid', 'small'];
 const SORT_OPTIONS = [
@@ -16,6 +20,7 @@ const SORT_OPTIONS = [
   { id: 'dividend', label: 'Dividend' },
   { id: 'beta', label: 'Beta' },
   { id: 'marketCap', label: 'Market Cap' },
+  { id: 'scanner', label: 'Scanner' },
 ];
 
 export default function StockMarket() {
@@ -31,48 +36,45 @@ export default function StockMarket() {
 
   const currentRegime = gameState.currentRegime;
   const marketPulse = getMarketBreadthSummary(gameState);
+  const scannerSignals = getScannerSignals(gameState, 5);
+  const scannerScoreByStock = new Map<string, number>();
+  for (const signal of getScannerSignals(gameState, 100)) {
+    scannerScoreByStock.set(signal.stockId, Math.max(scannerScoreByStock.get(signal.stockId) || 0, signal.score));
+  }
   const watchedSet = new Set(gameState.watchlist || []);
 
-  const sectorBreakdown = useMemo(() => {
-    const counts: Record<string, number> = { all: gameState.stocks.length };
-    gameState.stocks.forEach(s => { counts[s.sector] = (counts[s.sector] || 0) + 1; });
-    return counts;
-  }, [gameState.stocks]);
+  const sectorBreakdown: Record<string, number> = { all: gameState.stocks.length };
+  gameState.stocks.forEach(s => { sectorBreakdown[s.sector] = (sectorBreakdown[s.sector] || 0) + 1; });
 
-  const filtered = useMemo(() => {
-    let stocks = gameState.stocks;
-    if (search) {
-      const q = search.toLowerCase();
-      stocks = stocks.filter(s =>
-        s.ticker.toLowerCase().includes(q) || s.name.toLowerCase().includes(q)
-      );
-    }
-    if (selectedSector !== 'all') stocks = stocks.filter(s => s.sector === selectedSector);
-    if (selectedCap !== 'all') stocks = stocks.filter(s => s.marketCap === selectedCap);
+  let filtered = gameState.stocks;
+  if (search) {
+    const q = search.toLowerCase();
+    filtered = filtered.filter(s =>
+      s.ticker.toLowerCase().includes(q) || s.name.toLowerCase().includes(q)
+    );
+  }
+  if (selectedSector !== 'all') filtered = filtered.filter(s => s.sector === selectedSector);
+  if (selectedCap !== 'all') filtered = filtered.filter(s => s.marketCap === selectedCap);
 
-    return [...stocks].sort((a, b) => {
-      const dir = sortDir === 'asc' ? 1 : -1;
-      switch (sortBy) {
-        case 'name': return dir * a.name.localeCompare(b.name);
-        case 'price': return dir * (b.currentPrice - a.currentPrice);
-        case 'change': {
-          const ga = a.priceHistory.length >= 2 ? ((a.currentPrice - a.priceHistory[a.priceHistory.length - 2].price) / a.priceHistory[a.priceHistory.length - 2].price) * 100 : 0;
-          const gb = b.priceHistory.length >= 2 ? ((b.currentPrice - b.priceHistory[b.priceHistory.length - 2].price) / b.priceHistory[b.priceHistory.length - 2].price) * 100 : 0;
-          return dir * (gb - ga);
-        }
-        case 'volatility': return dir * (b.volatility - a.volatility);
-        case 'dividend': return dir * (b.dividendYield - a.dividendYield);
-        case 'beta': return dir * (b.beta - a.beta);
-        case 'marketCap': {
-          const order: Record<string, number> = { mega: 4, large: 3, mid: 2, small: 1 };
-          return dir * ((order[b.marketCap] || 0) - (order[a.marketCap] || 0));
-        }
-        default: return 0;
+  filtered = [...filtered].sort((a, b) => {
+    const dir = sortDir === 'asc' ? 1 : -1;
+    switch (sortBy) {
+      case 'name': return dir * a.name.localeCompare(b.name);
+      case 'price': return dir * (b.currentPrice - a.currentPrice);
+      case 'change': return dir * (getChange(b) - getChange(a));
+      case 'volatility': return dir * (b.volatility - a.volatility);
+      case 'dividend': return dir * (b.dividendYield - a.dividendYield);
+      case 'beta': return dir * (b.beta - a.beta);
+      case 'marketCap': {
+        const order: Record<string, number> = { mega: 4, large: 3, mid: 2, small: 1 };
+        return dir * ((order[b.marketCap] || 0) - (order[a.marketCap] || 0));
       }
-    });
-  }, [gameState.stocks, search, selectedSector, selectedCap, sortBy, sortDir]);
+      case 'scanner': return dir * ((scannerScoreByStock.get(b.id) || 0) - (scannerScoreByStock.get(a.id) || 0));
+      default: return 0;
+    }
+  });
 
-  function getChange(s: any) {
+  function getChange(s: Stock) {
     if (s.priceHistory.length < 2) return 0;
     const prev = s.priceHistory[s.priceHistory.length - 2]?.price || s.basePrice;
     return ((s.currentPrice - prev) / prev) * 100;
@@ -151,7 +153,8 @@ export default function StockMarket() {
           )}
         </AnimatePresence>
 
-        <div className="mb-4">
+        <div className="mb-4 space-y-4">
+          <ScannerSignalsCard signals={scannerSignals} onOpenStock={openStock} />
           <MarketPulseCard summary={marketPulse} />
         </div>
 
@@ -182,6 +185,9 @@ export default function StockMarket() {
                   <div className="min-w-0">
                     <div className="flex items-center gap-1.5 flex-wrap">
                       <span className="text-sm font-semibold text-[var(--text-primary)]">{stock.ticker}</span>
+                      {stock.traits.slice(0, 2).map((trait) => (
+                        <span key={trait} className="text-[10px] px-1 py-0.5 rounded bg-[var(--surface-2)] text-[var(--text-secondary)]">{getTraitLabel(trait)}</span>
+                      ))}
                       {stock.dividendYield > 0 && <span className="text-[10px] px-1 py-0.5 rounded bg-[var(--neutral-amber)]/15 text-[var(--neutral-amber)]">DIV</span>}
                       {isWatched && <span className="text-[10px] px-1 py-0.5 rounded bg-[rgba(59,130,246,0.15)] text-[var(--info-blue)]">WATCH</span>}
                       {position && position.shares > 0 && <span className="text-[10px] px-1 py-0.5 rounded bg-[var(--profit-green)]/15 text-[var(--profit-green)]">HOLD</span>}

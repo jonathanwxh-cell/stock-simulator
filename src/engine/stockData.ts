@@ -1,5 +1,6 @@
 import stocksData from './data/stocks.json';
 import type { Stock, Sector } from './types';
+import { deriveCompanyTraits } from './companyTraits';
 
 interface StockBase {
   id: string;
@@ -21,6 +22,7 @@ export function cloneInitialStocks(): Stock[] {
     ...s,
     currentPrice: s.basePrice,
     splitMultiplier: 1,
+    traits: deriveCompanyTraits(s),
     priceHistory: [{ turn: 0, price: s.basePrice }],
   }));
 }

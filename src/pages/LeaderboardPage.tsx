@@ -10,6 +10,7 @@ const GRADE_COLORS: Record<string, string> = {
 };
 
 const DIFFICULTIES: Difficulty[] = ['easy', 'normal', 'hard', 'expert'];
+const FILTERS: Array<Difficulty | 'all'> = ['all', ...DIFFICULTIES];
 
 export default function LeaderboardPage() {
   const { goBack } = useGame();
@@ -31,8 +32,8 @@ export default function LeaderboardPage() {
         </div>
 
         <div className="flex gap-1.5 mb-4">
-          {['all', ...DIFFICULTIES].map(d => (
-            <button key={d} onClick={() => setFilter(d as any)}
+          {FILTERS.map(d => (
+            <button key={d} onClick={() => setFilter(d)}
               className={`flex-1 py-2 rounded-lg text-xs font-semibold transition-all ${filter === d ? 'bg-[var(--profit-green)] text-black' : 'bg-[var(--surface-0)] border border-[var(--border)] text-[var(--text-secondary)]'}`}>
               {d === 'all' ? 'All' : d.charAt(0).toUpperCase() + d.slice(1)}
             </button>

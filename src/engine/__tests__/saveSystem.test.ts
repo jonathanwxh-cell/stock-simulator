@@ -40,17 +40,21 @@ function resetIndexedDbStores() {
 vi.mock('idb', () => ({
   openDB: vi.fn(async () => ({
     get: async (storeName: StoreName, key: string) => indexedDbStores[storeName].get(key),
-    transaction: (_storeNames: string[], _mode: string) => ({
-      objectStore: (storeName: StoreName) => ({
-        put: async (record: { slot: string; data: unknown }) => {
-          indexedDbStores[storeName].set(record.slot, record);
-        },
-        delete: async (key: string) => {
-          indexedDbStores[storeName].delete(key);
-        },
-      }),
-      done: Promise.resolve(),
-    }),
+    transaction: (storeNames: string[], mode: string) => {
+      void storeNames;
+      void mode;
+      return {
+        objectStore: (storeName: StoreName) => ({
+          put: async (record: { slot: string; data: unknown }) => {
+            indexedDbStores[storeName].set(record.slot, record);
+          },
+          delete: async (key: string) => {
+            indexedDbStores[storeName].delete(key);
+          },
+        }),
+        done: Promise.resolve(),
+      };
+    },
   })),
 }));
 

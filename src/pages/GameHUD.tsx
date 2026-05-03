@@ -7,11 +7,14 @@ import { getLatestRisk } from '../engine/riskSystem';
 import { SECTOR_LABELS } from '../engine/config';
 import type { GameState } from '../engine/types';
 import { getMarketBreadthSummary, getUpcomingCatalysts, getWatchlistAlerts } from '../engine/marketInsights';
+import { getScannerSignals } from '../engine/scannerSystem';
 import { getMissionProgressLabel, getMissionProgressPercent, getMissionTargetLabel } from '../utils/missionFormatting';
 import { getRegimeHeadwindSectors, getRegimeTailwindSectors } from '../utils/regimeUi';
 import WatchlistAlertsCard from '../components/market/WatchlistAlertsCard';
 import UpcomingCatalystsCard from '../components/market/UpcomingCatalystsCard';
 import MarketPulseCard from '../components/market/MarketPulseCard';
+import MacroBackdropCard from '../components/market/MacroBackdropCard';
+import ScannerSignalsCard from '../components/market/ScannerSignalsCard';
 
 function pct(value: number) {
   return `${value >= 0 ? '+' : ''}${value.toFixed(1)}%`;
@@ -52,6 +55,7 @@ export default function GameHUD() {
   const marketPulse = getMarketBreadthSummary(gameState);
   const upcomingCatalysts = getUpcomingCatalysts(gameState, 4);
   const watchlistAlerts = getWatchlistAlerts(gameState, 4);
+  const scannerSignals = getScannerSignals(gameState, 4);
   const risk = getLatestRisk(gameState);
   const mission = gameState.activeMission;
   const regime = gameState.currentRegime;
@@ -171,7 +175,11 @@ export default function GameHUD() {
             </div>
           </div>
 
+          <MacroBackdropCard macro={gameState.macroEnvironment} />
+
           <MarketPulseCard summary={marketPulse} />
+
+          <ScannerSignalsCard signals={scannerSignals} onOpenStock={openStock} />
 
           <div className="bg-[var(--surface-0)] border border-[var(--border)] rounded-2xl p-4">
             <div className="flex items-center justify-between mb-2">

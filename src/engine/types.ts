@@ -13,6 +13,7 @@ export type Sector =
   | 'materials';
 
 export type Difficulty = 'easy' | 'normal' | 'hard' | 'expert';
+export type CompanyTrait = 'growth' | 'value' | 'defensive' | 'cyclical' | 'income' | 'speculative' | 'turnaround' | 'momentum';
 
 export interface Stock {
   id: string;
@@ -28,6 +29,7 @@ export interface Stock {
   dividendYield: number;
   beta: number;
   splitMultiplier: number;
+  traits: CompanyTrait[];
 }
 
 export interface Position { stockId: string; shares: number; avgCost: number; }
@@ -91,6 +93,27 @@ export interface AdvisorFeedback {
   body: string;
   severity: 'info' | 'warning' | 'positive' | 'danger';
   tags: string[];
+}
+
+export type MacroFactor = 'interestRate' | 'inflation' | 'growth' | 'creditStress' | 'oilPrice' | 'sentiment';
+export type MacroTrend = 'falling' | 'stable' | 'rising';
+
+export interface MacroEnvironment {
+  turn: number;
+  interestRate: number;
+  inflation: number;
+  growth: number;
+  creditStress: number;
+  oilPrice: number;
+  sentiment: number;
+  trends: Record<MacroFactor, MacroTrend>;
+  narrative: string;
+}
+
+export interface MacroBackdrop {
+  headline: string;
+  tone: 'positive' | 'negative' | 'neutral';
+  details: string[];
 }
 
 export type CatalystType = 'earnings' | 'guidance' | 'product_launch' | 'analyst_day' | 'regulatory';
@@ -170,6 +193,8 @@ export interface GameState {
   activeMission: Mission | null;
   completedMissions: Mission[];
   lastAdvisorFeedback: AdvisorFeedback[];
+  macroEnvironment: MacroEnvironment;
+  macroHistory: MacroEnvironment[];
   watchlist: string[];
   catalystCalendar: CatalystEvent[];
   stocks: Stock[];
@@ -250,4 +275,33 @@ export interface SeasonRecap {
   newsEvents: number;
   catalystEvents: number;
   watchedNewsHits: number;
+}
+
+export type ScannerCategory = 'income' | 'value' | 'momentum' | 'macro_tailwind' | 'risk_warning';
+
+export interface ScannerSignal {
+  id: string;
+  stockId: string;
+  ticker: string;
+  category: ScannerCategory;
+  score: number;
+  title: string;
+  description: string;
+  tone: 'positive' | 'negative' | 'neutral';
+}
+
+export interface ResearchBrief {
+  stockId: string;
+  ticker: string;
+  name: string;
+  traits: CompanyTrait[];
+  thesis: string;
+  macroFit: {
+    score: number;
+    label: string;
+    description: string;
+    tone: 'positive' | 'negative' | 'neutral';
+  };
+  risks: string[];
+  signals: ScannerSignal[];
 }

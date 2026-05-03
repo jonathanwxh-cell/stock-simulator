@@ -21,11 +21,13 @@ class DuplicateThenUniqueConsumerNewsRNG implements RNG {
     return 0.1;
   }
 
-  int(min: number, _max: number): number {
+  int(min: number, max: number): number {
+    void max;
     return min;
   }
 
-  range(min: number, _max: number): number {
+  range(min: number, max: number): number {
+    void max;
     return min;
   }
 
@@ -33,7 +35,8 @@ class DuplicateThenUniqueConsumerNewsRNG implements RNG {
     return arr[0];
   }
 
-  pickN<T>(arr: T[], _n: number): T[] {
+  pickN<T>(arr: T[], n: number): T[] {
+    void n;
     this.pickNCalls += 1;
     if (this.pickNCalls < 3) {
       return [arr[0]];

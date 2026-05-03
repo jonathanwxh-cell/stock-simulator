@@ -240,9 +240,9 @@ function buildSectorModeTrades(
       }
 
       const desiredLongShares = proxy ? desiredShares(weight, netWorth, proxy.currentPrice) : 0;
-      let currentLongShares = longs.reduce((sum, entry) => sum + entry.shares, 0);
-      let currentLongValue = longExposure;
-      let desiredLongValue = roundCurrency((netWorth * weight) / 100);
+      const currentLongShares = longs.reduce((sum, entry) => sum + entry.shares, 0);
+      const currentLongValue = longExposure;
+      const desiredLongValue = roundCurrency((netWorth * weight) / 100);
 
       if (currentLongValue > desiredLongValue) {
         let reductionValue = currentLongValue - desiredLongValue;
@@ -271,8 +271,8 @@ function buildSectorModeTrades(
       }
 
       const desiredShortShares = proxy ? desiredShares(weight, netWorth, proxy.currentPrice) : 0;
-      let currentShortShares = shorts.reduce((sum, entry) => sum + entry.shares, 0);
-      let desiredShortValue = roundCurrency(Math.abs((netWorth * weight) / 100));
+      const currentShortShares = shorts.reduce((sum, entry) => sum + entry.shares, 0);
+      const desiredShortValue = roundCurrency(Math.abs((netWorth * weight) / 100));
 
       if (shortExposure > desiredShortValue) {
         let reductionValue = shortExposure - desiredShortValue;

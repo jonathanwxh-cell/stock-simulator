@@ -10,6 +10,7 @@ import { calculateRisk } from './riskSystem';
 import { createMission } from './missionSystem';
 import { defaultRNG } from './rng';
 import { ensureUpcomingCatalysts } from './catalystSystem';
+import { createInitialMacroEnvironment } from './macroSystem';
 import {
   cancelConditionalOrder as cancelConditionalOrderImpl,
   cancelLimitOrder as cancelLimitOrderImpl,
@@ -23,12 +24,14 @@ export function createNewGame(playerName: string, difficulty: Difficulty): GameS
   const config = DIFFICULTY_CONFIGS[difficulty];
   const now = new Date();
   const startDate = new Date(2024, 0, 1);
+  const macroEnvironment = createInitialMacroEnvironment();
   const state: GameState = {
     saveSlot: 'auto', runId: crypto.randomUUID(), leaderboardEntryId: null, playerName: playerName || 'Trader', difficulty, currentTurn: 0, currentDate: startDate,
     cash: config.startingCash, portfolio: {}, shortPositions: {}, limitOrders: [], conditionalOrders: [], marginUsed: 0,
     totalFeesPaid: 0, totalDividendsReceived: 0, transactionHistory: [],
     netWorthHistory: [{ turn: 0, date: new Date(startDate), netWorth: config.startingCash, cash: config.startingCash, portfolioValue: 0, shortLiability: 0, marginUsed: 0 }],
     marketIndexHistory: initialMarketIndex(), currentRegime: createInitialRegime(), riskHistory: [], activeMission: null, completedMissions: [], lastAdvisorFeedback: [],
+    macroEnvironment, macroHistory: [macroEnvironment],
     watchlist: [], catalystCalendar: [],
     stocks: cloneInitialStocks(), newsHistory: [], currentScenario: null, isGameOver: false, finalRank: null, finalGrade: null, createdAt: now, updatedAt: now,
   };
