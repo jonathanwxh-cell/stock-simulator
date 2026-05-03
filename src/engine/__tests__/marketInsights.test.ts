@@ -127,4 +127,23 @@ describe('marketInsights', () => {
     expect(recap.biggestDrag?.ticker).toBe(loser.ticker);
     expect(recap.catalystEvents).toBe(1);
   });
+
+  it('counts executed trades in the season recap without counting order placement records', () => {
+    const state = createNewGame('Recap', 'normal');
+    const stock = state.stocks[0];
+    state.totalFeesPaid = 5;
+    state.transactionHistory = [
+      { id: 'fee_buy', date: new Date(2024, 0, 1), turn: 0, stockId: stock.id, type: 'fee', shares: 0, price: 0, total: 2, fee: 2 },
+      { id: 'buy_1', date: new Date(2024, 0, 1), turn: 0, stockId: stock.id, type: 'buy', shares: 1, price: 100, total: 100, fee: 2 },
+      { id: 'fee_limit_place', date: new Date(2024, 0, 1), turn: 0, stockId: stock.id, type: 'fee', shares: 0, price: 0, total: 1, fee: 1 },
+      { id: 'txn_lo_placed', date: new Date(2024, 0, 1), turn: 0, stockId: stock.id, type: 'limit_sell', shares: 1, price: 105, total: 1, fee: 1 },
+      { id: 'fee_limit_exec', date: new Date(2024, 1, 1), turn: 1, stockId: stock.id, type: 'fee', shares: 0, price: 0, total: 2, fee: 2 },
+      { id: 'txn_lo_placed_exec', date: new Date(2024, 1, 1), turn: 1, stockId: stock.id, type: 'limit_sell', shares: 1, price: 106, total: 106, fee: 2 },
+    ];
+
+    const recap = buildSeasonRecap(state);
+
+    expect(recap.totalTrades).toBe(2);
+    expect(recap.totalFees).toBe(5);
+  });
 });

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { unwrap } from './_helpers';
 import { createNewGame, executeBuy, executeSell } from '../gameState';
-import { placeConditionalOrder, resolvePendingOrders } from '../orders';
+import { placeConditionalOrder, placeLimitOrder, resolvePendingOrders } from '../orders';
 
 function withPrice(state: ReturnType<typeof createNewGame>, stockId: string, price: number) {
   return {
@@ -82,6 +82,22 @@ describe('Conditional orders', () => {
     state = withPrice(state, stockId, 80);
     state = resolvePendingOrders(state);
 
+    expect(state.conditionalOrders).toHaveLength(0);
+    expect(state.transactionHistory.filter((txn) => txn.type === 'stop_loss')).toHaveLength(0);
+  });
+
+  it('clears an untriggered protective order after a same-share limit exit closes the position', () => {
+    let state = createNewGame('Protect', 'normal');
+    state = withPrice(state, stockId, 100);
+    state = unwrap(state, (current) => executeBuy(current, stockId, 1));
+    state = unwrap(state, (current) => placeLimitOrder(current, stockId, 'sell', 1, 100));
+    state = unwrap(state, (current) => placeConditionalOrder(current, stockId, 'stop_loss', 1, 90));
+
+    state = withPrice(state, stockId, 105);
+    state = resolvePendingOrders(state);
+
+    expect(state.portfolio[stockId]).toBeUndefined();
+    expect(state.limitOrders).toHaveLength(0);
     expect(state.conditionalOrders).toHaveLength(0);
     expect(state.transactionHistory.filter((txn) => txn.type === 'stop_loss')).toHaveLength(0);
   });

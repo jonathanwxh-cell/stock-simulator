@@ -97,13 +97,13 @@ function executeConditionalOrder(state: GameState, order: ConditionalOrder): boo
   const stock = getTradeStock(state, order.stockId);
   if (!stock) return true;
 
+  const position = state.portfolio[order.stockId];
+  if (!position || position.shares <= 0) return true;
+
   const shouldExecute =
     (order.type === 'stop_loss' && stock.currentPrice <= order.triggerPrice) ||
     (order.type === 'take_profit' && stock.currentPrice >= order.triggerPrice);
   if (!shouldExecute) return false;
-
-  const position = state.portfolio[order.stockId];
-  if (!position || position.shares <= 0) return true;
 
   const sharesToSell = Math.min(position.shares, order.shares);
   if (sharesToSell <= 0) return true;

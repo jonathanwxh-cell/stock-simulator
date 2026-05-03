@@ -7,8 +7,22 @@ import type {
   SeasonRecap,
   SeasonRecapHolding,
   SectorPerformance,
+  Transaction,
   WatchlistAlert,
 } from './types';
+
+const IMMEDIATE_TRADE_TYPES = new Set<Transaction['type']>(['buy', 'sell', 'short', 'cover']);
+const EXECUTED_ORDER_TRADE_TYPES = new Set<Transaction['type']>([
+  'limit_buy',
+  'limit_sell',
+  'stop_loss',
+  'take_profit',
+]);
+
+export function isExecutedPlayerTrade(txn: Transaction): boolean {
+  if (IMMEDIATE_TRADE_TYPES.has(txn.type)) return true;
+  return EXECUTED_ORDER_TRADE_TYPES.has(txn.type) && txn.id.endsWith('_exec');
+}
 
 function getPreviousPrice(state: GameState, stockId: string): number | null {
   const stock = state.stocks.find((entry) => entry.id === stockId);
@@ -183,14 +197,7 @@ export function buildSeasonRecap(state: GameState): SeasonRecap {
 
   const holdings = buildHoldingRecap(state).sort((a, b) => b.pnl - a.pnl);
   const watchedSet = new Set(state.watchlist || []);
-  const totalTrades = state.transactionHistory.filter((txn) =>
-    txn.type === 'buy' ||
-    txn.type === 'sell' ||
-    txn.type === 'short' ||
-    txn.type === 'cover' ||
-    txn.type === 'limit_buy' ||
-    txn.type === 'limit_sell'
-  ).length;
+  const totalTrades = state.transactionHistory.filter(isExecutedPlayerTrade).length;
 
   return {
     playerReturnPct: getPlayerReturnPct(state),

@@ -2,7 +2,7 @@ import { useGame } from '../context/GameContext';
 import Navbar from './Navbar';
 import Footer from './Footer';
 import { motion } from 'framer-motion';
-import type { ReactNode } from 'react';
+import { useEffect, type ReactNode } from 'react';
 
 interface LayoutProps {
   children: ReactNode;
@@ -10,6 +10,10 @@ interface LayoutProps {
 
 export default function Layout({ children }: LayoutProps) {
   const { screen } = useGame();
+
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+  }, [screen]);
 
   const gameScreens = [
     'game',

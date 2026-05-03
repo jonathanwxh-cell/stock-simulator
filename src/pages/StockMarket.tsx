@@ -114,6 +114,7 @@ export default function StockMarket() {
               className="w-full bg-[var(--surface-0)] border border-[var(--border)] rounded-lg pl-10 pr-4 py-2.5 text-sm text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:border-[var(--profit-green)] transition-all outline-none" />
           </div>
           <button onClick={() => setShowFilters(f => !f)}
+            aria-label={showFilters ? 'Hide stock filters' : 'Show stock filters'}
             className={`px-3 rounded-lg border transition-all ${showFilters ? 'bg-[var(--profit-green)] border-[var(--profit-green)] text-black' : 'bg-[var(--surface-0)] border-[var(--border)] text-[var(--text-secondary)] hover:border-[var(--border-hover)]'}`}>
             <SlidersHorizontal className="w-4 h-4" />
           </button>

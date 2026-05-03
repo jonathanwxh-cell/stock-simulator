@@ -69,14 +69,13 @@ export default function GameOver() {
   const gradeColor = GRADE_COLORS[grade];
   const gradeBg = GRADE_BG[grade];
 
-  // Transaction stats
-  const totalTrades = gameState.transactionHistory.filter(t => t.type === 'buy' || t.type === 'sell' || t.type === 'short' || t.type === 'cover').length;
-  const totalFees = gameState.transactionHistory.reduce((sum, t) => sum + (t.fee || 0), 0);
-  const totalDividends = gameState.transactionHistory.filter(t => t.type === 'dividend').reduce((sum, t) => sum + t.total, 0);
+  const recap = buildSeasonRecap(gameState);
+  const totalTrades = recap.totalTrades;
+  const totalFees = recap.totalFees;
+  const totalDividends = recap.totalDividends;
   const splits = gameState.transactionHistory.filter(t => t.type === 'split');
   const peakNetWorth = Math.max(...gameState.netWorthHistory.map(n => n.netWorth));
   const isSaved = saved || Boolean(gameState.leaderboardEntryId);
-  const recap = buildSeasonRecap(gameState);
 
   const handleSave = () => {
     const updated = recordCompletedGame(gameState);

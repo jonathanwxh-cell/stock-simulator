@@ -120,6 +120,26 @@ async function clickNTimes(locator, times) {
   }
 }
 
+async function assertPageAtTop(page, label) {
+  const scrollY = await page.evaluate(() => window.scrollY);
+  if (scrollY > 80) {
+    throw new Error(`${label} opened at scrollY=${scrollY}; expected the page to reset to the top.`);
+  }
+}
+
+async function expectSingleButton(page, name, label) {
+  const count = await page.getByRole('button', { name, exact: true }).count();
+  if (count !== 1) {
+    throw new Error(`${label} should expose exactly one "${name}" button, found ${count}.`);
+  }
+}
+
+function getStockCardButton(page, ticker) {
+  return page
+    .getByRole('button', { name: new RegExp(`^[A-Z]{1,2}\\s+${escapeRegex(ticker)}\\b`) })
+    .first();
+}
+
 async function main() {
   const executablePath = await findBrowserExecutable();
   const browser = await chromium.launch({
@@ -178,6 +198,13 @@ async function main() {
     await waitForVisible(page.getByText('Market Pulse', { exact: true }), 'HUD Market Pulse card');
     await waitForVisible(page.getByText('Watchlist Alerts', { exact: true }), 'HUD Watchlist Alerts card');
     await waitForVisible(page.getByText('Upcoming Catalysts', { exact: true }), 'HUD Upcoming Catalysts card');
+    await page.setViewportSize({ width: 600, height: 900 });
+    await expectSingleButton(page, 'Home', 'mobile footer');
+    await expectSingleButton(page, 'Portfolio', 'mobile footer');
+    await expectSingleButton(page, 'Market', 'mobile footer');
+    await expectSingleButton(page, 'News', 'mobile footer');
+    await expectSingleButton(page, 'Next Turn', 'mobile footer');
+    await page.setViewportSize({ width: 1440, height: 1200 });
     log('HUD cards are visible');
 
     const catalystTicker = await findNextTurnCatalystTicker(page);
@@ -191,12 +218,20 @@ async function main() {
     await waitForVisible(page.getByText('WATCH', { exact: true }), 'watch badge');
     log('Watchlist toggle is working in the market list');
 
-    const stockButton = page.locator('button').filter({ hasText: catalystTicker }).first();
+    const stockButton = getStockCardButton(page, catalystTicker);
     await stockButton.click();
     await waitForVisible(page.getByText('Next Catalyst', { exact: true }), 'stock detail catalyst card');
     await waitForVisible(page.getByText('Research Brief', { exact: true }), 'stock detail research brief');
     await waitForVisible(page.getByText('Watchlist Context', { exact: true }), 'stock detail watchlist context');
     await waitForVisible(page.getByText('Orders & Automation', { exact: true }), 'stock detail pending orders card');
+    await page.mouse.wheel(0, 900);
+    await page.getByRole('button', { name: 'Market', exact: true }).click();
+    await waitForVisible(page.getByText('Stock Market', { exact: false }), 'stock market screen after detail navigation');
+    await assertPageAtTop(page, 'Stock Market');
+    await expectSingleButton(page, 'Show stock filters', 'stock filter toggle');
+    await page.getByPlaceholder('Search tickers or names...').fill(catalystTicker);
+    await getStockCardButton(page, catalystTicker).click();
+    await waitForVisible(page.getByText('Orders & Automation', { exact: true }), 'stock detail after navigation reset check');
     log('Stock detail shows catalyst and watchlist context');
 
     log(`Buying four ${catalystTicker} shares to exercise the order tools`);
@@ -206,11 +241,13 @@ async function main() {
 
     const limitCard = page.locator('div').filter({ has: page.getByText('Limit Order', { exact: true }) }).first();
     await limitCard.getByRole('button', { name: 'Limit Sell' }).click();
+    await page.getByRole('spinbutton', { name: 'Shares' }).nth(0).fill('4');
     await limitCard.getByLabel('Target Price').fill('0.01');
     await limitCard.getByRole('button', { name: 'Place Limit Sell' }).click();
 
     const protectiveCard = page.locator('div').filter({ has: page.getByText('Protective Exit', { exact: true }) }).first();
-    await protectiveCard.getByLabel('Trigger Price').fill('999999');
+    await page.getByRole('spinbutton', { name: 'Shares' }).nth(1).fill('4');
+    await protectiveCard.getByLabel('Trigger Price').fill('0.01');
     await protectiveCard.getByRole('button', { name: 'Place Stop-Loss' }).click();
     log('Placed an immediate limit sell and stop-loss for the selected stock');
 
@@ -231,6 +268,15 @@ async function main() {
       'watchlist news alert after catalyst resolution',
     );
     log('Resolved catalyst produced a watchlist alert on the HUD');
+
+    await page.getByRole('button', { name: 'Market', exact: true }).click();
+    await waitForVisible(page.getByText('Stock Market', { exact: false }), 'stock market screen before rebalance seed buy');
+    await page.getByPlaceholder('Search tickers or names...').fill(catalystTicker);
+    await getStockCardButton(page, catalystTicker).click();
+    await waitForVisible(page.getByText('Orders & Automation', { exact: true }), 'stock detail before rebalance seed buy');
+    await page.getByRole('button', { name: new RegExp(`Buy 1 ${escapeRegex(catalystTicker)}`) }).click();
+    await waitForVisible(page.getByText('Long:', { exact: true }), 'rebalance seed long position');
+    log('Rebought one share so the rebalancer has a live holding to close');
 
     await page.getByRole('button', { name: /Portfolio/ }).click();
     await waitForVisible(page.getByText('Performance Chart', { exact: true }), 'portfolio performance chart');

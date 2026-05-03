@@ -6,7 +6,7 @@ import { getAlphaPct, getMarketReturnPct, getPlayerReturnPct } from '../engine/m
 import { getLatestRisk } from '../engine/riskSystem';
 import { DIFFICULTY_CONFIGS, SECTOR_LABELS } from '../engine/config';
 import type { GameState } from '../engine/types';
-import { getMarketBreadthSummary, getUpcomingCatalysts, getWatchlistAlerts } from '../engine/marketInsights';
+import { getMarketBreadthSummary, getUpcomingCatalysts, getWatchlistAlerts, isExecutedPlayerTrade } from '../engine/marketInsights';
 import { getScannerSignals } from '../engine/scannerSystem';
 import { getMissionProgressLabel, getMissionProgressPercent, getMissionTargetLabel } from '../utils/missionFormatting';
 import { getRegimeHeadwindSectors, getRegimeTailwindSectors } from '../utils/regimeUi';
@@ -34,7 +34,7 @@ function riskBorderClass(level: string) {
 }
 
 function countPlayerTrades(gameState: GameState): number {
-  return gameState.transactionHistory.filter(t => t.type === 'buy' || t.type === 'sell' || t.type === 'short' || t.type === 'cover').length;
+  return gameState.transactionHistory.filter(isExecutedPlayerTrade).length;
 }
 
 export default function GameHUD() {

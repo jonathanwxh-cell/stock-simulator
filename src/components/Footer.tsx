@@ -54,6 +54,8 @@ export default function Footer() {
               <button
                 key={tab.id}
                 onClick={() => handleTabClick(tab.id)}
+                aria-label={tab.label}
+                aria-current={isActive ? 'page' : undefined}
                 className={`relative flex items-center gap-2 px-3 sm:px-4 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 ${
                   isActive
                     ? 'text-[var(--profit-green)] bg-[var(--surface-2)]'
@@ -79,6 +81,7 @@ export default function Footer() {
         <button
           onClick={advanceTurn}
           disabled={gameState.isGameOver}
+          aria-label="Next Turn"
           className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-5 py-2.5 bg-[var(--profit-green)] text-black font-semibold text-sm rounded-lg hover:brightness-110 active:scale-[0.98] transition-all animate-pulse-glow disabled:opacity-40 disabled:cursor-not-allowed disabled:animate-none"
         >
           <span className="hidden sm:inline">Next Turn</span>
