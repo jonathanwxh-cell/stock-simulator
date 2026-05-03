@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/jonathanwxh-cell/stock-simulator/actions/workflows/ci.yml/badge.svg)](https://github.com/jonathanwxh-cell/stock-simulator/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-1.5.7-green.svg)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-1.6.0-green.svg)](CHANGELOG.md)
 
 A turn-based stock market simulation game built with React, TypeScript, and Vite.
 
@@ -17,8 +17,11 @@ Trade 60 fictional stocks across 12 sectors, react to randomly generated market 
 - **Market simulation engine** — sector rotation, mean-reverting prices, dividend payouts, stock splits
 - **Event system** — breaking news, earnings reports, regulatory actions, macro events that move sectors and individual stocks
 - **Margin trading & short selling** with maintenance requirements and interest
-- **Limit orders** with per-order fees
-- **Save/load system** — games persist to IndexedDB, resume anytime
+- **Advanced orders** — limit orders, stop-losses, and take-profit exits
+- **Portfolio rebalancing** — set stock or sector targets and preview the required trades
+- **Performance chart** — compare normalized net worth against the benchmark over 12-month, 24-month, or full-history views
+- **Watchlists and catalysts** — track watched names, scheduled events, market pulse, and season recap context
+- **Cloud save support** — Supabase-backed anonymous save sync when configured, with local IndexedDB fallback
 - **Leaderboard** — tracks best performances across sessions
 - **Grade system** — S/A/B/C/D/F based on final portfolio value
 
@@ -28,8 +31,9 @@ Trade 60 fictional stocks across 12 sectors, react to randomly generated market 
 - Vite 7
 - Tailwind CSS
 - Framer Motion
-- Recharts (price charts)
-- IndexedDB (via `idb`) for save persistence
+- Recharts (price charts and performance charts)
+- IndexedDB (via `idb`) for local save persistence
+- Supabase for optional cloud saves
 
 ## Getting Started
 
@@ -81,11 +85,12 @@ src/
 
 Each turn represents one month. The simulation:
 
-1. **Generates events** — earnings beats/misses, FDA approvals, geopolitical shocks, sector rotations, etc.
+1. **Generates events** — earnings beats/misses, FDA approvals, geopolitical shocks, sector rotations, scheduled catalysts, etc.
 2. **Moves prices** — geometric Brownian motion with sector momentum, mean reversion, and event impact
 3. **Applies dividends** — quarterly payouts for dividend-yielding stocks
 4. **Checks margin calls** — forced liquidation if maintenance requirement breached
-5. **Resolves limit orders** — trigger if price crosses the threshold
+5. **Resolves orders** — limit orders, stop-losses, and take-profit exits trigger when prices cross thresholds
+6. **Tracks performance** — benchmark-relative alpha, risk, missions, and net-worth history update through the run
 
 The game ends when you hit the turn limit or your portfolio goes to zero. Your goal: multiply starting cash by the difficulty's goal multiplier.
 
