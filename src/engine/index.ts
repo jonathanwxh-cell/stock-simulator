@@ -21,6 +21,7 @@ export * from './macroSystem';
 export * from './scannerSystem';
 export * from './careerSystem';
 export * from './tradeLanguage';
+export * from './marketCoach';
 export { resolvePendingOrders, applyPendingOrderSplitAdjustment } from './orders';
 export * from './performanceSeries';
 export * from './rebalancing';

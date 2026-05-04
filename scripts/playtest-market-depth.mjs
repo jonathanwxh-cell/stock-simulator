@@ -59,6 +59,7 @@ async function waitForHudOrGameOver(page, timeout = WAIT_MS) {
 
     if (
       (await isVisible(page.getByText('Market Pulse', { exact: true }))) &&
+      (await isVisible(page.getByText('Market Coach', { exact: true }))) &&
       (await isVisible(page.getByText('Fund Career', { exact: true }))) &&
       (await isVisible(page.getByText('Macro Backdrop', { exact: true }))) &&
       (await isVisible(page.getByText('Scanner Signals', { exact: true }))) &&
@@ -202,6 +203,7 @@ async function main() {
 
     await waitForHudOrGameOver(page);
     await waitForVisible(page.getByText('Fund Career', { exact: true }), 'HUD Fund Career card');
+    await waitForVisible(page.getByText('Market Coach', { exact: true }), 'HUD Market Coach card');
     await waitForVisible(page.getByText('Macro Backdrop', { exact: true }), 'HUD Macro Backdrop card');
     await waitForVisible(page.getByText('Scanner Signals', { exact: true }), 'HUD Scanner Signals card');
     await waitForVisible(page.getByText('Market Pulse', { exact: true }), 'HUD Market Pulse card');
@@ -219,7 +221,7 @@ async function main() {
     const catalystTicker = await findNextTurnCatalystTicker(page);
     log(`Using ${catalystTicker} to verify watchlist and catalyst flow`);
 
-    await page.getByRole('button', { name: /Market/ }).click();
+    await page.getByRole('button', { name: 'Market', exact: true }).click();
     await waitForVisible(page.getByText('Stock Market', { exact: false }), 'stock market screen');
     await waitForVisible(page.getByText('Scanner Signals', { exact: true }), 'market scanner card');
     await page.getByPlaceholder('Search tickers or names...').fill(catalystTicker);
@@ -230,6 +232,7 @@ async function main() {
     const stockButton = getStockCardButton(page, catalystTicker);
     await stockButton.click();
     await waitForVisible(page.getByText('Next Catalyst', { exact: true }), 'stock detail catalyst card');
+    await waitForVisible(page.getByText('Coach Playbook', { exact: true }), 'stock detail coach playbook');
     await waitForVisible(page.getByText('Research Brief', { exact: true }), 'stock detail research brief');
     await waitForVisible(page.getByText('Watchlist Context', { exact: true }), 'stock detail watchlist context');
     await waitForVisible(page.getByText('Plan Ahead', { exact: true }), 'stock detail pending orders card');
@@ -273,7 +276,7 @@ async function main() {
     }
 
     await waitForVisible(
-      page.getByText(new RegExp(`${escapeRegex(catalystTicker)} is in the headlines`)),
+      page.getByText(new RegExp(`${escapeRegex(catalystTicker)} is in the headlines`)).first(),
       'watchlist news alert after catalyst resolution',
     );
     log('Resolved catalyst produced a watchlist alert on the HUD');

@@ -8,6 +8,7 @@ import { DIFFICULTY_CONFIGS, SECTOR_LABELS } from '../engine/config';
 import type { GameState } from '../engine/types';
 import { getMarketBreadthSummary, getUpcomingCatalysts, getWatchlistAlerts, isExecutedPlayerTrade } from '../engine/marketInsights';
 import { getScannerSignals } from '../engine/scannerSystem';
+import { buildGuidedMarketCoach, type CoachAction } from '../engine/marketCoach';
 import { CAREER_ARCHETYPES, getCareerLeague } from '../engine/careerSystem';
 import { getMissionProgressLabel, getMissionProgressPercent, getMissionTargetLabel } from '../utils/missionFormatting';
 import { getRegimeHeadwindSectors, getRegimeTailwindSectors } from '../utils/regimeUi';
@@ -16,6 +17,7 @@ import UpcomingCatalystsCard from '../components/market/UpcomingCatalystsCard';
 import MarketPulseCard from '../components/market/MarketPulseCard';
 import MacroBackdropCard from '../components/market/MacroBackdropCard';
 import ScannerSignalsCard from '../components/market/ScannerSignalsCard';
+import MarketCoachCard from '../components/market/MarketCoachCard';
 
 function pct(value: number) {
   return `${value >= 0 ? '+' : ''}${value.toFixed(1)}%`;
@@ -58,6 +60,7 @@ export default function GameHUD() {
   const upcomingCatalysts = getUpcomingCatalysts(gameState, 4);
   const watchlistAlerts = getWatchlistAlerts(gameState, 4);
   const scannerSignals = getScannerSignals(gameState, 4);
+  const coach = buildGuidedMarketCoach(gameState);
   const risk = getLatestRisk(gameState);
   const mission = gameState.activeMission;
   const regime = gameState.currentRegime;
@@ -86,6 +89,11 @@ export default function GameHUD() {
   const openStock = (stockId: string) => {
     localStorage.setItem('mm_selected', stockId);
     navigateTo('stock-detail');
+  };
+
+  const followCoachAction = (action: CoachAction) => {
+    if (action.stockId) localStorage.setItem('mm_selected', action.stockId);
+    navigateTo(action.screen);
   };
 
   return (
@@ -126,6 +134,8 @@ export default function GameHUD() {
             </div>
           </div>
         </div>
+
+        <MarketCoachCard coach={coach} onAction={followCoachAction} />
 
         <div className="grid grid-cols-4 gap-2 mb-3">
           <div className="bg-[var(--surface-0)] border border-[var(--border)] rounded-xl p-3 text-center">

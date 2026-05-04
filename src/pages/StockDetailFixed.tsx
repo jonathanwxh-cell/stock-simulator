@@ -5,11 +5,13 @@ import { Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'rec
 import { calcBrokerFee, DIFFICULTY_CONFIGS, SECTOR_COLORS, SECTOR_LABELS } from '../engine/config';
 import { CATALYST_TYPE_LABELS } from '../engine/catalystSystem';
 import { getUpcomingCatalysts, getWatchlistAlerts } from '../engine/marketInsights';
+import { buildStockCoach } from '../engine/marketCoach';
 import { buildResearchBrief } from '../engine/scannerSystem';
 import { getTradeFeedback, tradeFeedbackFormat, type FeedbackTone, type TradeAction, type TradeFeedback } from '../engine/tradeFeedback';
 import { getTradeLanguage } from '../engine/tradeLanguage';
 import PendingOrdersCard from '../components/trading/PendingOrdersCard';
 import ResearchBriefCard from '../components/market/ResearchBriefCard';
+import StockCoachCard from '../components/market/StockCoachCard';
 
 type TradeType = TradeAction;
 const TRADE_ACTIONS: TradeType[] = ['buy', 'sell', 'short', 'cover'];
@@ -60,6 +62,7 @@ export default function StockDetailFixed() {
   const stockAlerts = getWatchlistAlerts(gameState, 10).filter((alert) => alert.stockId === stockId);
   const nextCatalyst = getUpcomingCatalysts(gameState, 20).find((event) => event.stockId === stockId);
   const researchBrief = buildResearchBrief(gameState, stockId);
+  const stockCoach = buildStockCoach(gameState, stockId);
 
   const previous = stock.priceHistory.length > 1 ? stock.priceHistory[stock.priceHistory.length - 2] : stock.priceHistory[0];
   const change = previous ? ((stock.currentPrice - previous.price) / previous.price) * 100 : 0;
@@ -230,6 +233,8 @@ export default function StockDetailFixed() {
         </div>
 
         <ResearchBriefCard brief={researchBrief} />
+
+        <StockCoachCard coach={stockCoach} />
 
         {(longPosition || shortPosition) && (
           <div className="pt-2 border-t border-[var(--border)] text-xs space-y-1">
