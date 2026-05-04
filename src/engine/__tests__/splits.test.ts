@@ -4,10 +4,9 @@ import { unwrap } from './_helpers';
 import { simulateTurn } from '../marketSimulator';
 import { placeConditionalOrder } from '../orders';
 import type { RNG } from '../rng';
-import { SeededRNG } from '../rng';
 
-function makeSplitRng(): RNG {
-  const nextValues = [1, ...Array(60).fill(0.48), 0];
+function makeSplitRng(stockCount: number): RNG {
+  const nextValues = [1, ...Array(stockCount).fill(0.48), 0];
   return {
     next() {
       return nextValues.shift() ?? 0.48;
@@ -32,25 +31,15 @@ describe('Stock splits', () => {
     let state = createNewGame('Test', 'normal');
     const stockId = state.stocks[0].id;
 
+    state.stocks[0].currentPrice = 600;
+    state.stocks[0].basePrice = 600;
     state = unwrap(state, s => executeBuy(s, stockId, 10));
 
     const posBefore = state.portfolio[stockId];
     const costBasisBefore = posBefore.shares * posBefore.avgCost;
 
-    state.stocks[0].currentPrice = 600;
-    state.stocks[0].basePrice = 600;
-
-    let splitOccurred = false;
-    for (let i = 0; i < 5000; i++) {
-      state = simulateTurn(state, new SeededRNG(i * 7 + 13));
-      state.stocks[0].currentPrice = Math.max(state.stocks[0].currentPrice, 600);
-      state.stocks[0].basePrice = Math.max(state.stocks[0].basePrice, 600);
-      if (state.stocks[0].splitMultiplier > 1) {
-        splitOccurred = true;
-        break;
-      }
-    }
-    expect(splitOccurred).toBe(true);
+    state = simulateTurn(state, makeSplitRng(state.stocks.length));
+    expect(state.stocks[0].splitMultiplier).toBe(2);
 
     const posAfter = state.portfolio[stockId];
     expect(posAfter).toBeDefined();
@@ -74,25 +63,8 @@ describe('Stock splits', () => {
     const shortBefore = state.shortPositions[stockId];
     const entryValueBefore = shortBefore.shares * shortBefore.entryPrice;
 
-    let splitOccurred = false;
-    for (let i = 0; i < 5000; i++) {
-      state = simulateTurn(state, new SeededRNG(i * 11 + 7));
-      state.stocks[0].currentPrice = Math.max(state.stocks[0].currentPrice, 600);
-      state.stocks[0].basePrice = Math.max(state.stocks[0].basePrice, 600);
-
-      // Check if margin call wiped the position
-      if (!state.shortPositions[stockId]) break;
-
-      if (state.stocks[0].splitMultiplier > 1) {
-        splitOccurred = true;
-        break;
-      }
-    }
-
-    if (!splitOccurred) {
-      // Margin call may have closed the position before split — skip
-      return;
-    }
+    state = simulateTurn(state, makeSplitRng(state.stocks.length));
+    expect(state.stocks[0].splitMultiplier).toBe(2);
 
     const shortAfter = state.shortPositions[stockId];
     expect(shortAfter).toBeDefined();
@@ -111,17 +83,8 @@ describe('Stock splits', () => {
 
     const originalValue = stock.currentPrice;
 
-    let splitOccurred = false;
-    for (let i = 0; i < 5000; i++) {
-      state = simulateTurn(state, new SeededRNG(i * 3 + 1));
-      state.stocks[0].currentPrice = Math.max(state.stocks[0].currentPrice, 600);
-      state.stocks[0].basePrice = Math.max(state.stocks[0].basePrice, 600);
-      if (state.stocks[0].splitMultiplier > 1) {
-        splitOccurred = true;
-        break;
-      }
-    }
-    expect(splitOccurred).toBe(true);
+    state = simulateTurn(state, makeSplitRng(state.stocks.length));
+    expect(state.stocks[0].splitMultiplier).toBe(2);
 
     const s = state.stocks[0];
     const reconstructed = s.currentPrice * s.splitMultiplier;
@@ -133,24 +96,13 @@ describe('Stock splits', () => {
     state.stocks[0].currentPrice = 600;
     state.stocks[0].basePrice = 600;
 
-    let splitsSeen = 0;
-    let lastMultiplier = 1;
+    state = simulateTurn(state, makeSplitRng(state.stocks.length));
+    expect(state.stocks[0].splitMultiplier).toBe(2);
 
-    for (let i = 0; i < 5000; i++) {
-      state = simulateTurn(state, new SeededRNG(i));
-      if (state.stocks[0].currentPrice < 500) {
-        state.stocks[0].currentPrice = 600;
-        state.stocks[0].basePrice = 600;
-      }
-      const m = state.stocks[0].splitMultiplier;
-      if (m > lastMultiplier) {
-        expect(m).toBe(lastMultiplier * 2);
-        lastMultiplier = m;
-        splitsSeen++;
-        if (splitsSeen >= 2) break;
-      }
-    }
-    expect(splitsSeen).toBeGreaterThanOrEqual(1);
+    state.stocks[0].currentPrice = 600;
+    state.stocks[0].basePrice = 600;
+    state = simulateTurn(state, makeSplitRng(state.stocks.length));
+    expect(state.stocks[0].splitMultiplier).toBe(4);
   });
 
   it('integration: a split eventually occurs on high-priced stock', () => {
@@ -167,7 +119,7 @@ describe('Stock splits', () => {
       ),
     };
 
-    state = simulateTurn(state, makeSplitRng());
+    state = simulateTurn(state, makeSplitRng(state.stocks.length));
 
     const multiplier = state.stocks.find(s => s.id === stockId)!.splitMultiplier;
     expect(multiplier).toBe(initialMultiplier * 2);
@@ -179,7 +131,7 @@ describe('Stock splits', () => {
       ...state,
       stocks: state.stocks.map(s => ({ ...s, currentPrice: 50, basePrice: 50 })),
     };
-    state = simulateTurn(state, makeSplitRng());
+    state = simulateTurn(state, makeSplitRng(state.stocks.length));
     expect(state.transactionHistory.some(t => t.type === 'split')).toBe(false);
   });
 
@@ -197,7 +149,7 @@ describe('Stock splits', () => {
     };
     state = unwrap(state, s => placeLimitOrder(s, stockId, 'buy', 4, 550));
 
-    state = simulateTurn(state, makeSplitRng());
+    state = simulateTurn(state, makeSplitRng(state.stocks.length));
 
     const order = state.limitOrders.find(o => o.stockId === stockId);
     expect(order).toBeDefined();
@@ -220,7 +172,7 @@ describe('Stock splits', () => {
     state = unwrap(state, s => executeBuy(s, stockId, 6));
     state = unwrap(state, s => placeConditionalOrder(s, stockId, 'stop_loss', 4, 540));
 
-    state = simulateTurn(state, makeSplitRng());
+    state = simulateTurn(state, makeSplitRng(state.stocks.length));
 
     const order = state.conditionalOrders?.find(o => o.stockId === stockId);
     expect(order).toBeDefined();

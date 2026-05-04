@@ -71,9 +71,10 @@ describe('market coach', () => {
       scheduledDate: new Date('2026-06-01'),
     }];
 
+    const stock = state.stocks.find((entry) => entry.id === 'aapl')!;
     const coach = buildStockCoach(state, 'aapl');
 
-    expect(coach.title).toBe('AAPL has earnings next turn');
+    expect(coach.title).toBe(`${stock.ticker} has earnings next turn`);
     expect(coach.body).toContain('Plan Ahead');
     expect(coach.callouts.map((callout) => callout.label)).toContain('Catalyst');
   });

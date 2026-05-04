@@ -8,11 +8,11 @@ A turn-based stock market simulation game built with React, TypeScript, and Vite
 
 **▶ Play it live: [stocksim.alyoechosys.dev](https://stocksim.alyoechosys.dev)**
 
-Trade 60 fictional stocks across 12 sectors, react to randomly generated market events, manage margin and short positions, and try to multiply your starting capital before time runs out.
+Trade 96 fictional stocks across 12 sectors, react to randomly generated market events, manage margin and short positions, and try to multiply your starting capital before time runs out.
 
 ## Features
 
-- **60 stocks** across 12 sectors (Tech, Semiconductors, Healthcare, Biotech, Energy, Financials, Consumer, Media, Industrial, Real Estate, Telecom, Materials)
+- **96 fictional stocks** across 12 sectors (Tech, Semiconductors, Healthcare, Biotech, Energy, Financials, Consumer, Media, Industrial, Real Estate, Telecom, Materials)
 - **Fund career mode** with one-click archetypes, rival funds, quarterly board reviews, and automatic objectives that add drama without manual journaling
 - **4 difficulty levels** — Easy, Normal, Hard, Expert — each with different starting capital, volatility, fees, and win conditions
 - **Market simulation engine** — sector rotation, mean-reverting prices, dividend payouts, stock splits
@@ -60,7 +60,7 @@ src/
 │   ├── gameState.ts     # Trade execution, limit orders, game creation
 │   ├── marketSimulator.ts   # Price engine: sector rotation, mean reversion, margins
 │   ├── scenarioGenerator.ts # News events and market scenarios
-│   ├── stockData.ts     # Thin loader for data/stocks.json (60 stocks)
+│   ├── stockData.ts     # Thin loader for data/stocks.json (96 fictional stocks)
 │   ├── cloneState.ts    # Deep clone utility
 │   ├── saveSystem.ts    # IndexedDB persistence (3 slots + auto)
 │   ├── leaderboard.ts   # High score tracking

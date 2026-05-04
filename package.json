@@ -57,7 +57,7 @@
     "vite": "^7.2.4",
     "vitest": "^2.1.9"
   },
-  "description": "Turn-based stock market simulation game — 60 stocks, 12 sectors, 4 difficulty levels, margin trading, short selling, and 600+ market events",
+  "description": "Turn-based stock market simulation game — 96 fictional stocks, 12 sectors, 4 difficulty levels, margin trading, short selling, and 600+ market events",
   "author": "Alyosha",
   "license": "MIT",
   "keywords": [

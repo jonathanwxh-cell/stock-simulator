@@ -212,6 +212,9 @@ export default function TitleScreen() {
           className="mt-10 flex flex-col items-center gap-2"
         >
           <span className="text-xs text-[var(--text-muted)]">v{import.meta.env.VITE_APP_VERSION}</span>
+          <span className="text-[10px] text-[var(--text-muted)] uppercase tracking-[0.16em]">
+            Fictional companies and tickers
+          </span>
 
           {hasAutoSave && (
             <motion.button

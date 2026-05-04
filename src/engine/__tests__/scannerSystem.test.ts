@@ -37,7 +37,7 @@ describe('scannerSystem', () => {
       { turn: 12, price: growthStock.currentPrice },
     ];
 
-    const signals = getScannerSignals(state, 100);
+    const signals = getScannerSignals(state, state.stocks.length * 5);
 
     expect(signals.length).toBeGreaterThan(0);
     expect(signals.some((signal) => signal.category === 'income' && signal.stockId === incomeStock.id)).toBe(true);
