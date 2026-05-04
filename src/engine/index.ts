@@ -28,3 +28,5 @@ export * from './performanceSeries';
 export * from './rebalancing';
 export * from './trophySystem';
 export * from './opportunityBoard';
+export * from './tradeSizing';
+export * from './postTurnDigest';

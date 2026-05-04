@@ -28,7 +28,8 @@ describe('opportunity board', () => {
 
     expect(board[0].id).toBe('first-trade');
     expect(board[0].title).toContain('first');
-    expect(board[0].action).toEqual({ label: 'Open Market', screen: 'stock-market' });
+    expect(board[0].action?.intent).toBe('buy_one');
+    expect(board[0].action?.stockId).toBeTruthy();
   });
 
   it('prioritizes risk reduction over ordinary discovery cards', () => {
@@ -80,5 +81,15 @@ describe('opportunity board', () => {
 
     expect(board.length).toBeLessThanOrEqual(3);
     expect(ids.size).toBe(board.length);
+  });
+
+  it('turns watchlist setup into a one-click action', () => {
+    const state = createNewGame('Watchlist Action Tester', 'normal');
+
+    const board = buildOpportunityBoard(state);
+    const watchCard = board.find((card) => card.id === 'watchlist-builder');
+
+    expect(watchCard?.action?.intent).toBe('toggle_watchlist');
+    expect(watchCard?.action?.stockId).toBeTruthy();
   });
 });

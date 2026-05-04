@@ -1,10 +1,10 @@
 import { useGame } from '../context/GameContext';
 import { motion } from 'framer-motion';
-import { TrendingUp, TrendingDown, Clock, DollarSign, BarChart3, Award } from 'lucide-react';
+import { TrendingUp, TrendingDown, Clock, DollarSign, BarChart3, Award, ArrowRight, Sparkles } from 'lucide-react';
 import { useEffect } from 'react';
 import { getLatestTurnPerformance } from '../engine/turnPerformance';
-import { getPostTurnDestination } from '../engine/completion';
 import { getCareerSeasonTurn } from '../engine/careerSeasons';
+import { buildPostTurnDigest, type PostTurnDigestTone } from '../engine/postTurnDigest';
 
 function pct(value: number) {
   return `${value >= 0 ? '+' : ''}${value.toFixed(1)}%`;
@@ -17,14 +17,21 @@ function severityClass(severity: string) {
   return 'bg-[var(--surface-1)] text-[var(--info-blue)] border-[var(--border)]';
 }
 
+function digestToneClass(tone: PostTurnDigestTone) {
+  if (tone === 'positive') return 'border-[rgba(34,197,94,0.28)] bg-[rgba(34,197,94,0.08)] text-[var(--profit-green)]';
+  if (tone === 'warning') return 'border-[rgba(245,158,11,0.28)] bg-[rgba(245,158,11,0.08)] text-[var(--neutral-amber)]';
+  if (tone === 'danger') return 'border-[rgba(239,68,68,0.32)] bg-[rgba(239,68,68,0.1)] text-[var(--loss-red)]';
+  return 'border-[rgba(59,130,246,0.24)] bg-[rgba(59,130,246,0.06)] text-[var(--info-blue)]';
+}
+
 export default function NextTurn() {
   const { gameState, navigateTo } = useGame();
 
   useEffect(() => {
     const timer = setTimeout(() => {
       if (!gameState) return;
-      navigateTo(getPostTurnDestination(gameState));
-    }, 3000);
+      navigateTo(buildPostTurnDigest(gameState).nextAction.screen);
+    }, 4200);
     return () => clearTimeout(timer);
   }, [gameState, navigateTo]);
 
@@ -40,6 +47,7 @@ export default function NextTurn() {
   const recentNews = gameState.newsHistory.filter(n => n.turn === gameState.currentTurn);
   const latestBoardReview = gameState.career.boardReviews.find(review => review.turn === gameState.currentTurn);
   const seasonTurn = getCareerSeasonTurn(gameState);
+  const digest = buildPostTurnDigest(gameState);
 
   return (
     <div className="min-h-[calc(100dvh-56px-72px)] flex flex-col items-center justify-center p-6">
@@ -97,6 +105,31 @@ export default function NextTurn() {
             <div>
               <span className="text-[10px] text-[var(--text-muted)] block">Alpha</span>
               <span className={`text-sm font-mono-data font-semibold ${turnAlphaPct >= 0 ? 'text-[var(--profit-green)]' : 'text-[var(--loss-red)]'}`}>{pct(turnAlphaPct)}</span>
+            </div>
+          </div>
+        </div>
+
+        <div className={`rounded-2xl border p-5 mb-4 ${digestToneClass(digest.tone)}`}>
+          <div className="flex items-start gap-3">
+            <Sparkles className="mt-0.5 h-5 w-5 shrink-0" />
+            <div className="min-w-0 flex-1">
+              <p className="text-base font-display font-bold text-[var(--text-primary)]">{digest.headline}</p>
+              <p className="mt-1 text-xs leading-relaxed text-[var(--text-secondary)]">{digest.body}</p>
+              {digest.notes.length > 0 && (
+                <div className="mt-3 space-y-1">
+                  {digest.notes.map((note) => (
+                    <p key={note} className="text-xs text-[var(--text-secondary)]">- {note}</p>
+                  ))}
+                </div>
+              )}
+              <button
+                type="button"
+                onClick={() => navigateTo(digest.nextAction.screen)}
+                className="mt-4 inline-flex items-center gap-1.5 rounded-full border border-current/30 bg-[var(--surface-0)]/60 px-3 py-1.5 text-xs font-semibold transition-all hover:brightness-110"
+              >
+                {digest.nextAction.label}
+                <ArrowRight className="h-3.5 w-3.5" />
+              </button>
             </div>
           </div>
         </div>

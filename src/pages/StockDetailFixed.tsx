@@ -9,6 +9,7 @@ import { buildStockCoach } from '../engine/marketCoach';
 import { buildResearchBrief } from '../engine/scannerSystem';
 import { getTradeFeedback, tradeFeedbackFormat, type FeedbackTone, type TradeAction, type TradeFeedback } from '../engine/tradeFeedback';
 import { getTradeLanguage } from '../engine/tradeLanguage';
+import { getTradeSizePresets } from '../engine/tradeSizing';
 import PendingOrdersCard from '../components/trading/PendingOrdersCard';
 import ResearchBriefCard from '../components/market/ResearchBriefCard';
 import StockCoachCard from '../components/market/StockCoachCard';
@@ -88,6 +89,7 @@ export default function StockDetailFixed() {
 
   const tradePreview = getTradeFeedback(gameState, stockId, shares, activeTradeType);
   const tradeLanguage = getTradeLanguage(activeTradeType);
+  const sizePresets = getTradeSizePresets(gameState, stockId, activeTradeType);
   const availableTradeActions = TRADE_ACTIONS.filter((action) => {
     if (!longOnlyMandate) return true;
     if (action === 'short') return false;
@@ -115,13 +117,6 @@ export default function StockDetailFixed() {
     setLastFeedback(null);
     setLocalError('');
     setShares(Math.max(1, Math.floor(value) || 1));
-  };
-
-  const setMaxShares = () => {
-    if (activeTradeType === 'sell') setWholeShares(longShares || 1);
-    else if (activeTradeType === 'cover') setWholeShares(shortShares || 1);
-    else if (activeTradeType === 'short') setWholeShares(gameState.cash / (stock.currentPrice * config.shortMarginRequirement + fee));
-    else setWholeShares(gameState.cash / (stock.currentPrice + fee));
   };
 
   const selectTrade = (next: TradeType) => {
@@ -314,9 +309,21 @@ export default function StockDetailFixed() {
             <button onClick={() => setWholeShares(shares + 10)} className="w-8 h-8 rounded-lg bg-[var(--surface-1)] border border-[var(--border)] text-[var(--text-secondary)] text-xs">+10</button>
           </div>
 
-          <div className="flex gap-1 mb-3">
-            {[10, 25, 50, 100].map(n => <button key={n} onClick={() => setWholeShares(n)} className={`flex-1 py-1 rounded text-[10px] ${shares === n ? 'bg-[var(--surface-2)] text-[var(--text-primary)]' : 'text-[var(--text-muted)] bg-[var(--surface-0)]'}`}>{n}</button>)}
-            <button onClick={setMaxShares} className="flex-1 py-1 rounded text-[10px] font-medium text-[var(--neutral-amber)] bg-[var(--neutral-amber)]/10">MAX</button>
+          <div className="mb-3 grid grid-cols-4 gap-1.5">
+            {sizePresets.map(preset => (
+              <button
+                key={preset.id}
+                onClick={() => {
+                  if (preset.shares > 0) setWholeShares(preset.shares);
+                }}
+                disabled={preset.shares <= 0}
+                title={preset.helper}
+                className={`rounded-lg border px-2 py-2 text-left transition-all ${preset.shares <= 0 ? 'cursor-not-allowed border-[var(--border)] bg-[var(--surface-0)] text-[var(--text-muted)] opacity-45' : shares === preset.shares ? 'border-[var(--profit-green)] bg-[rgba(34,197,94,0.1)] text-[var(--profit-green)]' : 'border-[var(--border)] bg-[var(--surface-0)] text-[var(--text-muted)] hover:text-[var(--text-primary)]'}`}
+              >
+                <span className="block text-[10px] font-semibold uppercase tracking-wider">{preset.label}</span>
+                <span className="mt-0.5 block font-mono-data text-[11px]">{preset.shares} sh</span>
+              </button>
+            ))}
           </div>
 
           <div className="bg-[var(--surface-1)] rounded-lg p-3 mb-3 text-xs space-y-1.5">

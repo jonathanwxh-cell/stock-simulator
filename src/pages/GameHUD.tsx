@@ -44,7 +44,7 @@ function countPlayerTrades(gameState: GameState): number {
 }
 
 export default function GameHUD() {
-  const { gameState, navigateTo } = useGame();
+  const { gameState, navigateTo, buyStock, toggleWatchlist } = useGame();
     if (!gameState) return null;
 
   const netWorth = getNetWorth(gameState);
@@ -100,6 +100,14 @@ export default function GameHUD() {
   };
 
   const followCoachAction = (action: CoachAction | OpportunityAction) => {
+    if ('intent' in action && action.intent === 'buy_one' && action.stockId) {
+      buyStock(action.stockId, 1);
+      return;
+    }
+    if ('intent' in action && action.intent === 'toggle_watchlist' && action.stockId) {
+      toggleWatchlist(action.stockId);
+      return;
+    }
     if (action.stockId) localStorage.setItem('mm_selected', action.stockId);
     navigateTo(action.screen);
   };

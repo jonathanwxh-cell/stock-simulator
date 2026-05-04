@@ -11,6 +11,7 @@ export interface OpportunityAction {
   label: string;
   screen: Screen;
   stockId?: string;
+  intent?: 'navigate' | 'buy_one' | 'toggle_watchlist';
 }
 
 export interface OpportunityProgress {
@@ -59,6 +60,16 @@ function addUnique(cards: OpportunityCard[], card: OpportunityCard): void {
   if (!cards.some((entry) => entry.id === card.id)) cards.push(card);
 }
 
+function pickActionStock(state: GameState, avoidWatched = false) {
+  const watched = new Set(state.watchlist || []);
+  const scanner = getScannerSignals(state, 6).find((signal) => !avoidWatched || !watched.has(signal.stockId));
+  const catalyst = getUpcomingCatalysts(state, 4).find((event) => !avoidWatched || !watched.has(event.stockId));
+  const fallback = state.stocks.find((stock) => !avoidWatched || !watched.has(stock.id));
+  const stockId = scanner?.stockId || catalyst?.stockId || fallback?.id || state.stocks[0]?.id || '';
+  const stock = state.stocks.find((entry) => entry.id === stockId);
+  return stock ? { stockId: stock.id, ticker: stock.ticker } : null;
+}
+
 export function buildOpportunityBoard(state: GameState, limit = 3): OpportunityCard[] {
   const cards: OpportunityCard[] = [];
   const risk = getLatestRisk(state);
@@ -79,13 +90,16 @@ export function buildOpportunityBoard(state: GameState, limit = 3): OpportunityC
   }
 
   if (tradeCount === 0) {
+    const pick = pickActionStock(state);
     addUnique(cards, {
       id: 'first-trade',
       eyebrow: 'Start Here',
       title: 'Make your first clear trade',
-      body: 'Open the Market, pick one understandable setup, and use Buy Now. You can learn Plan Ahead after the first position exists.',
+      body: pick ? `Buy one share of ${pick.ticker} to start the loop. You can resize or undo with normal trades after you see how a turn feels.` : 'Open the Market, pick one understandable setup, and use Buy Now.',
       tone: 'positive',
-      action: { label: 'Open Market', screen: 'stock-market' },
+      action: pick
+        ? { label: `Buy 1 ${pick.ticker}`, screen: 'game', stockId: pick.stockId, intent: 'buy_one' }
+        : { label: 'Open Market', screen: 'stock-market', intent: 'navigate' },
     });
   }
 
@@ -102,13 +116,16 @@ export function buildOpportunityBoard(state: GameState, limit = 3): OpportunityC
   }
 
   if (watchedCount < 3) {
+    const pick = pickActionStock(state, true);
     addUnique(cards, {
       id: 'watchlist-builder',
       eyebrow: 'Low Friction',
       title: 'Star 3 stocks to make news useful',
-      body: 'A small watchlist turns catalyst noise into alerts that show up on your HUD automatically.',
+      body: pick ? `Star ${pick.ticker} now. A small watchlist turns catalyst noise into useful HUD alerts automatically.` : 'A small watchlist turns catalyst noise into alerts that show up on your HUD automatically.',
       tone: 'neutral',
-      action: { label: 'Browse Market', screen: 'stock-market' },
+      action: pick
+        ? { label: `Star ${pick.ticker}`, screen: 'game', stockId: pick.stockId, intent: 'toggle_watchlist' }
+        : { label: 'Browse Market', screen: 'stock-market', intent: 'navigate' },
       progress: { label: `${watchedCount}/3 watched`, value: clampPct((watchedCount / 3) * 100) },
     });
   }
