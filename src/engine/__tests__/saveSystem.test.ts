@@ -171,4 +171,50 @@ describe('save-system auto-save lifecycle', () => {
     expect(cloudSaveMocks.cloudSaveGame).toHaveBeenCalledTimes(3);
     expect(cloudSaveMocks.cloudSaveGame).toHaveBeenLastCalledWith('auto', latestGame);
   });
+
+  it('stamps new saves with the current SAVE_VERSION', async () => {
+    const { autoSave, SAVE_VERSION } = await import('../saveSystem');
+    const game = createNewGame('Versioned Trader', 'normal');
+    await autoSave(game);
+    const raw = localStorage.getItem(AUTO_SAVE_KEY);
+    expect(raw).not.toBeNull();
+    expect(JSON.parse(raw!).__saveVersion).toBe(SAVE_VERSION);
+  });
+
+  it('migrates legacy unversioned saves on load', async () => {
+    const { loadGame } = await import('../saveSystem');
+    const game = createNewGame('Legacy Trader', 'normal');
+    // Strip fields that legacy saves wouldn't have had, simulating an old save.
+    const legacy = {
+      ...game,
+      __saveVersion: undefined,
+      conditionalOrders: undefined,
+      macroEnvironment: undefined,
+      macroHistory: undefined,
+      watchlist: undefined,
+      catalystCalendar: undefined,
+    };
+    localStorage.setItem(AUTO_SAVE_KEY, JSON.stringify(legacy));
+
+    const loaded = await loadGame('auto');
+    expect(loaded).not.toBeNull();
+    expect(loaded?.conditionalOrders).toEqual([]);
+    expect(loaded?.macroEnvironment).toBeDefined();
+    expect(loaded?.macroHistory?.length).toBeGreaterThan(0);
+    expect(loaded?.watchlist).toEqual([]);
+  });
+
+  it('rejects saves from a newer build', async () => {
+    const { loadGame, SAVE_VERSION } = await import('../saveSystem');
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+    const future = {
+      ...createNewGame('Future Trader', 'normal'),
+      __saveVersion: SAVE_VERSION + 1,
+    };
+    localStorage.setItem(AUTO_SAVE_KEY, JSON.stringify(future));
+    const loaded = await loadGame('auto');
+    expect(loaded).toBeNull();
+    expect(warn).toHaveBeenCalled();
+    warn.mockRestore();
+  });
 });

@@ -5,6 +5,108 @@ import { cloudDeleteSave, cloudGetSaveMetadata, cloudLoadGame, cloudSaveGame, is
 import { createInitialMacroEnvironment } from './macroSystem';
 import { ensureCareerState } from './careerSystem';
 import { getCareerSeasonTurnLimit } from './careerSeasons';
+import { initialMarketIndex } from './marketIndex';
+import { createInitialRegime } from './regimeSystem';
+import { calculateRisk } from './riskSystem';
+import { createMission } from './missionSystem';
+import { defaultRNG } from './rng';
+import { ensureUpcomingCatalysts } from './catalystSystem';
+
+// ============================================================================
+// Save schema versioning
+// ============================================================================
+// Bump SAVE_VERSION when the saved JSON shape changes in a way that requires
+// migration. Add a new entry to MIGRATIONS keyed by the OLD version that
+// produces the next-newer version. Saves with __saveVersion === SAVE_VERSION
+// are loaded as-is. Unversioned saves (legacy from pre-v1.6.x) are treated
+// as version 0 and run through every migration. Saves with a version higher
+// than SAVE_VERSION are rejected — we don't downgrade.
+export const SAVE_VERSION = 1;
+
+// Each migration takes a save at version N and returns one at version N+1.
+// Inputs/outputs are deliberately typed as `unknown` — migrations operate on
+// raw JSON shapes, not GameState directly, because the type *is* what the
+// migration is changing.
+const MIGRATIONS: Record<number, (raw: Record<string, unknown>) => Record<string, unknown>> = {
+  // 0 -> 1: legacy unversioned saves. Pre-v1.6.x didn't track save versions;
+  // the field defaulting that GameContext.migrateGameState used to do moves
+  // here. Once a save is loaded and re-saved, it gets stamped __saveVersion:1
+  // and skips this migration on subsequent loads.
+  0: (raw) => migrate_v0_to_v1(raw),
+};
+
+function migrate_v0_to_v1(raw: Record<string, unknown>): Record<string, unknown> {
+  // Legacy ad-hoc field defaulting. GameState shape evolved through v1.0–v1.5
+  // without a versioned migrator, so we backfill anything missing here.
+  const macroEnvironment = (raw.macroEnvironment as object | undefined) ?? createInitialMacroEnvironment();
+  const stocks = Array.isArray(raw.stocks) ? raw.stocks as Array<Record<string, unknown>> : [];
+  const playerName = typeof raw.playerName === 'string' ? raw.playerName : 'Trader';
+  const difficulty = typeof raw.difficulty === 'string' ? raw.difficulty : 'normal';
+  const createdAt = raw.createdAt ?? new Date().toISOString();
+  const out: Record<string, unknown> = {
+    ...raw,
+    runId: typeof raw.runId === 'string' ? raw.runId : `legacy:${playerName}:${difficulty}:${new Date(createdAt as string).toISOString()}`,
+    leaderboardEntryId: raw.leaderboardEntryId ?? null,
+    career: ensureCareerState(raw as unknown as GameState),
+    shortPositions: raw.shortPositions ?? {},
+    limitOrders: Array.isArray(raw.limitOrders) ? raw.limitOrders : [],
+    conditionalOrders: Array.isArray(raw.conditionalOrders) ? raw.conditionalOrders : [],
+    marginUsed: typeof raw.marginUsed === 'number' ? raw.marginUsed : 0,
+    totalFeesPaid: typeof raw.totalFeesPaid === 'number' ? raw.totalFeesPaid : 0,
+    totalDividendsReceived: typeof raw.totalDividendsReceived === 'number' ? raw.totalDividendsReceived : 0,
+    marketIndexHistory: Array.isArray(raw.marketIndexHistory) && raw.marketIndexHistory.length ? raw.marketIndexHistory : initialMarketIndex(),
+    currentRegime: raw.currentRegime ?? createInitialRegime(),
+    riskHistory: Array.isArray(raw.riskHistory) ? raw.riskHistory : [],
+    activeMission: raw.activeMission ?? null,
+    completedMissions: Array.isArray(raw.completedMissions) ? raw.completedMissions : [],
+    lastAdvisorFeedback: Array.isArray(raw.lastAdvisorFeedback) ? raw.lastAdvisorFeedback : [],
+    macroEnvironment,
+    macroHistory: Array.isArray(raw.macroHistory) && raw.macroHistory.length ? raw.macroHistory : [macroEnvironment],
+    watchlist: Array.isArray(raw.watchlist) ? raw.watchlist : [],
+    catalystCalendar: Array.isArray(raw.catalystCalendar) ? raw.catalystCalendar : [],
+    stocks: stocks.map((s) => ({ ...s, beta: s.beta ?? 1, splitMultiplier: s.splitMultiplier ?? 1 })),
+  };
+  // Post-migration consistency: derived state that must exist for a runnable game.
+  const asState = out as unknown as GameState;
+  if (!Array.isArray(out.riskHistory) || (out.riskHistory as unknown[]).length === 0) {
+    out.riskHistory = [calculateRisk(asState)];
+  }
+  if (!out.activeMission && !out.isGameOver) {
+    out.activeMission = createMission(asState, defaultRNG);
+  }
+  if (!out.isGameOver) {
+    out.catalystCalendar = ensureUpcomingCatalysts(asState, asState.catalystCalendar || [], defaultRNG);
+  }
+  return out;
+}
+
+// Read the version off a raw save. Treats missing/invalid as 0 (legacy).
+function getSaveVersion(raw: Record<string, unknown>): number {
+  const v = raw.__saveVersion;
+  return typeof v === 'number' && Number.isInteger(v) && v >= 0 ? v : 0;
+}
+
+// Walk a raw save through every migration needed to reach SAVE_VERSION.
+// Returns null if the save is from a future version (build is older than save).
+function migrateToCurrent(raw: Record<string, unknown>): Record<string, unknown> | null {
+  let version = getSaveVersion(raw);
+  if (version > SAVE_VERSION) {
+    console.warn(`Save is from a newer build (__saveVersion=${version}, this build supports up to ${SAVE_VERSION}). Refusing to load.`);
+    return null;
+  }
+  let current = raw;
+  while (version < SAVE_VERSION) {
+    const migrate = MIGRATIONS[version];
+    if (!migrate) {
+      console.warn(`No migration from save version ${version} to ${version + 1}. Refusing to load.`);
+      return null;
+    }
+    current = migrate(current);
+    version += 1;
+    current.__saveVersion = version;
+  }
+  return current;
+}
 
 // Storage keys are intentionally prefixed `marketmaster_*` rather than
 // `stocksim_*`. The project was renamed from "Market Master" to "Stock
@@ -108,20 +210,27 @@ function emptySaveMetadata(slot: SaveMetadata['slot']): SaveMetadata {
 function parseStoredState(raw: string | null): GameState | null {
   if (!raw || raw === 'null') return null;
 
+  let parsed: unknown;
   try {
-    return JSON.parse(raw) as GameState;
+    parsed = JSON.parse(raw);
   } catch {
     return null;
   }
+  if (!parsed || typeof parsed !== 'object') return null;
+  const migrated = migrateToCurrent(parsed as Record<string, unknown>);
+  if (!migrated) return null;
+  return migrated as unknown as GameState;
 }
 
 function stripLargeData(state: GameState): Omit<GameState, 'stocks' | 'transactionHistory' | 'newsHistory'> & {
   stocks: Array<Omit<Stock, 'priceHistory'> & { priceHistory: [] }>;
   transactionHistory: [];
   newsHistory: [];
+  __saveVersion: number;
 } {
   return {
     ...state,
+    __saveVersion: SAVE_VERSION,
     currentDate: state.currentDate.toISOString() as unknown as Date,
     createdAt: state.createdAt.toISOString() as unknown as Date,
     updatedAt: state.updatedAt.toISOString() as unknown as Date,
@@ -152,6 +261,7 @@ function stripLargeData(state: GameState): Omit<GameState, 'stocks' | 'transacti
     stocks: Array<Omit<Stock, 'priceHistory'> & { priceHistory: [] }>;
     transactionHistory: [];
     newsHistory: [];
+    __saveVersion: number;
   };
 }
 
@@ -442,6 +552,7 @@ const CareerStateSchema = z.object({
 // Version-tolerant for older saves, but strict about unknown keys at every
 // modeled level so imports cannot smuggle arbitrary state into the engine.
 const ImportSaveSchema = z.object({
+  __saveVersion: z.number().int().nonnegative().optional(),
   saveSlot: z.union([z.literal('auto'), z.literal(1), z.literal(2), z.literal(3)]).optional(),
   runId: z.string().optional(),
   leaderboardEntryId: z.string().nullable().optional(),
@@ -818,9 +929,14 @@ export function importSave(json: string): GameState | null {
     return null;
   }
 
+  // Run version migration first — imported file may be from an older build.
+  if (!parsed || typeof parsed !== 'object') return null;
+  const migrated = migrateToCurrent(parsed as Record<string, unknown>);
+  if (!migrated) return null;
+
   // Schema-validate before treating it as a GameState. This prevents corrupt
   // or malicious imports from crashing the app on first access.
-  const result = ImportSaveSchema.safeParse(parsed);
+  const result = ImportSaveSchema.safeParse(migrated);
   if (!result.success) {
     console.warn('Save import rejected — schema validation failed:', result.error.issues);
     return null;

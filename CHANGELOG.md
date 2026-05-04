@@ -6,6 +6,10 @@ All notable changes to this project are documented here. Format follows
 
 ## [Unreleased]
 
+### Changed
+
+- **Save schema is now versioned.** Saves carry `__saveVersion` (currently `1`); legacy unversioned saves are migrated on load and re-stamped. Saves from a newer build than the running app are rejected with a warning instead of silently loading partial data. Migration logic moved out of `GameContext.migrateGameState` (deleted) into a versioned table in `saveSystem.ts`. Old saves continue to load — no data loss.
+
 ### Added
 
 - Added a Phase 3 fund career layer with selectable archetypes, deterministic rival funds, quarterly board reviews, and automatic board objectives that add long-run drama without manual journaling.

@@ -6,7 +6,7 @@ import {
   placeLimitOrder, cancelLimitOrder, placeConditionalOrder, cancelConditionalOrder, executeRebalancePreview, simulateTurn, autoSave,
   saveGame as saveGameEngine, loadGame as loadGameEngine,
   loadSettings, saveSettings, initSaveSystem, tradeErrorMessage,
-  initialMarketIndex, createInitialRegime, createInitialMacroEnvironment, calculateRisk, createMission, defaultRNG, ensureUpcomingCatalysts, toggleWatchlistStock, ensureCareerState,
+  createMission, defaultRNG, toggleWatchlistStock,
   continueCareer as continueCareerEngine,
   loadTrophyCase, recordTrophyProgress,
 } from '../engine';
@@ -80,40 +80,6 @@ function saveAuto(state: GameState) {
   autoSave(state).catch(e => console.warn('save:', e));
 }
 
-function migrateGameState(loaded: GameState): GameState {
-  const macroEnvironment = loaded.macroEnvironment || createInitialMacroEnvironment();
-  const migrated: GameState = {
-    ...loaded,
-    runId: loaded.runId || `legacy:${loaded.playerName}:${loaded.difficulty}:${new Date(loaded.createdAt).toISOString()}`,
-    leaderboardEntryId: loaded.leaderboardEntryId || null,
-    career: ensureCareerState(loaded),
-    shortPositions: loaded.shortPositions || {},
-    limitOrders: loaded.limitOrders || [],
-    conditionalOrders: loaded.conditionalOrders || [],
-    marginUsed: loaded.marginUsed || 0,
-    totalFeesPaid: loaded.totalFeesPaid || 0,
-    totalDividendsReceived: loaded.totalDividendsReceived || 0,
-    marketIndexHistory: loaded.marketIndexHistory?.length ? loaded.marketIndexHistory : initialMarketIndex(),
-    currentRegime: loaded.currentRegime || createInitialRegime(),
-    riskHistory: loaded.riskHistory || [],
-    activeMission: loaded.activeMission || null,
-    completedMissions: loaded.completedMissions || [],
-    lastAdvisorFeedback: loaded.lastAdvisorFeedback || [],
-    macroEnvironment,
-    macroHistory: loaded.macroHistory?.length ? loaded.macroHistory : [macroEnvironment],
-    watchlist: loaded.watchlist || [],
-    catalystCalendar: (loaded.catalystCalendar || []).map(event => ({
-      ...event,
-      scheduledDate: new Date(event.scheduledDate),
-    })),
-    stocks: loaded.stocks.map(s => ({ ...s, beta: s.beta || 1, splitMultiplier: s.splitMultiplier || 1 })),
-  };
-  if (!migrated.riskHistory.length) migrated.riskHistory = [calculateRisk(migrated)];
-  if (!migrated.activeMission && !migrated.isGameOver) migrated.activeMission = createMission(migrated, defaultRNG);
-  if (!migrated.isGameOver) migrated.catalystCalendar = ensureUpcomingCatalysts(migrated, migrated.catalystCalendar, defaultRNG);
-  return migrated;
-}
-
 export function GameProvider({ children }: { children: ReactNode }) {
   try {
     initSaveSystem();
@@ -159,7 +125,9 @@ export function GameProvider({ children }: { children: ReactNode }) {
   const loadGame = useCallback(async (slot: 1 | 2 | 3 | 'auto') => {
     const loaded = await loadGameEngine(slot);
     if (loaded) {
-      const migrated = recordCompletedGame(migrateGameState(loaded));
+      // Schema migration is now done by saveSystem.parseStoredState before
+      // we get here, so `loaded` is already at the current SAVE_VERSION.
+      const migrated = recordCompletedGame(loaded);
       dispatch({ type: 'CLEAR_ERROR' });
       dispatch({ type: 'SET_GAME_STATE', payload: migrated });
       dispatch({ type: 'SET_SCREEN', payload: migrated.isGameOver ? 'game-over' : 'game' });
