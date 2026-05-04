@@ -1,11 +1,12 @@
 import { useState } from 'react';
 import { useGame } from '../context/GameContext';
 import { motion } from 'framer-motion';
-import { Trophy, RotateCcw, Star } from 'lucide-react';
+import { Trophy, RotateCcw, Star, Award } from 'lucide-react';
 import { getNetWorth } from '../engine/marketSimulator';
 import { DIFFICULTY_CONFIGS } from '../engine/config';
 import { buildSeasonRecap } from '../engine/marketInsights';
 import { recordCompletedGame } from '../engine/completion';
+import { getCareerLeague } from '../engine/careerSystem';
 import SeasonRecapCard from '../components/gameover/SeasonRecapCard';
 
 const GRADE_COLORS: Record<string, string> = {
@@ -76,6 +77,9 @@ export default function GameOver() {
   const splits = gameState.transactionHistory.filter(t => t.type === 'split');
   const peakNetWorth = Math.max(...gameState.netWorthHistory.map(n => n.netWorth));
   const isSaved = saved || Boolean(gameState.leaderboardEntryId);
+  const careerLeague = getCareerLeague(gameState);
+  const playerRank = Math.max(1, careerLeague.findIndex(entry => entry.isPlayer) + 1);
+  const latestBoardReview = gameState.career.boardReviews[gameState.career.boardReviews.length - 1] || null;
 
   const handleSave = () => {
     const updated = recordCompletedGame(gameState);
@@ -135,6 +139,35 @@ export default function GameOver() {
             </div>
             <div><span className="text-xs text-[var(--text-muted)] block">Difficulty</span><span className="font-mono-data text-[var(--text-secondary)] capitalize">{gameState.difficulty}</span></div>
           </div>
+        </motion.div>
+
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.95 }}
+          className="bg-[var(--surface-0)] border border-[var(--border)] rounded-2xl p-5 mb-6 text-left">
+          <div className="flex items-center gap-2 mb-3">
+            <Award className="w-4 h-4 text-[var(--neutral-amber)]" />
+            <h3 className="text-sm font-semibold text-[var(--text-primary)] uppercase tracking-wider">Fund Career</h3>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="rounded-xl bg-[var(--surface-1)] p-3">
+              <span className="text-[10px] text-[var(--text-muted)] block">Fund Style</span>
+              <p className="text-sm font-semibold text-[var(--text-primary)]">{gameState.career.archetypeLabel}</p>
+            </div>
+            <div className="rounded-xl bg-[var(--surface-1)] p-3">
+              <span className="text-[10px] text-[var(--text-muted)] block">League Finish</span>
+              <p className="text-sm font-mono-data font-semibold text-[var(--text-primary)]">#{playerRank} of {careerLeague.length}</p>
+            </div>
+            <div className="rounded-xl bg-[var(--surface-1)] p-3">
+              <span className="text-[10px] text-[var(--text-muted)] block">Board Reviews</span>
+              <p className="text-sm font-mono-data font-semibold text-[var(--text-primary)]">{gameState.career.boardReviews.length}</p>
+            </div>
+            <div className="rounded-xl bg-[var(--surface-1)] p-3">
+              <span className="text-[10px] text-[var(--text-muted)] block">Last Board Grade</span>
+              <p className="text-sm font-display font-semibold text-[var(--neutral-amber)]">{latestBoardReview?.grade || 'N/A'}</p>
+            </div>
+          </div>
+          {latestBoardReview && (
+            <p className="text-xs text-[var(--text-muted)] mt-3">{latestBoardReview.headline}: {latestBoardReview.summary}</p>
+          )}
         </motion.div>
 
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 1.0 }}>

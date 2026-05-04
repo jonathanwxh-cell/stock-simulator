@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { cloudDeleteSave, cloudGetSaveMetadata, cloudLoadGame, cloudSaveGame, isCloudSaveConfigured } from './cloudSaveSystem';
 import { DIFFICULTY_CONFIGS } from './config';
 import { createInitialMacroEnvironment } from './macroSystem';
+import { ensureCareerState } from './careerSystem';
 
 const SAVE_SLOTS_KEY = 'marketmaster_save_slots';
 const AUTO_SAVE_KEY = 'marketmaster_autosave';
@@ -174,6 +175,14 @@ const CompanyTraitSchema = z.enum([
   'turnaround',
   'momentum',
 ]);
+const CareerStyleSchema = z.enum([
+  'balanced',
+  'growth_hunter',
+  'dividend_baron',
+  'macro_surfer',
+  'contrarian',
+  'short_shark',
+]);
 const StockSchema = z.object({
   id: z.string(),
   ticker: z.string(),
@@ -336,6 +345,48 @@ const ActiveScenarioSchema = z.object({
   sectorEffects: z.record(z.string(), z.number()),
   events: z.array(NewsEventSchema),
 }).strict();
+const CareerObjectiveSchema = z.object({
+  id: z.string(),
+  title: z.string(),
+  description: z.string(),
+  targetLabel: z.string(),
+  rewardLabel: z.string(),
+  expiresTurn: z.number(),
+  status: z.enum(['active', 'completed', 'failed']),
+}).strict();
+const CareerRivalFundSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  style: CareerStyleSchema,
+  archetypeLabel: z.string(),
+  startingNetWorth: z.number(),
+  netWorth: z.number(),
+  returnPct: z.number(),
+  lastTurnChangePct: z.number(),
+  reputation: z.number(),
+}).strict();
+const CareerBoardReviewSchema = z.object({
+  id: z.string(),
+  turn: z.number(),
+  date: DateValueSchema,
+  grade: z.enum(['S', 'A', 'B', 'C', 'D', 'F']),
+  score: z.number(),
+  headline: z.string(),
+  summary: z.string(),
+  strengths: z.array(z.string()),
+  concerns: z.array(z.string()),
+  objective: CareerObjectiveSchema.nullable(),
+}).strict();
+const CareerStateSchema = z.object({
+  style: CareerStyleSchema,
+  archetypeLabel: z.string(),
+  selectedAt: DateValueSchema,
+  startingNetWorth: z.number(),
+  rivalFunds: z.array(CareerRivalFundSchema),
+  boardReviews: z.array(CareerBoardReviewSchema),
+  currentObjective: CareerObjectiveSchema.nullable(),
+  nextBoardReviewTurn: z.number(),
+}).strict();
 
 // Version-tolerant for older saves, but strict about unknown keys at every
 // modeled level so imports cannot smuggle arbitrary state into the engine.
@@ -344,6 +395,7 @@ const ImportSaveSchema = z.object({
   runId: z.string().optional(),
   leaderboardEntryId: z.string().nullable().optional(),
   playerName: z.string(),
+  career: CareerStateSchema.optional(),
   difficulty: z.enum(['easy', 'normal', 'hard', 'expert']),
   currentTurn: z.number().int().nonnegative(),
   currentDate: DateValueSchema,
@@ -379,7 +431,7 @@ const ImportSaveSchema = z.object({
 
 function reviveDates(state: GameState): GameState {
   const macroEnvironment = state.macroEnvironment || createInitialMacroEnvironment();
-  return {
+  const revived = {
     ...state,
     currentDate: new Date(state.currentDate),
     createdAt: new Date(state.createdAt),
@@ -413,6 +465,11 @@ function reviveDates(state: GameState): GameState {
         date: new Date(e.date),
       })),
     } : null,
+  };
+
+  return {
+    ...revived,
+    career: ensureCareerState(revived),
   };
 }
 

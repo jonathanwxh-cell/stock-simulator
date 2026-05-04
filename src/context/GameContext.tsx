@@ -1,11 +1,11 @@
 import { createContext, useContext, useReducer, useCallback, type ReactNode } from 'react';
-import type { ConditionalOrder, GameState, Difficulty, RebalancePreview, Screen, GameSettings } from '../engine/types';
+import type { ConditionalOrder, GameState, Difficulty, RebalancePreview, Screen, GameSettings, CareerStyle } from '../engine/types';
 import {
   createNewGame, executeBuy, executeSell, executeShort, executeCover,
   placeLimitOrder, cancelLimitOrder, placeConditionalOrder, cancelConditionalOrder, executeRebalancePreview, simulateTurn, autoSave,
   saveGame as saveGameEngine, loadGame as loadGameEngine,
   loadSettings, saveSettings, initSaveSystem, tradeErrorMessage,
-  initialMarketIndex, createInitialRegime, createInitialMacroEnvironment, calculateRisk, createMission, defaultRNG, ensureUpcomingCatalysts, toggleWatchlistStock,
+  initialMarketIndex, createInitialRegime, createInitialMacroEnvironment, calculateRisk, createMission, defaultRNG, ensureUpcomingCatalysts, toggleWatchlistStock, ensureCareerState,
 } from '../engine';
 import { recordCompletedGame } from '../engine/completion';
 import { useAudio } from '@/hooks/useAudio';
@@ -15,7 +15,7 @@ interface GameContextType {
   settings: GameSettings;
   screen: Screen;
   previousScreen: Screen;
-  newGame: (name: string, difficulty: Difficulty) => void;
+  newGame: (name: string, difficulty: Difficulty, careerStyle?: CareerStyle) => void;
   loadGame: (slot: 1 | 2 | 3 | 'auto') => Promise<void>;
   saveGame: (slot: 1 | 2 | 3 | 'auto') => void;
   advanceTurn: () => void;
@@ -73,6 +73,7 @@ function migrateGameState(loaded: GameState): GameState {
     ...loaded,
     runId: loaded.runId || `legacy:${loaded.playerName}:${loaded.difficulty}:${new Date(loaded.createdAt).toISOString()}`,
     leaderboardEntryId: loaded.leaderboardEntryId || null,
+    career: ensureCareerState(loaded),
     shortPositions: loaded.shortPositions || {},
     limitOrders: loaded.limitOrders || [],
     conditionalOrders: loaded.conditionalOrders || [],
@@ -111,8 +112,8 @@ export function GameProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(reducer, { gameState: null, settings: savedSettings || defaultSettings, screen: 'title', previousScreen: 'title', lastError: null });
   const { buy, sell, short, cover, dividend, gameOver, turn, marginCall, click, error } = useAudio({ soundEnabled: state.settings.soundEnabled, musicEnabled: state.settings.musicEnabled, screen: state.screen });
 
-  const newGame = useCallback((name: string, difficulty: Difficulty) => {
-    const game = createNewGame(name, difficulty);
+  const newGame = useCallback((name: string, difficulty: Difficulty, careerStyle: CareerStyle = 'balanced') => {
+    const game = createNewGame(name, difficulty, careerStyle);
     dispatch({ type: 'CLEAR_ERROR' });
     dispatch({ type: 'SET_GAME_STATE', payload: game });
     dispatch({ type: 'SET_SCREEN', payload: 'game' });

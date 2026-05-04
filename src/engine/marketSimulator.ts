@@ -14,6 +14,7 @@ import { generateAdvisorFeedback } from './advisorSystem';
 import { ensureUpcomingCatalysts, resolveDueCatalysts } from './catalystSystem';
 import { applyPendingOrderSplitAdjustment, resolvePendingOrders } from './orders';
 import { advanceMacroEnvironment, createInitialMacroEnvironment, getMacroStockDrift } from './macroSystem';
+import { advanceCareerState } from './careerSystem';
 
 function genNewsId(): string { return `news_${crypto.randomUUID()}`; }
 
@@ -91,6 +92,7 @@ export function simulateTurn(gameState: GameState, rng: RNG = defaultRNG): GameS
   });
 
   newState.lastAdvisorFeedback = generateAdvisorFeedback(prevState, newState);
+  newState.career = advanceCareerState(prevState, newState);
 
   const goalAmount = config.startingCash * config.goalMultiplier;
   if (netWorth >= goalAmount || newState.currentTurn >= config.turnLimit) {

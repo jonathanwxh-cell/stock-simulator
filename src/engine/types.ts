@@ -14,6 +14,74 @@ export type Sector =
 
 export type Difficulty = 'easy' | 'normal' | 'hard' | 'expert';
 export type CompanyTrait = 'growth' | 'value' | 'defensive' | 'cyclical' | 'income' | 'speculative' | 'turnaround' | 'momentum';
+export type CareerStyle = 'balanced' | 'growth_hunter' | 'dividend_baron' | 'macro_surfer' | 'contrarian' | 'short_shark';
+
+export interface CareerArchetype {
+  style: CareerStyle;
+  label: string;
+  shortLabel: string;
+  tagline: string;
+  perk: string;
+  color: string;
+}
+
+export interface CareerObjective {
+  id: string;
+  title: string;
+  description: string;
+  targetLabel: string;
+  rewardLabel: string;
+  expiresTurn: number;
+  status: 'active' | 'completed' | 'failed';
+}
+
+export interface CareerRivalFund {
+  id: string;
+  name: string;
+  style: CareerStyle;
+  archetypeLabel: string;
+  startingNetWorth: number;
+  netWorth: number;
+  returnPct: number;
+  lastTurnChangePct: number;
+  reputation: number;
+}
+
+export interface CareerBoardReview {
+  id: string;
+  turn: number;
+  date: Date;
+  grade: 'S' | 'A' | 'B' | 'C' | 'D' | 'F';
+  score: number;
+  headline: string;
+  summary: string;
+  strengths: string[];
+  concerns: string[];
+  objective: CareerObjective | null;
+}
+
+export interface CareerState {
+  style: CareerStyle;
+  archetypeLabel: string;
+  selectedAt: Date;
+  startingNetWorth: number;
+  rivalFunds: CareerRivalFund[];
+  boardReviews: CareerBoardReview[];
+  currentObjective: CareerObjective | null;
+  nextBoardReviewTurn: number;
+}
+
+export interface CareerLeagueEntry {
+  id: string;
+  name: string;
+  style: CareerStyle;
+  archetypeLabel: string;
+  netWorth: number;
+  returnPct: number;
+  lastTurnChangePct: number;
+  reputation: number;
+  isPlayer: boolean;
+}
 
 export interface Stock {
   id: string;
@@ -174,6 +242,7 @@ export interface GameState {
   runId?: string;
   leaderboardEntryId?: string | null;
   playerName: string;
+  career: CareerState;
   difficulty: Difficulty;
   currentTurn: number;
   currentDate: Date;

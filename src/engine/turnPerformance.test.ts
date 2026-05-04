@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { generateAdvisorFeedback } from './advisorSystem';
 import { getLatestTurnPerformance } from './turnPerformance';
 import { createInitialMacroEnvironment } from './macroSystem';
+import { createCareerState } from './careerSystem';
 import type { GameState, Stock } from './types';
 
 const amd: Stock = {
@@ -26,6 +27,7 @@ function makeState(netWorth: number, marketChange: number): GameState {
   return {
     saveSlot: 'auto',
     playerName: 'Tester',
+    career: createCareerState('balanced', 100000, new Date(2024, 0, 1)),
     difficulty: 'normal',
     currentTurn: 1,
     currentDate: new Date(2024, 1, 1),

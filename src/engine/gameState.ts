@@ -1,5 +1,5 @@
 import { deepCloneGameState } from './cloneState';
-import type { GameState, Difficulty, Transaction, TradeResult } from './types';
+import type { GameState, Difficulty, Transaction, TradeResult, CareerStyle } from './types';
 import { DIFFICULTY_CONFIGS, calcBrokerFee } from './config';
 import { isPositiveCurrency, isPositiveWholeNumber, roundCurrency } from './financialMath';
 import { cloneInitialStocks } from './stockData';
@@ -11,6 +11,7 @@ import { createMission } from './missionSystem';
 import { defaultRNG } from './rng';
 import { ensureUpcomingCatalysts } from './catalystSystem';
 import { createInitialMacroEnvironment } from './macroSystem';
+import { createCareerState } from './careerSystem';
 import {
   cancelConditionalOrder as cancelConditionalOrderImpl,
   cancelLimitOrder as cancelLimitOrderImpl,
@@ -20,13 +21,13 @@ import {
 
 export { getPortfolioValue, getNetWorth, getShortLiability };
 
-export function createNewGame(playerName: string, difficulty: Difficulty): GameState {
+export function createNewGame(playerName: string, difficulty: Difficulty, careerStyle: CareerStyle = 'balanced'): GameState {
   const config = DIFFICULTY_CONFIGS[difficulty];
   const now = new Date();
   const startDate = new Date(2024, 0, 1);
   const macroEnvironment = createInitialMacroEnvironment();
   const state: GameState = {
-    saveSlot: 'auto', runId: crypto.randomUUID(), leaderboardEntryId: null, playerName: playerName || 'Trader', difficulty, currentTurn: 0, currentDate: startDate,
+    saveSlot: 'auto', runId: crypto.randomUUID(), leaderboardEntryId: null, playerName: playerName || 'Trader', career: createCareerState(careerStyle, config.startingCash, now), difficulty, currentTurn: 0, currentDate: startDate,
     cash: config.startingCash, portfolio: {}, shortPositions: {}, limitOrders: [], conditionalOrders: [], marginUsed: 0,
     totalFeesPaid: 0, totalDividendsReceived: 0, transactionHistory: [],
     netWorthHistory: [{ turn: 0, date: new Date(startDate), netWorth: config.startingCash, cash: config.startingCash, portfolioValue: 0, shortLiability: 0, marginUsed: 0 }],

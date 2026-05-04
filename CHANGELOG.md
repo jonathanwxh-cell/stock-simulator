@@ -8,6 +8,7 @@ All notable changes to this project are documented here. Format follows
 
 ### Added
 
+- Added a Phase 3 fund career layer with selectable archetypes, deterministic rival funds, quarterly board reviews, and automatic board objectives that add long-run drama without manual journaling.
 - Added a Phase 2 strategy layer with company traits, a monthly macro backdrop, scanner signals, and stock research briefs across the HUD, market, news, and stock detail screens.
 - Added a portfolio performance chart with 12-month, 24-month, and full-history views so players can track normalized net worth vs the benchmark from the Portfolio screen.
 - Added advanced pending-order tooling on stock detail, including one-click limit orders plus long-only stop-loss and take-profit exits with per-stock order management.
@@ -27,6 +28,7 @@ All notable changes to this project are documented here. Format follows
 
 ### Internal
 
+- Added deterministic regression coverage for fund archetypes, rival fund advancement, quarterly board reviews, career league ranking, and save import preservation.
 - Added deterministic regression coverage for company trait derivation, macro advancement and stock drift, scanner ranking, and research brief generation.
 - Added deterministic regression coverage for conditional pending orders, performance-series normalization, negative-cash rebalance validation, and trade-order sequencing in rebalance previews.
 - Extended the browser smoke harness to buy a live position, place pending exits, verify the new portfolio chart and open-order surfaces, and execute a full rebalance before the endgame pass.

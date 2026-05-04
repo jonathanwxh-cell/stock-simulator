@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useGame } from '../context/GameContext';
-import type { Difficulty } from '../engine/types';
+import type { CareerStyle, Difficulty } from '../engine/types';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Play,
@@ -14,6 +14,7 @@ import {
   X,
 } from 'lucide-react';
 import { DIFFICULTY_CONFIGS } from '../engine/config';
+import { CAREER_ARCHETYPES } from '../engine/careerSystem';
 import { getSaveMetadata } from '../engine/saveSystem';
 import type { SaveMetadata } from '../engine/types';
 
@@ -37,6 +38,8 @@ const MENU_ITEMS = [
   { id: 'how-to-play', label: 'HOW TO PLAY', icon: HelpCircle, variant: 'ghost' as const },
 ];
 
+const CAREER_DATA = Object.values(CAREER_ARCHETYPES);
+
 function pseudoRandom(seed: number): number {
   const value = Math.sin(seed * 12.9898) * 43758.5453;
   return value - Math.floor(value);
@@ -54,6 +57,7 @@ export default function TitleScreen() {
   const { navigateTo, newGame } = useGame();
   const [showDifficulty, setShowDifficulty] = useState(false);
   const [selectedDifficulty, setSelectedDifficulty] = useState<Difficulty | null>(null);
+  const [selectedCareer, setSelectedCareer] = useState<CareerStyle>('balanced');
   const [playerName, setPlayerName] = useState('');
   const [hasAutoSave, setHasAutoSave] = useState(false);
   const [loadDisabled, setLoadDisabled] = useState(true);
@@ -71,6 +75,7 @@ export default function TitleScreen() {
     if (id === 'new-game') {
       setShowDifficulty(true);
       setSelectedDifficulty(null);
+      setSelectedCareer('balanced');
       setPlayerName('');
     } else if (id === 'load-game') {
       if (!loadDisabled) navigateTo('load-save');
@@ -85,9 +90,9 @@ export default function TitleScreen() {
 
   const handleStartGame = useCallback(() => {
     if (selectedDifficulty && playerName.trim()) {
-      newGame(playerName.trim(), selectedDifficulty);
+      newGame(playerName.trim(), selectedDifficulty, selectedCareer);
     }
-  }, [selectedDifficulty, playerName, newGame]);
+  }, [selectedDifficulty, selectedCareer, playerName, newGame]);
 
   const handleAutoSaveContinue = useCallback(() => {
     navigateTo('load-save');
@@ -354,6 +359,48 @@ export default function TitleScreen() {
                     transition={{ duration: 0.3 }}
                     className="mb-6 overflow-hidden"
                   >
+                    <div className="mb-6">
+                      <label className="block text-heading-sm font-semibold text-[var(--text-primary)] mb-2">
+                        Pick Your Fund Style
+                      </label>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        {CAREER_DATA.map((career) => {
+                          const isSelected = selectedCareer === career.style;
+
+                          return (
+                            <button
+                              key={career.style}
+                              type="button"
+                              onClick={() => setSelectedCareer(career.style)}
+                              className={`relative text-left rounded-xl border p-3 transition-all ${
+                                isSelected
+                                  ? 'bg-[var(--surface-2)]'
+                                  : 'bg-[var(--surface-1)] border-[var(--border)] hover:border-[var(--border-hover)]'
+                              }`}
+                              style={{
+                                borderColor: isSelected ? career.color : undefined,
+                                boxShadow: isSelected ? `0 0 0 2px ${career.color}33` : undefined,
+                              }}
+                            >
+                              {isSelected && (
+                                <div
+                                  className="absolute top-2 right-2 w-5 h-5 rounded-full flex items-center justify-center"
+                                  style={{ backgroundColor: career.color }}
+                                >
+                                  <Check className="w-3 h-3 text-black" />
+                                </div>
+                              )}
+                              <p className="text-sm font-semibold pr-6" style={{ color: career.color }}>
+                                {career.label}
+                              </p>
+                              <p className="text-[11px] text-[var(--text-secondary)] mt-1">{career.tagline}</p>
+                              <p className="text-[10px] text-[var(--text-muted)] mt-2">{career.perk}</p>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+
                     <label className="block text-heading-sm font-semibold text-[var(--text-primary)] mb-2">
                       Enter Your Name
                     </label>

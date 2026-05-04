@@ -130,10 +130,10 @@ describe('save-system auto-save lifecycle', () => {
 
   it('rejects imported saves with unexpected top-level or stock fields', async () => {
     const { importSave } = await import('../saveSystem');
-    const validGame = createNewGame('Import Guard', 'normal');
+    const validGame = createNewGame('Import Guard', 'normal', 'short_shark');
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
 
-    expect(importSave(JSON.stringify(validGame))).not.toBeNull();
+    expect(importSave(JSON.stringify(validGame))?.career.style).toBe('short_shark');
     expect(importSave(JSON.stringify({ ...validGame, injectedPayload: true }))).toBeNull();
     expect(importSave(JSON.stringify({
       ...validGame,

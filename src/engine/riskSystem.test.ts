@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { calculateRisk } from './riskSystem';
 import { createInitialMacroEnvironment } from './macroSystem';
+import { createCareerState } from './careerSystem';
 import type { GameState, Stock } from './types';
 
 const amd: Stock = {
@@ -25,6 +26,7 @@ function makeState(overrides: Partial<GameState> = {}): GameState {
   const state: GameState = {
     saveSlot: 'auto',
     playerName: 'Tester',
+    career: createCareerState('balanced', 100000, new Date(2024, 0, 1)),
     difficulty: 'normal',
     currentTurn: 0,
     currentDate: new Date(2024, 0, 1),

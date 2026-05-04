@@ -1,6 +1,6 @@
 import { useGame } from '../context/GameContext';
 import { motion } from 'framer-motion';
-import { TrendingUp, TrendingDown, Clock, DollarSign, BarChart3 } from 'lucide-react';
+import { TrendingUp, TrendingDown, Clock, DollarSign, BarChart3, Award } from 'lucide-react';
 import { useEffect } from 'react';
 import { getLatestTurnPerformance } from '../engine/turnPerformance';
 import { getPostTurnDestination } from '../engine/completion';
@@ -37,6 +37,7 @@ export default function NextTurn() {
   const { marketMovePct, playerMovePct, turnAlphaPct } = getLatestTurnPerformance(gameState);
   const advisorFeedback = gameState.lastAdvisorFeedback || [];
   const recentNews = gameState.newsHistory.filter(n => n.turn === gameState.currentTurn);
+  const latestBoardReview = gameState.career.boardReviews.find(review => review.turn === gameState.currentTurn);
 
   return (
     <div className="min-h-[calc(100dvh-56px-72px)] flex flex-col items-center justify-center p-6">
@@ -97,6 +98,38 @@ export default function NextTurn() {
             </div>
           </div>
         </div>
+
+        {/* Board Review */}
+        {latestBoardReview && (
+          <div className="bg-[var(--surface-0)] border border-[rgba(245,158,11,0.3)] rounded-2xl p-5 mb-4">
+            <div className="flex items-center justify-between gap-3 mb-3">
+              <div className="flex items-center gap-2">
+                <Award className="w-4 h-4 text-[var(--neutral-amber)]" />
+                <h3 className="text-heading-sm font-semibold text-[var(--text-primary)]">Board Review</h3>
+              </div>
+              <span className="text-sm font-display font-bold text-[var(--neutral-amber)]">Grade {latestBoardReview.grade}</span>
+            </div>
+            <p className="text-sm font-semibold text-[var(--text-primary)]">{latestBoardReview.headline}</p>
+            <p className="text-xs text-[var(--text-secondary)] mt-1">{latestBoardReview.summary}</p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-3">
+              <div className="rounded-xl bg-[rgba(34,197,94,0.08)] border border-[rgba(34,197,94,0.18)] p-3">
+                <span className="text-[10px] uppercase tracking-wider text-[var(--profit-green)]">Praise</span>
+                <p className="text-xs text-[var(--text-secondary)] mt-1">{latestBoardReview.strengths[0]}</p>
+              </div>
+              <div className="rounded-xl bg-[var(--surface-1)] border border-[var(--border)] p-3">
+                <span className="text-[10px] uppercase tracking-wider text-[var(--text-muted)]">Nudge</span>
+                <p className="text-xs text-[var(--text-secondary)] mt-1">{latestBoardReview.concerns[0]}</p>
+              </div>
+            </div>
+            {latestBoardReview.objective && (
+              <div className="rounded-xl bg-[var(--surface-1)] border border-[var(--border)] p-3 mt-3">
+                <span className="text-[10px] uppercase tracking-wider text-[var(--neutral-amber)]">New Objective</span>
+                <p className="text-xs font-semibold text-[var(--text-primary)] mt-1">{latestBoardReview.objective.title}</p>
+                <p className="text-[10px] text-[var(--text-muted)] mt-1">{latestBoardReview.objective.description}</p>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Advisor Feedback */}
         {advisorFeedback.length > 0 && (

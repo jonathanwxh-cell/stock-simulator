@@ -59,6 +59,7 @@ async function waitForHudOrGameOver(page, timeout = WAIT_MS) {
 
     if (
       (await isVisible(page.getByText('Market Pulse', { exact: true }))) &&
+      (await isVisible(page.getByText('Fund Career', { exact: true }))) &&
       (await isVisible(page.getByText('Macro Backdrop', { exact: true }))) &&
       (await isVisible(page.getByText('Scanner Signals', { exact: true }))) &&
       (await isVisible(page.getByText('Watchlist Alerts', { exact: true }))) &&
@@ -189,10 +190,12 @@ async function main() {
     log('Starting a fresh Normal run');
     await page.getByRole('button', { name: 'NEW GAME' }).click();
     await page.getByRole('button', { name: /Normal/ }).click();
+    await page.getByRole('button', { name: /Growth Hunter/ }).click();
     await page.getByPlaceholder('Trader Name').fill('Codex QA');
     await page.getByRole('button', { name: 'Start Game' }).click();
 
     await waitForHudOrGameOver(page);
+    await waitForVisible(page.getByText('Fund Career', { exact: true }), 'HUD Fund Career card');
     await waitForVisible(page.getByText('Macro Backdrop', { exact: true }), 'HUD Macro Backdrop card');
     await waitForVisible(page.getByText('Scanner Signals', { exact: true }), 'HUD Scanner Signals card');
     await waitForVisible(page.getByText('Market Pulse', { exact: true }), 'HUD Market Pulse card');

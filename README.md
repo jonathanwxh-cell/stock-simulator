@@ -13,6 +13,7 @@ Trade 60 fictional stocks across 12 sectors, react to randomly generated market 
 ## Features
 
 - **60 stocks** across 12 sectors (Tech, Semiconductors, Healthcare, Biotech, Energy, Financials, Consumer, Media, Industrial, Real Estate, Telecom, Materials)
+- **Fund career mode** with one-click archetypes, rival funds, quarterly board reviews, and automatic objectives that add drama without manual journaling
 - **4 difficulty levels** — Easy, Normal, Hard, Expert — each with different starting capital, volatility, fees, and win conditions
 - **Market simulation engine** — sector rotation, mean-reverting prices, dividend payouts, stock splits
 - **Event system** — breaking news, earnings reports, regulatory actions, macro events that move sectors and individual stocks

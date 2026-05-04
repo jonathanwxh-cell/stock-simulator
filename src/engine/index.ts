@@ -19,6 +19,7 @@ export * from './marketInsights';
 export * from './companyTraits';
 export * from './macroSystem';
 export * from './scannerSystem';
+export * from './careerSystem';
 export { resolvePendingOrders, applyPendingOrderSplitAdjustment } from './orders';
 export * from './performanceSeries';
 export * from './rebalancing';

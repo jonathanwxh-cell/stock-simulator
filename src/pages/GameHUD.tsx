@@ -1,6 +1,6 @@
 import { useGame } from '../context/GameContext';
 import { motion } from 'framer-motion';
-import { TrendingUp, TrendingDown, DollarSign, PieChart, Zap, AlertTriangle, BarChart3, Target, Clock } from 'lucide-react';
+import { TrendingUp, TrendingDown, DollarSign, PieChart, Zap, AlertTriangle, BarChart3, Target, Clock, Award } from 'lucide-react';
 import { getNetWorth } from '../engine/marketSimulator';
 import { getAlphaPct, getMarketReturnPct, getPlayerReturnPct } from '../engine/marketIndex';
 import { getLatestRisk } from '../engine/riskSystem';
@@ -8,6 +8,7 @@ import { DIFFICULTY_CONFIGS, SECTOR_LABELS } from '../engine/config';
 import type { GameState } from '../engine/types';
 import { getMarketBreadthSummary, getUpcomingCatalysts, getWatchlistAlerts, isExecutedPlayerTrade } from '../engine/marketInsights';
 import { getScannerSignals } from '../engine/scannerSystem';
+import { CAREER_ARCHETYPES, getCareerLeague } from '../engine/careerSystem';
 import { getMissionProgressLabel, getMissionProgressPercent, getMissionTargetLabel } from '../utils/missionFormatting';
 import { getRegimeHeadwindSectors, getRegimeTailwindSectors } from '../utils/regimeUi';
 import WatchlistAlertsCard from '../components/market/WatchlistAlertsCard';
@@ -63,6 +64,13 @@ export default function GameHUD() {
   const positiveSectors = getRegimeTailwindSectors(regime).slice(0, 3);
   const negativeSectors = getRegimeHeadwindSectors(regime).slice(0, 3);
   const totalTrades = countPlayerTrades(gameState);
+  const career = gameState.career;
+  const careerStyle = CAREER_ARCHETYPES[career.style];
+  const careerLeague = getCareerLeague(gameState);
+  const leagueLeaders = careerLeague.slice(0, 3);
+  const playerRank = Math.max(1, careerLeague.findIndex(entry => entry.isPlayer) + 1);
+  const latestBoardReview = career.boardReviews[career.boardReviews.length - 1] || null;
+  const monthsToBoard = Math.max(0, career.nextBoardReviewTurn - gameState.currentTurn);
 
   const marginUsed = gameState.marginUsed;
   const marginMax = netWorth * 0.5;
@@ -185,6 +193,59 @@ export default function GameHUD() {
               </>
             ) : (
               <p className="text-xs text-[var(--text-muted)]">No active mission yet. Advance one turn to receive one.</p>
+            )}
+          </div>
+
+          <div className="bg-[var(--surface-0)] border border-[var(--border)] rounded-2xl p-4">
+            <div className="flex items-center justify-between gap-3 mb-3">
+              <div className="flex items-center gap-2">
+                <Award className="w-4 h-4" style={{ color: careerStyle.color }} />
+                <h3 className="text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wider">Fund Career</h3>
+              </div>
+              <span className="text-[10px] text-[var(--text-muted)]">
+                Board in {monthsToBoard} mo
+              </span>
+            </div>
+            <div className="rounded-xl bg-[var(--surface-1)] p-3 mb-3">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="text-sm font-semibold" style={{ color: careerStyle.color }}>{career.archetypeLabel}</p>
+                  <p className="text-xs text-[var(--text-muted)] mt-1">{careerStyle.tagline}</p>
+                </div>
+                <div className="text-right shrink-0">
+                  <span className="text-[10px] text-[var(--text-muted)] block">League Rank</span>
+                  <span className="text-sm font-mono-data font-semibold text-[var(--text-primary)]">#{playerRank}</span>
+                </div>
+              </div>
+              {career.currentObjective && (
+                <div className="mt-3 border-t border-[var(--border)] pt-3">
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="text-[10px] uppercase tracking-wider text-[var(--neutral-amber)]">Board Objective</span>
+                    <span className="text-[10px] text-[var(--text-muted)]">Due T{career.currentObjective.expiresTurn}</span>
+                  </div>
+                  <p className="text-xs font-semibold text-[var(--text-primary)] mt-1">{career.currentObjective.title}</p>
+                  <p className="text-[10px] text-[var(--text-muted)] mt-1">{career.currentObjective.targetLabel}</p>
+                </div>
+              )}
+            </div>
+            <div className="space-y-2">
+              {leagueLeaders.map((entry, index) => (
+                <div key={entry.id} className={`flex items-center justify-between rounded-lg px-3 py-2 ${entry.isPlayer ? 'bg-[rgba(34,197,94,0.08)] border border-[rgba(34,197,94,0.2)]' : 'bg-[var(--surface-1)]'}`}>
+                  <div>
+                    <p className="text-xs font-semibold text-[var(--text-primary)]">{index + 1}. {entry.name}</p>
+                    <p className="text-[10px] text-[var(--text-muted)]">{entry.archetypeLabel}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className={`text-xs font-mono-data font-semibold ${entry.returnPct >= 0 ? 'text-[var(--profit-green)]' : 'text-[var(--loss-red)]'}`}>{pct(entry.returnPct)}</p>
+                    <p className="text-[10px] text-[var(--text-muted)]">${entry.netWorth.toLocaleString()}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+            {latestBoardReview && (
+              <p className="text-[10px] text-[var(--text-muted)] mt-3">
+                Last review: Grade {latestBoardReview.grade} - {latestBoardReview.headline}
+              </p>
             )}
           </div>
 
