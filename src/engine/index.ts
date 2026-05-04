@@ -20,6 +20,7 @@ export * from './companyTraits';
 export * from './macroSystem';
 export * from './scannerSystem';
 export * from './careerSystem';
+export * from './careerSeasons';
 export * from './tradeLanguage';
 export * from './marketCoach';
 export { resolvePendingOrders, applyPendingOrderSplitAdjustment } from './orders';

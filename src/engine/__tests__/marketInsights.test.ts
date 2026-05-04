@@ -146,4 +146,19 @@ describe('marketInsights', () => {
     expect(recap.totalTrades).toBe(2);
     expect(recap.totalFees).toBe(5);
   });
+
+  it('does not label a profitable holding as the biggest drag', () => {
+    const state = createNewGame('Recap', 'normal');
+    const winner = state.stocks[0];
+
+    winner.currentPrice = 130;
+    state.portfolio = {
+      [winner.id]: { stockId: winner.id, shares: 10, avgCost: 100 },
+    };
+
+    const recap = buildSeasonRecap(state);
+
+    expect(recap.topWinner?.ticker).toBe(winner.ticker);
+    expect(recap.biggestDrag).toBeNull();
+  });
 });

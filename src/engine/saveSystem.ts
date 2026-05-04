@@ -2,9 +2,9 @@ import type { GameState, SaveMetadata, Stock } from './types';
 import { openDB, type DBSchema, type IDBPDatabase } from 'idb';
 import { z } from 'zod';
 import { cloudDeleteSave, cloudGetSaveMetadata, cloudLoadGame, cloudSaveGame, isCloudSaveConfigured } from './cloudSaveSystem';
-import { DIFFICULTY_CONFIGS } from './config';
 import { createInitialMacroEnvironment } from './macroSystem';
 import { ensureCareerState } from './careerSystem';
+import { getCareerSeasonTurnLimit } from './careerSeasons';
 
 const SAVE_SLOTS_KEY = 'marketmaster_save_slots';
 const AUTO_SAVE_KEY = 'marketmaster_autosave';
@@ -182,6 +182,22 @@ const CareerStyleSchema = z.enum([
   'macro_surfer',
   'contrarian',
   'short_shark',
+]);
+const SeasonThemeIdSchema = z.enum([
+  'opening_bell',
+  'inflation_shock',
+  'startup_boom',
+  'credit_crunch',
+  'dividend_decade',
+  'ai_mania',
+  'commodity_squeeze',
+]);
+const ChallengeModeIdSchema = z.enum([
+  'standard',
+  'bear_market',
+  'dividend_focus',
+  'no_shorts',
+  'small_cap_sprint',
 ]);
 const StockSchema = z.object({
   id: z.string(),
@@ -377,11 +393,41 @@ const CareerBoardReviewSchema = z.object({
   concerns: z.array(z.string()),
   objective: CareerObjectiveSchema.nullable(),
 }).strict();
+const CareerSeasonSchema = z.object({
+  seasonNumber: z.number(),
+  themeId: SeasonThemeIdSchema,
+  title: z.string(),
+  description: z.string(),
+  challengeMode: ChallengeModeIdSchema,
+  startTurn: z.number(),
+  startDate: DateValueSchema,
+  startingNetWorth: z.number(),
+  targetNetWorth: z.number(),
+  turnLimit: z.number(),
+  completedAtTurn: z.number().optional(),
+  completedAtDate: DateValueSchema.optional(),
+  completedNetWorth: z.number().optional(),
+  completedGrade: z.enum(['S', 'A', 'B', 'C', 'D', 'F']).nullable().optional(),
+}).strict();
+const CareerUnlockSchema = z.object({
+  id: z.string(),
+  title: z.string(),
+  description: z.string(),
+  earnedAtTurn: z.number(),
+  seasonNumber: z.number(),
+}).strict();
 const CareerStateSchema = z.object({
   style: CareerStyleSchema,
   archetypeLabel: z.string(),
   selectedAt: DateValueSchema,
   startingNetWorth: z.number(),
+  seasonNumber: z.number().optional(),
+  seasonStartTurn: z.number().optional(),
+  seasonStartNetWorth: z.number().optional(),
+  activeSeasonThemeId: SeasonThemeIdSchema.optional(),
+  challengeMode: ChallengeModeIdSchema.optional(),
+  seasons: z.array(CareerSeasonSchema).optional(),
+  unlocks: z.array(CareerUnlockSchema).optional(),
   rivalFunds: z.array(CareerRivalFundSchema),
   boardReviews: z.array(CareerBoardReviewSchema),
   currentObjective: CareerObjectiveSchema.nullable(),
@@ -666,6 +712,7 @@ async function getLocalSaveMetadata(): Promise<SaveMetadata[]> {
     slots.push(emptySaveMetadata('auto'));
   } else if (auto) {
     const difficulty = auto.difficulty || 'normal';
+    const autoWithCareer = { ...auto, career: ensureCareerState(auto) };
     const cash = auto.cash || 0;
     const portfolioValue = (auto.netWorthHistory?.[auto.netWorthHistory.length - 1]?.portfolioValue) || 0;
     slots.push({
@@ -673,7 +720,7 @@ async function getLocalSaveMetadata(): Promise<SaveMetadata[]> {
       playerName: auto.playerName || 'Unknown',
       difficulty,
       currentTurn: auto.currentTurn || 0,
-      turnLimit: DIFFICULTY_CONFIGS[difficulty].turnLimit,
+      turnLimit: getCareerSeasonTurnLimit(autoWithCareer),
       netWorth: (auto.netWorthHistory?.[auto.netWorthHistory.length - 1]?.netWorth) || cash + portfolioValue,
       cash,
       date: new Date(auto.createdAt || Date.now()),
@@ -692,6 +739,7 @@ async function getLocalSaveMetadata(): Promise<SaveMetadata[]> {
     const data = slotsData[key];
     if (data) {
       const difficulty = (data.difficulty || 'normal') as SaveMetadata['difficulty'];
+      const dataWithCareer = { ...data, career: ensureCareerState(data as GameState) };
       const cash = data.cash || 0;
       const portfolioValue = (data.netWorthHistory?.[data.netWorthHistory.length - 1]?.portfolioValue) || 0;
       slots.push({
@@ -699,7 +747,7 @@ async function getLocalSaveMetadata(): Promise<SaveMetadata[]> {
         playerName: data.playerName || 'Unknown',
         difficulty,
         currentTurn: data.currentTurn || 0,
-        turnLimit: DIFFICULTY_CONFIGS[difficulty].turnLimit,
+        turnLimit: getCareerSeasonTurnLimit(dataWithCareer),
         netWorth: (data.netWorthHistory?.[data.netWorthHistory.length - 1]?.netWorth) || cash + portfolioValue,
         cash,
         date: new Date(data.createdAt || Date.now()),

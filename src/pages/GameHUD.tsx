@@ -4,12 +4,13 @@ import { TrendingUp, TrendingDown, DollarSign, PieChart, Zap, AlertTriangle, Bar
 import { getNetWorth } from '../engine/marketSimulator';
 import { getAlphaPct, getMarketReturnPct, getPlayerReturnPct } from '../engine/marketIndex';
 import { getLatestRisk } from '../engine/riskSystem';
-import { DIFFICULTY_CONFIGS, SECTOR_LABELS } from '../engine/config';
+import { SECTOR_LABELS } from '../engine/config';
 import type { GameState } from '../engine/types';
 import { getMarketBreadthSummary, getUpcomingCatalysts, getWatchlistAlerts, isExecutedPlayerTrade } from '../engine/marketInsights';
 import { getScannerSignals } from '../engine/scannerSystem';
 import { buildGuidedMarketCoach, type CoachAction } from '../engine/marketCoach';
 import { CAREER_ARCHETYPES, getCareerLeague } from '../engine/careerSystem';
+import { CHALLENGE_MODES, getActiveSeasonTheme, getCareerSeasonGoal, getCareerSeasonTurn, getCareerSeasonTurnLimit, getCareerUnlocks } from '../engine/careerSeasons';
 import { getMissionProgressLabel, getMissionProgressPercent, getMissionTargetLabel } from '../utils/missionFormatting';
 import { getRegimeHeadwindSectors, getRegimeTailwindSectors } from '../utils/regimeUi';
 import WatchlistAlertsCard from '../components/market/WatchlistAlertsCard';
@@ -45,8 +46,7 @@ export default function GameHUD() {
     if (!gameState) return null;
 
   const netWorth = getNetWorth(gameState);
-  const config = DIFFICULTY_CONFIGS[gameState.difficulty];
-  const goalAmount = config.startingCash * config.goalMultiplier;
+  const goalAmount = getCareerSeasonGoal(gameState);
   const progress = Math.min(100, (netWorth / goalAmount) * 100);
 
   const prevSnap = gameState.netWorthHistory.length > 1 ? gameState.netWorthHistory[gameState.netWorthHistory.length - 2] : null;
@@ -69,6 +69,11 @@ export default function GameHUD() {
   const totalTrades = countPlayerTrades(gameState);
   const career = gameState.career;
   const careerStyle = CAREER_ARCHETYPES[career.style];
+  const seasonTheme = getActiveSeasonTheme(gameState);
+  const seasonTurn = getCareerSeasonTurn(gameState);
+  const seasonTurnLimit = getCareerSeasonTurnLimit(gameState);
+  const challenge = CHALLENGE_MODES[career.challengeMode] || CHALLENGE_MODES.standard;
+  const unlocks = getCareerUnlocks(gameState);
   const careerLeague = getCareerLeague(gameState);
   const leagueLeaders = careerLeague.slice(0, 3);
   const playerRank = Math.max(1, careerLeague.findIndex(entry => entry.isPlayer) + 1);
@@ -102,7 +107,7 @@ export default function GameHUD() {
         <div className="flex items-center gap-2 mb-4">
           <Clock className="w-4 h-4 text-[var(--text-muted)]" />
           <span className="text-sm text-[var(--text-secondary)]">
-            {gameState.currentDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })} — Month {gameState.currentTurn}
+            {gameState.currentDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })} - Season {career.seasonNumber}, Month {seasonTurn}
           </span>
           <span className="text-xs text-[var(--text-muted)] ml-auto">
             {gameState.difficulty === 'easy' ? 'EASY' : gameState.difficulty === 'normal' ? 'NORMAL' : gameState.difficulty === 'hard' ? 'HARD' : 'EXPERT'}
@@ -151,7 +156,7 @@ export default function GameHUD() {
           <div className="bg-[var(--surface-0)] border border-[var(--border)] rounded-xl p-3 text-center">
             <Target className="w-4 h-4 text-[var(--profit-green)] mx-auto mb-1" />
             <span className="text-[10px] text-[var(--text-muted)] block">Turns Left</span>
-            <span className="text-sm font-mono-data font-semibold text-[var(--text-primary)]">{Math.max(0, config.turnLimit - gameState.currentTurn)}</span>
+            <span className="text-sm font-mono-data font-semibold text-[var(--text-primary)]">{Math.max(0, seasonTurnLimit - seasonTurn)}</span>
           </div>
           <div className="bg-[var(--surface-0)] border border-[var(--border)] rounded-xl p-3 text-center">
             <BarChart3 className="w-4 h-4 text-[var(--purple)] mx-auto mb-1" />
@@ -235,6 +240,41 @@ export default function GameHUD() {
                   </div>
                   <p className="text-xs font-semibold text-[var(--text-primary)] mt-1">{career.currentObjective.title}</p>
                   <p className="text-[10px] text-[var(--text-muted)] mt-1">{career.currentObjective.targetLabel}</p>
+                </div>
+              )}
+            </div>
+            <div className="rounded-xl border border-[rgba(59,130,246,0.2)] bg-[rgba(59,130,246,0.06)] p-3 mb-3">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <span className="text-[10px] uppercase tracking-wider text-[var(--info-blue)]">Season {career.seasonNumber} Brief</span>
+                  <p className="text-sm font-semibold text-[var(--text-primary)] mt-1">{seasonTheme.title}</p>
+                  <p className="text-xs text-[var(--text-secondary)] mt-1">{seasonTheme.description}</p>
+                </div>
+                <div className="text-right shrink-0">
+                  <span className="text-[9px] uppercase tracking-wider text-[var(--text-muted)] block">Mode</span>
+                  <span className="inline-block rounded-full border border-[rgba(59,130,246,0.3)] px-2 py-1 text-[10px] text-[var(--info-blue)]">{challenge.badge}</span>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-2 mt-3 text-xs">
+                <div className="rounded-lg bg-[var(--surface-0)]/60 p-2">
+                  <span className="text-[10px] text-[var(--text-muted)] block">Season Target</span>
+                  <span className="font-mono-data text-[var(--text-primary)]">${goalAmount.toLocaleString()}</span>
+                </div>
+                <div className="rounded-lg bg-[var(--surface-0)]/60 p-2">
+                  <span className="text-[10px] text-[var(--text-muted)] block">Season Clock</span>
+                  <span className="font-mono-data text-[var(--text-primary)]">{seasonTurn}/{seasonTurnLimit}</span>
+                </div>
+              </div>
+              {unlocks.length > 0 && (
+                <div className="mt-3 border-t border-[rgba(59,130,246,0.16)] pt-3">
+                  <span className="text-[10px] uppercase tracking-wider text-[var(--text-muted)]">Career Unlocks</span>
+                  <div className="mt-2 flex flex-wrap gap-1.5">
+                    {unlocks.slice(0, 3).map((unlock) => (
+                      <span key={unlock.id} className="rounded-full bg-[var(--surface-0)]/70 border border-[var(--border)] px-2 py-1 text-[10px] text-[var(--text-secondary)]">
+                        {unlock.title}
+                      </span>
+                    ))}
+                  </div>
                 </div>
               )}
             </div>

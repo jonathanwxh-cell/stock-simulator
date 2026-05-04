@@ -15,6 +15,15 @@ import { ensureUpcomingCatalysts, resolveDueCatalysts } from './catalystSystem';
 import { applyPendingOrderSplitAdjustment, resolvePendingOrders } from './orders';
 import { advanceMacroEnvironment, createInitialMacroEnvironment, getMacroStockDrift } from './macroSystem';
 import { advanceCareerState } from './careerSystem';
+import {
+  getCareerSeasonGoal,
+  getCareerSeasonTurn,
+  getCareerSeasonTurnLimit,
+  getSeasonBroadDriftPct,
+  getSeasonScenarioChanceBonus,
+  getSeasonSectorMultiplier,
+  getSeasonVolatilityMultiplier,
+} from './careerSeasons';
 
 function genNewsId(): string { return `news_${crypto.randomUUID()}`; }
 
@@ -40,7 +49,8 @@ export function simulateTurn(gameState: GameState, rng: RNG = defaultRNG): GameS
     newState.currentScenario.duration -= 1;
     if (newState.currentScenario.duration <= 0) newState.currentScenario = null;
   }
-  if (!newState.currentScenario && rng.next() < SCENARIO_FREQUENCY_MAP[config.scenarioFrequency]) {
+  const scenarioChance = Math.max(0, Math.min(0.8, SCENARIO_FREQUENCY_MAP[config.scenarioFrequency] + getSeasonScenarioChanceBonus(newState)));
+  if (!newState.currentScenario && rng.next() < scenarioChance) {
     newState.currentScenario = generateScenario(newState, rng);
   }
 
@@ -59,7 +69,7 @@ export function simulateTurn(gameState: GameState, rng: RNG = defaultRNG): GameS
   }
 
   for (const stock of newState.stocks) {
-    const newPrice = calculateNewPrice(stock, newState, config.volatilityMultiplier, rng);
+    const newPrice = calculateNewPrice(stock, newState, config.volatilityMultiplier * getSeasonVolatilityMultiplier(newState), rng);
     stock.currentPrice = Math.max(1, roundCurrency(newPrice));
     stock.priceHistory.push({ turn: newState.currentTurn, price: stock.currentPrice });
   }
@@ -94,8 +104,10 @@ export function simulateTurn(gameState: GameState, rng: RNG = defaultRNG): GameS
   newState.lastAdvisorFeedback = generateAdvisorFeedback(prevState, newState);
   newState.career = advanceCareerState(prevState, newState);
 
-  const goalAmount = config.startingCash * config.goalMultiplier;
-  if (netWorth >= goalAmount || newState.currentTurn >= config.turnLimit) {
+  const goalAmount = getCareerSeasonGoal(newState);
+  const seasonTurn = getCareerSeasonTurn(newState);
+  const seasonTurnLimit = getCareerSeasonTurnLimit(newState);
+  if (netWorth >= goalAmount || seasonTurn >= seasonTurnLimit) {
     newState.isGameOver = true;
     newState.finalGrade = calculateGrade(newState);
     newState.finalRank = getRankTitle(newState.finalGrade);
@@ -187,13 +199,15 @@ function calculateNewPrice(stock: Stock, state: GameState, volatilityMult: numbe
   const randomWalk = (rng.next() - 0.48) * volatility * prevPrice;
   let sectorEffect = 0;
   if (state.currentScenario) sectorEffect = ((state.currentScenario.sectorEffects[stock.sector] ?? 1) - 1) * prevPrice * 0.1;
+  const seasonSectorEffect = (getSeasonSectorMultiplier(state, stock.sector) - 1) * prevPrice * 0.12;
+  const seasonBroadDrift = getSeasonBroadDriftPct(state) * prevPrice;
   let newsImpact = 0;
   for (const news of state.newsHistory) if (news.turn === state.currentTurn && news.affectedStocks.includes(stock.id)) {
     const dir = news.impact === 'positive' ? 1 : news.impact === 'negative' ? -1 : 0;
     newsImpact += dir * news.magnitude * prevPrice * betaAdj;
   }
   const drift = prevPrice * 0.002;
-  return Math.max(0.01, prevPrice + meanReversion + randomWalk + sectorEffect + regimeDrift + macroDrift + newsImpact + drift);
+  return Math.max(0.01, prevPrice + meanReversion + randomWalk + sectorEffect + seasonSectorEffect + seasonBroadDrift + regimeDrift + macroDrift + newsImpact + drift);
 }
 
 export function getPortfolioValue(state: GameState): number { let total = 0; for (const [stockId, position] of Object.entries(state.portfolio)) { if (position.shares <= 0) continue; const stock = state.stocks.find(s => s.id === stockId); if (stock) total += stock.currentPrice * position.shares; } return roundCurrency(total); }
