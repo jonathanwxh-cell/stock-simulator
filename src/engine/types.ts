@@ -15,6 +15,8 @@ export type Sector =
 export type Difficulty = 'easy' | 'normal' | 'hard' | 'expert';
 export type CompanyTrait = 'growth' | 'value' | 'defensive' | 'cyclical' | 'income' | 'speculative' | 'turnaround' | 'momentum';
 export type CareerStyle = 'balanced' | 'growth_hunter' | 'dividend_baron' | 'macro_surfer' | 'contrarian' | 'short_shark';
+export type SeasonThemeId = 'opening_bell' | 'inflation_shock' | 'startup_boom' | 'credit_crunch' | 'dividend_decade' | 'ai_mania' | 'commodity_squeeze';
+export type ChallengeModeId = 'standard' | 'bear_market' | 'dividend_focus' | 'no_shorts' | 'small_cap_sprint';
 
 export interface CareerArchetype {
   style: CareerStyle;
@@ -60,11 +62,43 @@ export interface CareerBoardReview {
   objective: CareerObjective | null;
 }
 
+export interface CareerSeason {
+  seasonNumber: number;
+  themeId: SeasonThemeId;
+  title: string;
+  description: string;
+  challengeMode: ChallengeModeId;
+  startTurn: number;
+  startDate: Date;
+  startingNetWorth: number;
+  targetNetWorth: number;
+  turnLimit: number;
+  completedAtTurn?: number;
+  completedAtDate?: Date;
+  completedNetWorth?: number;
+  completedGrade?: 'S' | 'A' | 'B' | 'C' | 'D' | 'F' | null;
+}
+
+export interface CareerUnlock {
+  id: string;
+  title: string;
+  description: string;
+  earnedAtTurn: number;
+  seasonNumber: number;
+}
+
 export interface CareerState {
   style: CareerStyle;
   archetypeLabel: string;
   selectedAt: Date;
   startingNetWorth: number;
+  seasonNumber: number;
+  seasonStartTurn: number;
+  seasonStartNetWorth: number;
+  activeSeasonThemeId: SeasonThemeId;
+  challengeMode: ChallengeModeId;
+  seasons: CareerSeason[];
+  unlocks: CareerUnlock[];
   rivalFunds: CareerRivalFund[];
   boardReviews: CareerBoardReview[];
   currentObjective: CareerObjective | null;
@@ -286,7 +320,7 @@ export interface GameSettings { soundEnabled: boolean; musicEnabled: boolean; an
 export interface SaveMetadata { slot: 1 | 2 | 3 | 'auto'; playerName: string; difficulty: Difficulty; currentTurn: number; turnLimit: number; netWorth: number; cash: number; date: Date; updatedAt: Date; exists: boolean; isGameOver: boolean; }
 export type Screen = 'title' | 'game' | 'stock-market' | 'stock-detail' | 'portfolio' | 'rebalance' | 'news' | 'next-turn' | 'game-over' | 'leaderboard' | 'settings' | 'how-to-play' | 'load-save';
 export const ALL_SECTORS: Sector[] = ['technology', 'semiconductors', 'healthcare', 'biotech', 'energy', 'financials', 'consumer', 'media', 'industrial', 'realestate', 'telecom', 'materials'];
-export type TradeError = 'insufficient_funds' | 'insufficient_shares' | 'invalid_shares' | 'invalid_target_price' | 'max_limit_orders_reached' | 'short_disabled' | 'no_position' | 'stock_not_found';
+export type TradeError = 'insufficient_funds' | 'insufficient_shares' | 'invalid_shares' | 'invalid_target_price' | 'max_limit_orders_reached' | 'short_disabled' | 'challenge_restricted' | 'no_position' | 'stock_not_found';
 export type TradeResult = { ok: true; state: GameState; transaction: Transaction } | { ok: false; reason: TradeError };
 
 export interface WatchlistAlert {

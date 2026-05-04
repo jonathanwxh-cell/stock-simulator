@@ -1,5 +1,6 @@
 import { createClient, type SupabaseClient, type User } from '@supabase/supabase-js';
 import type { GameState, SaveMetadata } from './types';
+import { ensureCareerState } from './careerSystem';
 
 // Cloud saves are optional: local save remains the source of fallback truth.
 // Vercel's Supabase integration creates NEXT_PUBLIC_* vars; local/dev may use VITE_*.
@@ -63,7 +64,7 @@ function latestNetWorth(state: GameState): number {
 }
 
 function reviveDates(state: GameState): GameState {
-  return {
+  const revived = {
     ...state,
     currentDate: new Date(state.currentDate),
     createdAt: new Date(state.createdAt),
@@ -95,6 +96,11 @@ function reviveDates(state: GameState): GameState {
         date: new Date(event.date),
       })),
     } : null,
+  };
+
+  return {
+    ...revived,
+    career: ensureCareerState(revived),
   };
 }
 

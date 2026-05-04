@@ -183,6 +183,22 @@ const CareerStyleSchema = z.enum([
   'contrarian',
   'short_shark',
 ]);
+const SeasonThemeIdSchema = z.enum([
+  'opening_bell',
+  'inflation_shock',
+  'startup_boom',
+  'credit_crunch',
+  'dividend_decade',
+  'ai_mania',
+  'commodity_squeeze',
+]);
+const ChallengeModeIdSchema = z.enum([
+  'standard',
+  'bear_market',
+  'dividend_focus',
+  'no_shorts',
+  'small_cap_sprint',
+]);
 const StockSchema = z.object({
   id: z.string(),
   ticker: z.string(),
@@ -377,11 +393,41 @@ const CareerBoardReviewSchema = z.object({
   concerns: z.array(z.string()),
   objective: CareerObjectiveSchema.nullable(),
 }).strict();
+const CareerSeasonSchema = z.object({
+  seasonNumber: z.number(),
+  themeId: SeasonThemeIdSchema,
+  title: z.string(),
+  description: z.string(),
+  challengeMode: ChallengeModeIdSchema,
+  startTurn: z.number(),
+  startDate: DateValueSchema,
+  startingNetWorth: z.number(),
+  targetNetWorth: z.number(),
+  turnLimit: z.number(),
+  completedAtTurn: z.number().optional(),
+  completedAtDate: DateValueSchema.optional(),
+  completedNetWorth: z.number().optional(),
+  completedGrade: z.enum(['S', 'A', 'B', 'C', 'D', 'F']).nullable().optional(),
+}).strict();
+const CareerUnlockSchema = z.object({
+  id: z.string(),
+  title: z.string(),
+  description: z.string(),
+  earnedAtTurn: z.number(),
+  seasonNumber: z.number(),
+}).strict();
 const CareerStateSchema = z.object({
   style: CareerStyleSchema,
   archetypeLabel: z.string(),
   selectedAt: DateValueSchema,
   startingNetWorth: z.number(),
+  seasonNumber: z.number().optional(),
+  seasonStartTurn: z.number().optional(),
+  seasonStartNetWorth: z.number().optional(),
+  activeSeasonThemeId: SeasonThemeIdSchema.optional(),
+  challengeMode: ChallengeModeIdSchema.optional(),
+  seasons: z.array(CareerSeasonSchema).optional(),
+  unlocks: z.array(CareerUnlockSchema).optional(),
   rivalFunds: z.array(CareerRivalFundSchema),
   boardReviews: z.array(CareerBoardReviewSchema),
   currentObjective: CareerObjectiveSchema.nullable(),

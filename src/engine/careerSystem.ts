@@ -6,11 +6,14 @@ import type {
   CareerRivalFund,
   CareerState,
   CareerStyle,
+  ChallengeModeId,
+  Difficulty,
   GameState,
   RiskLevel,
 } from './types';
 import { roundCurrency } from './financialMath';
 import { getAlphaPct, getPlayerReturnPct } from './marketIndex';
+import { createCareerSeasonRecord, getInitialSeasonThemeId } from './careerSeasons';
 
 export const CAREER_ARCHETYPES: Record<CareerStyle, CareerArchetype> = {
   balanced: {
@@ -158,14 +161,33 @@ export function createCareerState(
   style: CareerStyle = 'balanced',
   startingValue = 100_000,
   selectedAt: Date = new Date(),
+  difficulty: Difficulty = 'normal',
+  challengeMode: ChallengeModeId = 'standard',
 ): CareerState {
   const archetype = CAREER_ARCHETYPES[style] ?? CAREER_ARCHETYPES.balanced;
+  const themeId = getInitialSeasonThemeId(challengeMode);
+  const firstSeason = createCareerSeasonRecord({
+    seasonNumber: 1,
+    difficulty,
+    themeId,
+    challengeMode,
+    startTurn: 0,
+    startDate: new Date(selectedAt),
+    startingNetWorth: startingValue,
+  });
 
   return {
     style,
     archetypeLabel: archetype.label,
     selectedAt: new Date(selectedAt),
     startingNetWorth: startingValue,
+    seasonNumber: 1,
+    seasonStartTurn: 0,
+    seasonStartNetWorth: startingValue,
+    activeSeasonThemeId: themeId,
+    challengeMode,
+    seasons: [firstSeason],
+    unlocks: [],
     rivalFunds: buildRivals(style, startingValue),
     boardReviews: [],
     currentObjective: null,
@@ -180,11 +202,37 @@ export function ensureCareerState(state: GameState): CareerState {
   }
 
   const startingValue = existing.startingNetWorth || startingNetWorth(state);
+  const challengeMode = existing.challengeMode || 'standard';
+  const activeSeasonThemeId = existing.activeSeasonThemeId || getInitialSeasonThemeId(challengeMode);
+  const seasonNumber = existing.seasonNumber || 1;
+  const seasonStartTurn = Number.isFinite(existing.seasonStartTurn) ? existing.seasonStartTurn : 0;
+  const seasonStartNetWorth = existing.seasonStartNetWorth || startingValue;
+  const defaultSeason = createCareerSeasonRecord({
+    seasonNumber,
+    difficulty: state.difficulty,
+    themeId: activeSeasonThemeId,
+    challengeMode,
+    startTurn: seasonStartTurn,
+    startDate: new Date(existing.selectedAt || state.createdAt),
+    startingNetWorth: seasonStartNetWorth,
+  });
+
   return {
     ...existing,
     archetypeLabel: CAREER_ARCHETYPES[existing.style].label,
     selectedAt: new Date(existing.selectedAt),
     startingNetWorth: startingValue,
+    seasonNumber,
+    seasonStartTurn,
+    seasonStartNetWorth,
+    activeSeasonThemeId,
+    challengeMode,
+    seasons: existing.seasons?.length ? existing.seasons.map((season) => ({
+      ...season,
+      startDate: new Date(season.startDate),
+      completedAtDate: season.completedAtDate ? new Date(season.completedAtDate) : undefined,
+    })) : [defaultSeason],
+    unlocks: (existing.unlocks || []).map((unlock) => ({ ...unlock })),
     rivalFunds: existing.rivalFunds?.length ? existing.rivalFunds.map((rival) => ({
       ...rival,
       archetypeLabel: CAREER_ARCHETYPES[rival.style]?.label ?? rival.archetypeLabel,
@@ -383,7 +431,7 @@ export function advanceCareerState(previousState: GameState, currentState: GameS
   let boardReviews = currentCareer.boardReviews;
 
   const hasReviewForTurn = boardReviews.some((review) => review.turn === currentState.currentTurn);
-  if (currentState.currentTurn > 0 && currentState.currentTurn % 3 === 0 && !hasReviewForTurn) {
+  if (currentState.currentTurn > 0 && currentState.currentTurn >= currentCareer.nextBoardReviewTurn && !hasReviewForTurn) {
     const nextObjective = buildObjective(currentCareer.style, currentState.currentTurn);
     const reviewState = { ...currentState, career: { ...currentCareer, currentObjective } };
     const score = scoreCareerReview(reviewState);

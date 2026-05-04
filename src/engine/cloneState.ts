@@ -12,6 +12,12 @@ export function deepCloneGameState(state: GameState): GameState {
     career: {
       ...state.career,
       selectedAt: new Date(state.career.selectedAt),
+      seasons: (state.career.seasons || []).map(season => ({
+        ...season,
+        startDate: new Date(season.startDate),
+        completedAtDate: season.completedAtDate ? new Date(season.completedAtDate) : undefined,
+      })),
+      unlocks: (state.career.unlocks || []).map(unlock => ({ ...unlock })),
       rivalFunds: state.career.rivalFunds.map(rival => ({ ...rival })),
       boardReviews: state.career.boardReviews.map(review => ({
         ...review,
