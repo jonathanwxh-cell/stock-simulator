@@ -19,6 +19,8 @@ import MarketPulseCard from '../components/market/MarketPulseCard';
 import MacroBackdropCard from '../components/market/MacroBackdropCard';
 import ScannerSignalsCard from '../components/market/ScannerSignalsCard';
 import MarketCoachCard from '../components/market/MarketCoachCard';
+import OpportunityBoardCard from '../components/market/OpportunityBoardCard';
+import { buildOpportunityBoard, type OpportunityAction } from '../engine/opportunityBoard';
 
 function pct(value: number) {
   return `${value >= 0 ? '+' : ''}${value.toFixed(1)}%`;
@@ -61,6 +63,7 @@ export default function GameHUD() {
   const watchlistAlerts = getWatchlistAlerts(gameState, 4);
   const scannerSignals = getScannerSignals(gameState, 4);
   const coach = buildGuidedMarketCoach(gameState);
+  const opportunities = buildOpportunityBoard(gameState);
   const risk = getLatestRisk(gameState);
   const mission = gameState.activeMission;
   const regime = gameState.currentRegime;
@@ -96,7 +99,7 @@ export default function GameHUD() {
     navigateTo('stock-detail');
   };
 
-  const followCoachAction = (action: CoachAction) => {
+  const followCoachAction = (action: CoachAction | OpportunityAction) => {
     if (action.stockId) localStorage.setItem('mm_selected', action.stockId);
     navigateTo(action.screen);
   };
@@ -141,6 +144,8 @@ export default function GameHUD() {
         </div>
 
         <MarketCoachCard coach={coach} onAction={followCoachAction} />
+
+        <OpportunityBoardCard opportunities={opportunities} onAction={followCoachAction} />
 
         <div className="grid grid-cols-4 gap-2 mb-3">
           <div className="bg-[var(--surface-0)] border border-[var(--border)] rounded-xl p-3 text-center">
