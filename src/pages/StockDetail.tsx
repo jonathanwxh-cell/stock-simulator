@@ -37,7 +37,7 @@ function FeedbackDetails({ feedback, compact = false }: { feedback: TradeFeedbac
   );
 }
 
-export default function StockDetailFixed() {
+export default function StockDetail() {
   const { gameState, navigateTo, buyStock, sellStock, shortStock, coverStock, placeOrder, cancelOrder, placeProtectiveOrder, cancelProtectiveOrder, toggleWatchlist, lastError, clearError } = useGame();
   const [tradeType, setTradeType] = useState<TradeType>('buy');
   const [shares, setShares] = useState(1);

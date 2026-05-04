@@ -6,6 +6,11 @@ import { createInitialMacroEnvironment } from './macroSystem';
 import { ensureCareerState } from './careerSystem';
 import { getCareerSeasonTurnLimit } from './careerSeasons';
 
+// Storage keys are intentionally prefixed `marketmaster_*` rather than
+// `stocksim_*`. The project was renamed from "Market Master" to "Stock
+// Simulator" but renaming the keys would orphan every existing player's
+// saves — so the legacy prefix is preserved for save compatibility.
+// Same applies to MarketMasterDB / DB_NAME below.
 const SAVE_SLOTS_KEY = 'marketmaster_save_slots';
 const AUTO_SAVE_KEY = 'marketmaster_autosave';
 const SETTINGS_KEY = 'marketmaster_settings';
