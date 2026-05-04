@@ -1,5 +1,6 @@
 import { createContext, useContext, useReducer, useCallback, type ReactNode } from 'react';
 import type { ConditionalOrder, GameState, Difficulty, RebalancePreview, Screen, GameSettings, CareerStyle, ChallengeModeId } from '../engine/types';
+import type { LegacyPathOffer } from '../engine/legacyStory';
 import type { TrophyCase, TrophyUnlock } from '../engine/trophySystem';
 import {
   createNewGame, executeBuy, executeSell, executeShort, executeCover,
@@ -8,7 +9,7 @@ import {
   loadSettings, saveSettings, initSaveSystem, tradeErrorMessage,
   createMission, defaultRNG, toggleWatchlistStock,
   continueCareer as continueCareerEngine,
-  loadTrophyCase, recordTrophyProgress,
+  loadTrophyCase, recordTrophyProgress, buildLegacyEnding, recordLegacyChoice,
 } from '../engine';
 import { recordCompletedGame } from '../engine/completion';
 import { useAudio } from '@/hooks/useAudio';
@@ -19,7 +20,7 @@ interface GameContextType {
   screen: Screen;
   previousScreen: Screen;
   newGame: (name: string, difficulty: Difficulty, careerStyle?: CareerStyle, challengeMode?: ChallengeModeId) => void;
-  continueCareer: () => void;
+  continueCareer: (offer?: LegacyPathOffer) => void;
   loadGame: (slot: 1 | 2 | 3 | 'auto') => Promise<void>;
   saveGame: (slot: 1 | 2 | 3 | 'auto') => void;
   advanceTurn: () => void;
@@ -107,9 +108,13 @@ export function GameProvider({ children }: { children: ReactNode }) {
     saveAuto(game);
   }, [turn, syncTrophies]);
 
-  const continueCareer = useCallback(() => {
+  const continueCareer = useCallback((offer?: LegacyPathOffer) => {
     if (!state.gameState || !state.gameState.isGameOver) return;
-    const continued = continueCareerEngine(state.gameState);
+    if (offer) recordLegacyChoice(buildLegacyEnding(state.gameState), offer);
+    const continued = continueCareerEngine(state.gameState, offer ? {
+      challengeMode: offer.challengeMode,
+      themeId: offer.nextThemeId,
+    } : undefined);
     const nextState = {
       ...continued,
       activeMission: continued.activeMission || createMission(continued, defaultRNG),

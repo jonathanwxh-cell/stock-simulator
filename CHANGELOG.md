@@ -12,6 +12,7 @@ All notable changes to this project are documented here. Format follows
 
 ### Added
 
+- Added Market Saga legacy story mode Phase 1, where completed runs generate a legacy epilogue and next-chapter sequel choices that shape the next career season.
 - Added a Phase 3 fund career layer with selectable archetypes, deterministic rival funds, quarterly board reviews, and automatic board objectives that add long-run drama without manual journaling.
 - Expanded the market to 96 fictional stocks, with 8 listings in each sector and player-facing fictional tickers throughout the game.
 - Added a Phase 2 strategy layer with company traits, a monthly macro backdrop, scanner signals, and stock research briefs across the HUD, market, news, and stock detail screens.

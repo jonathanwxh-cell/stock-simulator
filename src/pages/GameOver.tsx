@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useGame } from '../context/GameContext';
 import { motion } from 'framer-motion';
 import { Trophy, RotateCcw, Star, Award } from 'lucide-react';
@@ -7,7 +7,11 @@ import { DIFFICULTY_CONFIGS } from '../engine/config';
 import { buildSeasonRecap } from '../engine/marketInsights';
 import { recordCompletedGame } from '../engine/completion';
 import { getCareerLeague } from '../engine/careerSystem';
-import { CHALLENGE_MODES, SEASON_THEMES, getCareerSeasonGoal, getCareerSeasonTurn, getCareerSeasonTurnLimit, getCareerUnlocks, getNextSeasonThemeId } from '../engine/careerSeasons';
+import { CHALLENGE_MODES, getCareerSeasonGoal, getCareerSeasonTurn, getCareerSeasonTurnLimit, getCareerUnlocks } from '../engine/careerSeasons';
+import { buildLegacyEnding, buildLegacyOffers } from '../engine/legacyStory';
+import { loadLegacyRecord, recordLegacyEnding } from '../engine/legacyStorage';
+import LegacyEpilogueCard from '../components/gameover/LegacyEpilogueCard';
+import NextChapterPicker from '../components/gameover/NextChapterPicker';
 import SeasonRecapCard from '../components/gameover/SeasonRecapCard';
 
 const GRADE_COLORS: Record<string, string> = {
@@ -60,8 +64,18 @@ function Confetti() {
 export default function GameOver() {
   const { gameState, resetGame, continueCareer } = useGame();
   const [saved, setSaved] = useState(false);
+  const legacyRecord = useMemo(() => loadLegacyRecord(), []);
+  const legacyEnding = useMemo(() => (gameState?.isGameOver ? buildLegacyEnding(gameState) : null), [gameState]);
+  const legacyOffers = useMemo(
+    () => (gameState && legacyEnding ? buildLegacyOffers(gameState, legacyEnding, legacyRecord) : []),
+    [gameState, legacyEnding, legacyRecord],
+  );
 
-  if (!gameState || !gameState.isGameOver) return null;
+  useEffect(() => {
+    if (legacyEnding) recordLegacyEnding(legacyEnding);
+  }, [legacyEnding]);
+
+  if (!gameState || !gameState.isGameOver || !legacyEnding) return null;
 
   const netWorth = getNetWorth(gameState);
   const config = DIFFICULTY_CONFIGS[gameState.difficulty];
@@ -84,7 +98,6 @@ export default function GameOver() {
   const latestBoardReview = gameState.career.boardReviews[gameState.career.boardReviews.length - 1] || null;
   const seasonTurn = getCareerSeasonTurn(gameState);
   const seasonTurnLimit = getCareerSeasonTurnLimit(gameState);
-  const nextTheme = SEASON_THEMES[getNextSeasonThemeId(gameState.career)];
   const challenge = CHALLENGE_MODES[gameState.career.challengeMode] || CHALLENGE_MODES.standard;
   const unlocks = getCareerUnlocks(gameState);
   const canContinueCareer = netWorth > 0;
@@ -97,7 +110,7 @@ export default function GameOver() {
   return (
     <div className="min-h-[100dvh] flex flex-col items-center justify-center p-6 relative">
       {won && <Confetti />}
-      <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.5 }} className="max-w-md w-full text-center relative z-10">
+      <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.5 }} className="max-w-4xl w-full text-center relative z-10">
         {won && (
           <motion.div initial={{ opacity: 0, y: -30 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2, type: 'spring' }}>
             <Trophy className="w-16 h-16 text-[var(--profit-green)] mx-auto mb-4" />
@@ -127,6 +140,10 @@ export default function GameOver() {
           </motion.span>
         </motion.div>
         <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.8 }} className="text-sm text-[var(--text-secondary)] mb-6">{gameState.finalRank}</motion.p>
+
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.86 }}>
+          <LegacyEpilogueCard ending={legacyEnding} />
+        </motion.div>
 
         {/* Stats */}
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.9 }}
@@ -189,24 +206,18 @@ export default function GameOver() {
           )}
         </motion.div>
 
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 1.05 }}
-          className="bg-[linear-gradient(135deg,rgba(59,130,246,0.14),rgba(34,197,94,0.08))] border border-[rgba(59,130,246,0.24)] rounded-2xl p-5 mb-6 text-left">
-          <span className="text-[10px] uppercase tracking-wider text-[var(--info-blue)]">Next Career Season</span>
-          <h3 className="text-sm font-semibold text-[var(--text-primary)] mt-1">Season {gameState.career.seasonNumber + 1}: {nextTheme.title}</h3>
-          <p className="text-xs text-[var(--text-secondary)] mt-1">{nextTheme.description}</p>
-          <p className="text-[10px] text-[var(--text-muted)] mt-2">{nextTheme.coachLine}</p>
-        </motion.div>
-
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 1.0 }}>
           <SeasonRecapCard recap={recap} />
         </motion.div>
 
+        {canContinueCareer && (
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 1.05 }}>
+            <NextChapterPicker offers={legacyOffers} onChoose={continueCareer} />
+          </motion.div>
+        )}
+
         {/* Actions */}
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1.1 }} className="flex flex-col sm:flex-row gap-3">
-          <button onClick={continueCareer} disabled={!canContinueCareer}
-            className="flex-1 py-3 rounded-xl bg-[var(--info-blue)] text-black font-semibold text-sm hover:brightness-110 transition-all disabled:opacity-40 disabled:cursor-not-allowed">
-            Continue Career
-          </button>
           <button onClick={handleSave} disabled={isSaved}
             className={`flex-1 py-3 rounded-xl border border-[var(--border)] font-semibold text-sm flex items-center justify-center gap-2 transition-all ${isSaved ? 'bg-[var(--surface-1)] text-[var(--text-muted)]' : 'text-[var(--text-primary)] hover:bg-[var(--surface-1)]'}`}>
             <Star className="w-4 h-4" /> {isSaved ? 'Leaderboard Saved' : 'Save Score'}

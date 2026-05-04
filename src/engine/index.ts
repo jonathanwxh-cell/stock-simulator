@@ -30,3 +30,5 @@ export * from './trophySystem';
 export * from './opportunityBoard';
 export * from './tradeSizing';
 export * from './postTurnDigest';
+export * from './legacyStory';
+export * from './legacyStorage';

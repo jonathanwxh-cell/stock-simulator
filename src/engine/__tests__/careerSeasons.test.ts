@@ -82,6 +82,19 @@ describe('career seasons', () => {
     expect(getCareerSeasonGoal(next)).toBeGreaterThan(38_000);
   });
 
+  it('can continue into a selected legacy story theme', () => {
+    const finished = withCompletedSeason(createNewGame('Saga Tester', 'normal', 'growth_hunter'));
+
+    const selected = continueCareer(finished, { themeId: 'ai_mania', challengeMode: 'standard' });
+    const defaultNext = continueCareer(finished);
+
+    expect(selected.career.activeSeasonThemeId).toBe('ai_mania');
+    expect(selected.career.challengeMode).toBe('standard');
+    expect(selected.career.seasons.at(-1)?.themeId).toBe('ai_mania');
+    expect(getActiveSeasonTheme(selected).title).toBe('AI Mania');
+    expect(defaultNext.career.activeSeasonThemeId).not.toBe('ai_mania');
+  });
+
   it('uses season-relative turn limits after continuing a career', () => {
     const continued = continueCareer(withCompletedSeason(createNewGame('Long Run', 'normal', 'balanced')));
     const nextTurn = simulateTurn(continued, new SeededRNG(44));

@@ -371,11 +371,33 @@ export function finalizeCareerSeason(state: GameState): CareerState {
   };
 }
 
-export function continueCareer(state: GameState, challengeMode?: ChallengeModeId): GameState {
+export type ContinueCareerOptions = ChallengeModeId | {
+  challengeMode?: ChallengeModeId;
+  themeId?: SeasonThemeId;
+};
+
+function resolveContinueCareerOptions(career: CareerState, options?: ContinueCareerOptions): {
+  challengeMode: ChallengeModeId;
+  themeId: SeasonThemeId;
+} {
+  if (typeof options === 'string') {
+    return {
+      challengeMode: options,
+      themeId: getInitialSeasonThemeId(options),
+    };
+  }
+
+  const challengeMode = options?.challengeMode || career.challengeMode || 'standard';
+  return {
+    challengeMode,
+    themeId: options?.themeId || getNextSeasonThemeId(career),
+  };
+}
+
+export function continueCareer(state: GameState, options?: ContinueCareerOptions): GameState {
   const finalizedCareer = finalizeCareerSeason(state);
   const nextSeasonNumber = finalizedCareer.seasonNumber + 1;
-  const nextChallengeMode = challengeMode || finalizedCareer.challengeMode || 'standard';
-  const nextThemeId = challengeMode ? getInitialSeasonThemeId(challengeMode) : getNextSeasonThemeId(finalizedCareer);
+  const { challengeMode: nextChallengeMode, themeId: nextThemeId } = resolveContinueCareerOptions(finalizedCareer, options);
   const nextNetWorth = latestNetWorth(state);
   const nextSeason = createCareerSeasonRecord({
     seasonNumber: nextSeasonNumber,
