@@ -1,6 +1,6 @@
 import { useGame } from '../context/GameContext';
 import { getNetWorth } from '../engine';
-import { Settings, Volume2, VolumeX } from 'lucide-react';
+import { Award, Settings, Volume2, VolumeX } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 export default function Navbar() {
@@ -60,6 +60,14 @@ export default function Navbar() {
             ${netWorth.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </span>
         </div>
+
+        <button
+          onClick={() => navigateTo('trophy-room')}
+          className="w-9 h-9 rounded-lg bg-[var(--surface-1)] border border-[var(--border)] flex items-center justify-center hover:bg-[var(--surface-2)] transition-colors"
+          aria-label="Trophy Room"
+        >
+          <Award className="w-4 h-4 text-[var(--neutral-amber)]" />
+        </button>
 
         <button
           onClick={toggleSound}

@@ -1,5 +1,6 @@
 import { createContext, useContext, useReducer, useCallback, type ReactNode } from 'react';
 import type { ConditionalOrder, GameState, Difficulty, RebalancePreview, Screen, GameSettings, CareerStyle, ChallengeModeId } from '../engine/types';
+import type { TrophyCase, TrophyUnlock } from '../engine/trophySystem';
 import {
   createNewGame, executeBuy, executeSell, executeShort, executeCover,
   placeLimitOrder, cancelLimitOrder, placeConditionalOrder, cancelConditionalOrder, executeRebalancePreview, simulateTurn, autoSave,
@@ -7,6 +8,7 @@ import {
   loadSettings, saveSettings, initSaveSystem, tradeErrorMessage,
   initialMarketIndex, createInitialRegime, createInitialMacroEnvironment, calculateRisk, createMission, defaultRNG, ensureUpcomingCatalysts, toggleWatchlistStock, ensureCareerState,
   continueCareer as continueCareerEngine,
+  loadTrophyCase, recordTrophyProgress,
 } from '../engine';
 import { recordCompletedGame } from '../engine/completion';
 import { useAudio } from '@/hooks/useAudio';
@@ -37,12 +39,15 @@ interface GameContextType {
   goBack: () => void;
   updateSettings: (settings: Partial<GameSettings>) => void;
   resetGame: () => void;
+  trophyCase: TrophyCase;
+  newTrophyUnlocks: TrophyUnlock[];
+  dismissTrophyUnlock: (trophyId: string) => void;
 }
 
 const defaultSettings: GameSettings = { soundEnabled: true, musicEnabled: true, animationSpeed: 'normal', showTutorials: true };
 const GameContext = createContext<GameContextType | null>(null);
 
-interface State { gameState: GameState | null; settings: GameSettings; screen: Screen; previousScreen: Screen; lastError: string | null; }
+interface State { gameState: GameState | null; settings: GameSettings; screen: Screen; previousScreen: Screen; lastError: string | null; trophyCase: TrophyCase; newTrophyUnlocks: TrophyUnlock[]; }
 type Action =
   | { type: 'SET_GAME_STATE'; payload: GameState | null }
   | { type: 'SET_SCREEN'; payload: Screen }
@@ -50,6 +55,9 @@ type Action =
   | { type: 'UPDATE_GAME_STATE'; payload: GameState }
   | { type: 'SET_ERROR'; payload: string | null }
   | { type: 'CLEAR_ERROR' }
+  | { type: 'SET_TROPHY_CASE'; payload: TrophyCase }
+  | { type: 'ADD_TROPHY_UNLOCKS'; payload: TrophyUnlock[] }
+  | { type: 'DISMISS_TROPHY_UNLOCK'; payload: string }
   | { type: 'RESET' };
 
 function reducer(state: State, action: Action): State {
@@ -60,7 +68,10 @@ function reducer(state: State, action: Action): State {
     case 'UPDATE_GAME_STATE': return { ...state, gameState: action.payload };
     case 'SET_ERROR': return { ...state, lastError: action.payload };
     case 'CLEAR_ERROR': return { ...state, lastError: null };
-    case 'RESET': return { gameState: null, settings: defaultSettings, screen: 'title', previousScreen: 'title', lastError: null };
+    case 'SET_TROPHY_CASE': return { ...state, trophyCase: action.payload };
+    case 'ADD_TROPHY_UNLOCKS': return { ...state, newTrophyUnlocks: [...state.newTrophyUnlocks, ...action.payload] };
+    case 'DISMISS_TROPHY_UNLOCK': return { ...state, newTrophyUnlocks: state.newTrophyUnlocks.filter((unlock) => unlock.trophyId !== action.payload) };
+    case 'RESET': return { gameState: null, settings: defaultSettings, screen: 'title', previousScreen: 'title', lastError: null, trophyCase: state.trophyCase, newTrophyUnlocks: state.newTrophyUnlocks };
     default: return state;
   }
 }
@@ -111,17 +122,24 @@ export function GameProvider({ children }: { children: ReactNode }) {
   }
 
   const savedSettings = loadSettings();
-  const [state, dispatch] = useReducer(reducer, { gameState: null, settings: savedSettings || defaultSettings, screen: 'title', previousScreen: 'title', lastError: null });
+  const [state, dispatch] = useReducer(reducer, { gameState: null, settings: savedSettings || defaultSettings, screen: 'title', previousScreen: 'title', lastError: null, trophyCase: loadTrophyCase(), newTrophyUnlocks: [] });
   const { buy, sell, short, cover, dividend, gameOver, turn, marginCall, click, error } = useAudio({ soundEnabled: state.settings.soundEnabled, musicEnabled: state.settings.musicEnabled, screen: state.screen });
+
+  const syncTrophies = useCallback((nextGameState: GameState) => {
+    const result = recordTrophyProgress(nextGameState);
+    dispatch({ type: 'SET_TROPHY_CASE', payload: result.trophyCase });
+    if (result.newUnlocks.length > 0) dispatch({ type: 'ADD_TROPHY_UNLOCKS', payload: result.newUnlocks });
+  }, []);
 
   const newGame = useCallback((name: string, difficulty: Difficulty, careerStyle: CareerStyle = 'balanced', challengeMode: ChallengeModeId = 'standard') => {
     const game = createNewGame(name, difficulty, careerStyle, challengeMode);
     dispatch({ type: 'CLEAR_ERROR' });
     dispatch({ type: 'SET_GAME_STATE', payload: game });
     dispatch({ type: 'SET_SCREEN', payload: 'game' });
+    syncTrophies(game);
     turn();
     saveAuto(game);
-  }, [turn]);
+  }, [turn, syncTrophies]);
 
   const continueCareer = useCallback(() => {
     if (!state.gameState || !state.gameState.isGameOver) return;
@@ -133,9 +151,10 @@ export function GameProvider({ children }: { children: ReactNode }) {
     dispatch({ type: 'CLEAR_ERROR' });
     dispatch({ type: 'SET_GAME_STATE', payload: nextState });
     dispatch({ type: 'SET_SCREEN', payload: 'game' });
+    syncTrophies(nextState);
     saveAuto(nextState);
     turn();
-  }, [state.gameState, turn]);
+  }, [state.gameState, turn, syncTrophies]);
 
   const loadGame = useCallback(async (slot: 1 | 2 | 3 | 'auto') => {
     const loaded = await loadGameEngine(slot);
@@ -144,9 +163,10 @@ export function GameProvider({ children }: { children: ReactNode }) {
       dispatch({ type: 'CLEAR_ERROR' });
       dispatch({ type: 'SET_GAME_STATE', payload: migrated });
       dispatch({ type: 'SET_SCREEN', payload: migrated.isGameOver ? 'game-over' : 'game' });
+      syncTrophies(migrated);
       if (!migrated.isGameOver) turn();
     }
-  }, [turn]);
+  }, [turn, syncTrophies]);
 
   const saveGame = useCallback((slot: 1 | 2 | 3 | 'auto') => { if (state.gameState) saveGameEngine(slot, { ...state.gameState, saveSlot: slot }).catch(e => console.warn('save:', e)); }, [state.gameState]);
 
@@ -156,21 +176,22 @@ export function GameProvider({ children }: { children: ReactNode }) {
     const newState = recordCompletedGame(simulateTurn(state.gameState));
     dispatch({ type: 'UPDATE_GAME_STATE', payload: newState });
     dispatch({ type: 'SET_SCREEN', payload: 'next-turn' });
+    syncTrophies(newState);
     saveAuto(newState);
     turn();
     const newTxns = newState.transactionHistory.slice(prev.transactionHistory.length);
     if (newTxns.some(t => t.type === 'dividend')) setTimeout(() => dividend(), 300);
     if (newTxns.some(t => t.type === 'margin_call')) setTimeout(() => marginCall(), 400);
     if (newState.isGameOver) setTimeout(() => gameOver(), 800);
-  }, [state.gameState, turn, dividend, marginCall, gameOver]);
+  }, [state.gameState, turn, dividend, marginCall, gameOver, syncTrophies]);
 
-  const buyStock = useCallback((stockId: string, shares: number) => { if (!state.gameState) return; const result = executeBuy(state.gameState, stockId, shares); if (result.ok) { dispatch({ type: 'CLEAR_ERROR' }); dispatch({ type: 'UPDATE_GAME_STATE', payload: result.state }); saveAuto(result.state); buy(); } else { dispatch({ type: 'SET_ERROR', payload: tradeErrorMessage(result.reason) }); error(); } }, [state.gameState, buy, error]);
-  const sellStock = useCallback((stockId: string, shares: number) => { if (!state.gameState) return; const result = executeSell(state.gameState, stockId, shares); if (result.ok) { dispatch({ type: 'CLEAR_ERROR' }); dispatch({ type: 'UPDATE_GAME_STATE', payload: result.state }); saveAuto(result.state); sell(); } else { dispatch({ type: 'SET_ERROR', payload: tradeErrorMessage(result.reason) }); error(); } }, [state.gameState, sell, error]);
-  const shortStock = useCallback((stockId: string, shares: number) => { if (!state.gameState) return; const result = executeShort(state.gameState, stockId, shares); if (result.ok) { dispatch({ type: 'CLEAR_ERROR' }); dispatch({ type: 'UPDATE_GAME_STATE', payload: result.state }); saveAuto(result.state); short(); } else { dispatch({ type: 'SET_ERROR', payload: tradeErrorMessage(result.reason) }); error(); } }, [state.gameState, short, error]);
-  const coverStock = useCallback((stockId: string, shares: number) => { if (!state.gameState) return; const result = executeCover(state.gameState, stockId, shares); if (result.ok) { dispatch({ type: 'CLEAR_ERROR' }); dispatch({ type: 'UPDATE_GAME_STATE', payload: result.state }); saveAuto(result.state); cover(); } else { dispatch({ type: 'SET_ERROR', payload: tradeErrorMessage(result.reason) }); error(); } }, [state.gameState, cover, error]);
-  const placeOrder = useCallback((stockId: string, type: 'buy' | 'sell', shares: number, targetPrice: number) => { if (!state.gameState) return; const result = placeLimitOrder(state.gameState, stockId, type, shares, targetPrice); if (result.ok) { dispatch({ type: 'CLEAR_ERROR' }); dispatch({ type: 'UPDATE_GAME_STATE', payload: result.state }); saveAuto(result.state); click(); } else { dispatch({ type: 'SET_ERROR', payload: tradeErrorMessage(result.reason) }); error(); } }, [state.gameState, click, error]);
+  const buyStock = useCallback((stockId: string, shares: number) => { if (!state.gameState) return; const result = executeBuy(state.gameState, stockId, shares); if (result.ok) { dispatch({ type: 'CLEAR_ERROR' }); dispatch({ type: 'UPDATE_GAME_STATE', payload: result.state }); syncTrophies(result.state); saveAuto(result.state); buy(); } else { dispatch({ type: 'SET_ERROR', payload: tradeErrorMessage(result.reason) }); error(); } }, [state.gameState, buy, error, syncTrophies]);
+  const sellStock = useCallback((stockId: string, shares: number) => { if (!state.gameState) return; const result = executeSell(state.gameState, stockId, shares); if (result.ok) { dispatch({ type: 'CLEAR_ERROR' }); dispatch({ type: 'UPDATE_GAME_STATE', payload: result.state }); syncTrophies(result.state); saveAuto(result.state); sell(); } else { dispatch({ type: 'SET_ERROR', payload: tradeErrorMessage(result.reason) }); error(); } }, [state.gameState, sell, error, syncTrophies]);
+  const shortStock = useCallback((stockId: string, shares: number) => { if (!state.gameState) return; const result = executeShort(state.gameState, stockId, shares); if (result.ok) { dispatch({ type: 'CLEAR_ERROR' }); dispatch({ type: 'UPDATE_GAME_STATE', payload: result.state }); syncTrophies(result.state); saveAuto(result.state); short(); } else { dispatch({ type: 'SET_ERROR', payload: tradeErrorMessage(result.reason) }); error(); } }, [state.gameState, short, error, syncTrophies]);
+  const coverStock = useCallback((stockId: string, shares: number) => { if (!state.gameState) return; const result = executeCover(state.gameState, stockId, shares); if (result.ok) { dispatch({ type: 'CLEAR_ERROR' }); dispatch({ type: 'UPDATE_GAME_STATE', payload: result.state }); syncTrophies(result.state); saveAuto(result.state); cover(); } else { dispatch({ type: 'SET_ERROR', payload: tradeErrorMessage(result.reason) }); error(); } }, [state.gameState, cover, error, syncTrophies]);
+  const placeOrder = useCallback((stockId: string, type: 'buy' | 'sell', shares: number, targetPrice: number) => { if (!state.gameState) return; const result = placeLimitOrder(state.gameState, stockId, type, shares, targetPrice); if (result.ok) { dispatch({ type: 'CLEAR_ERROR' }); dispatch({ type: 'UPDATE_GAME_STATE', payload: result.state }); syncTrophies(result.state); saveAuto(result.state); click(); } else { dispatch({ type: 'SET_ERROR', payload: tradeErrorMessage(result.reason) }); error(); } }, [state.gameState, click, error, syncTrophies]);
   const cancelOrder = useCallback((orderId: string) => { if (!state.gameState) return; const newState = cancelLimitOrder(state.gameState, orderId); dispatch({ type: 'CLEAR_ERROR' }); dispatch({ type: 'UPDATE_GAME_STATE', payload: newState }); saveAuto(newState); click(); }, [state.gameState, click]);
-  const placeProtectiveOrder = useCallback((stockId: string, type: ConditionalOrder['type'], shares: number, triggerPrice: number) => { if (!state.gameState) return; const result = placeConditionalOrder(state.gameState, stockId, type, shares, triggerPrice); if (result.ok) { dispatch({ type: 'CLEAR_ERROR' }); dispatch({ type: 'UPDATE_GAME_STATE', payload: result.state }); saveAuto(result.state); click(); } else { dispatch({ type: 'SET_ERROR', payload: tradeErrorMessage(result.reason) }); error(); } }, [state.gameState, click, error]);
+  const placeProtectiveOrder = useCallback((stockId: string, type: ConditionalOrder['type'], shares: number, triggerPrice: number) => { if (!state.gameState) return; const result = placeConditionalOrder(state.gameState, stockId, type, shares, triggerPrice); if (result.ok) { dispatch({ type: 'CLEAR_ERROR' }); dispatch({ type: 'UPDATE_GAME_STATE', payload: result.state }); syncTrophies(result.state); saveAuto(result.state); click(); } else { dispatch({ type: 'SET_ERROR', payload: tradeErrorMessage(result.reason) }); error(); } }, [state.gameState, click, error, syncTrophies]);
   const cancelProtectiveOrder = useCallback((orderId: string) => { if (!state.gameState) return; const newState = cancelConditionalOrder(state.gameState, orderId); dispatch({ type: 'CLEAR_ERROR' }); dispatch({ type: 'UPDATE_GAME_STATE', payload: newState }); saveAuto(newState); click(); }, [state.gameState, click]);
   const executeRebalance = useCallback((preview: RebalancePreview) => {
     if (!state.gameState) return;
@@ -187,17 +208,19 @@ export function GameProvider({ children }: { children: ReactNode }) {
     }
     dispatch({ type: 'CLEAR_ERROR' });
     dispatch({ type: 'UPDATE_GAME_STATE', payload: newState });
+    syncTrophies(newState);
     saveAuto(newState);
     click();
-  }, [state.gameState, click, error]);
-  const toggleWatchlist = useCallback((stockId: string) => { if (!state.gameState) return; const newState = toggleWatchlistStock(state.gameState, stockId); dispatch({ type: 'CLEAR_ERROR' }); dispatch({ type: 'UPDATE_GAME_STATE', payload: newState }); saveAuto(newState); click(); }, [state.gameState, click]);
+  }, [state.gameState, click, error, syncTrophies]);
+  const toggleWatchlist = useCallback((stockId: string) => { if (!state.gameState) return; const newState = toggleWatchlistStock(state.gameState, stockId); dispatch({ type: 'CLEAR_ERROR' }); dispatch({ type: 'UPDATE_GAME_STATE', payload: newState }); syncTrophies(newState); saveAuto(newState); click(); }, [state.gameState, click, syncTrophies]);
   const navigateTo = useCallback((screen: Screen) => dispatch({ type: 'SET_SCREEN', payload: screen }), []);
   const goBack = useCallback(() => dispatch({ type: 'SET_SCREEN', payload: state.previousScreen }), [state.previousScreen]);
   const updateSettings = useCallback((partial: Partial<GameSettings>) => { dispatch({ type: 'UPDATE_SETTINGS', payload: partial }); saveSettings({ ...state.settings, ...partial }); }, [state.settings]);
   const clearError = useCallback(() => dispatch({ type: 'CLEAR_ERROR' }), []);
+  const dismissTrophyUnlock = useCallback((trophyId: string) => dispatch({ type: 'DISMISS_TROPHY_UNLOCK', payload: trophyId }), []);
   const resetGame = useCallback(() => dispatch({ type: 'RESET' }), []);
 
-  const value: GameContextType = { gameState: state.gameState, settings: state.settings, screen: state.screen, previousScreen: state.previousScreen, lastError: state.lastError, clearError, newGame, continueCareer, loadGame, saveGame, advanceTurn, buyStock, sellStock, shortStock, coverStock, placeOrder, cancelOrder, placeProtectiveOrder, cancelProtectiveOrder, executeRebalance, toggleWatchlist, navigateTo, goBack, updateSettings, resetGame };
+  const value: GameContextType = { gameState: state.gameState, settings: state.settings, screen: state.screen, previousScreen: state.previousScreen, lastError: state.lastError, clearError, newGame, continueCareer, loadGame, saveGame, advanceTurn, buyStock, sellStock, shortStock, coverStock, placeOrder, cancelOrder, placeProtectiveOrder, cancelProtectiveOrder, executeRebalance, toggleWatchlist, navigateTo, goBack, updateSettings, resetGame, trophyCase: state.trophyCase, newTrophyUnlocks: state.newTrophyUnlocks, dismissTrophyUnlock };
   return <GameContext.Provider value={value}>{children}</GameContext.Provider>;
 }
 

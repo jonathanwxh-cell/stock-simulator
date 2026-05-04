@@ -11,6 +11,7 @@ import NewsPanel from './pages/NewsPanel';
 import NextTurn from './pages/NextTurn';
 import GameOver from './pages/GameOver';
 import LeaderboardPage from './pages/LeaderboardPage';
+import TrophyRoom from './pages/TrophyRoom';
 import SettingsPage from './pages/SettingsPage';
 import HowToPlay from './pages/HowToPlay';
 import LoadSave from './pages/LoadSave';
@@ -39,6 +40,8 @@ function ScreenRouter() {
       return <GameOver />;
     case 'leaderboard':
       return <LeaderboardPage />;
+    case 'trophy-room':
+      return <TrophyRoom />;
     case 'settings':
       return <SettingsPage />;
     case 'how-to-play':

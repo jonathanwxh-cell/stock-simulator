@@ -252,7 +252,7 @@ export default function RebalanceCard({
                     type="button"
                     onClick={() => removeRow(index)}
                     className="h-[42px] w-10 rounded-lg border border-[var(--border)] bg-[var(--surface-0)] text-[var(--text-muted)] flex items-center justify-center hover:text-[var(--loss-red)] hover:border-[rgba(239,68,68,0.35)]"
-                    aria-label={`Remove ${row.id} target`}
+                    aria-label={`Remove target row ${index + 1}`}
                   >
                     <Trash2 className="w-4 h-4" />
                   </button>

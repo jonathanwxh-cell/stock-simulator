@@ -1,17 +1,18 @@
 import { useGame } from '../context/GameContext';
 import Navbar from './Navbar';
 import Footer from './Footer';
+import TrophyUnlockToast from './trophies/TrophyUnlockToast';
 import { motion } from 'framer-motion';
-import { useEffect, type ReactNode } from 'react';
+import { useLayoutEffect, type ReactNode } from 'react';
 
 interface LayoutProps {
   children: ReactNode;
 }
 
 export default function Layout({ children }: LayoutProps) {
-  const { screen } = useGame();
+  const { screen, gameState } = useGame();
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
   }, [screen]);
 
@@ -22,9 +23,10 @@ export default function Layout({ children }: LayoutProps) {
     'portfolio',
     'news',
     'next-turn',
+    'trophy-room',
   ];
 
-  const showNav = gameScreens.includes(screen);
+  const showNav = Boolean(gameState) && gameScreens.includes(screen);
 
   return (
     <div className="min-h-[100dvh] bg-[var(--void)] relative overflow-x-hidden">
@@ -41,6 +43,7 @@ export default function Layout({ children }: LayoutProps) {
           className="min-h-full"
         >
           {children}
+          <TrophyUnlockToast />
         </motion.div>
       </main>
 

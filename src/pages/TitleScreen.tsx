@@ -8,6 +8,7 @@ import {
   Trophy,
   Settings,
   HelpCircle,
+  Award,
   Star,
   Check,
   ChevronLeft,
@@ -35,6 +36,7 @@ const MENU_ITEMS = [
   { id: 'new-game', label: 'NEW GAME', icon: Play, variant: 'primary' as const },
   { id: 'load-game', label: 'LOAD GAME', icon: FolderOpen, variant: 'secondary' as const },
   { id: 'leaderboard', label: 'LEADERBOARD', icon: Trophy, variant: 'secondary' as const },
+  { id: 'trophy-room', label: 'TROPHY ROOM', icon: Award, variant: 'secondary' as const },
   { id: 'settings', label: 'SETTINGS', icon: Settings, variant: 'secondary' as const },
   { id: 'how-to-play', label: 'HOW TO PLAY', icon: HelpCircle, variant: 'ghost' as const },
 ];
@@ -85,6 +87,8 @@ export default function TitleScreen() {
       if (!loadDisabled) navigateTo('load-save');
     } else if (id === 'leaderboard') {
       navigateTo('leaderboard');
+    } else if (id === 'trophy-room') {
+      navigateTo('trophy-room');
     } else if (id === 'settings') {
       navigateTo('settings');
     } else if (id === 'how-to-play') {
