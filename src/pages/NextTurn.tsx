@@ -4,6 +4,7 @@ import { TrendingUp, TrendingDown, Clock, DollarSign, BarChart3, Award } from 'l
 import { useEffect } from 'react';
 import { getLatestTurnPerformance } from '../engine/turnPerformance';
 import { getPostTurnDestination } from '../engine/completion';
+import { getCareerSeasonTurn } from '../engine/careerSeasons';
 
 function pct(value: number) {
   return `${value >= 0 ? '+' : ''}${value.toFixed(1)}%`;
@@ -38,6 +39,7 @@ export default function NextTurn() {
   const advisorFeedback = gameState.lastAdvisorFeedback || [];
   const recentNews = gameState.newsHistory.filter(n => n.turn === gameState.currentTurn);
   const latestBoardReview = gameState.career.boardReviews.find(review => review.turn === gameState.currentTurn);
+  const seasonTurn = getCareerSeasonTurn(gameState);
 
   return (
     <div className="min-h-[calc(100dvh-56px-72px)] flex flex-col items-center justify-center p-6">
@@ -50,7 +52,7 @@ export default function NextTurn() {
         <div className="text-center mb-8">
           <Clock className="w-8 h-8 text-[var(--text-muted)] mx-auto mb-3" />
           <h2 className="text-display-md font-display font-bold text-[var(--text-primary)]">
-            Month {gameState.currentTurn}
+            Season {gameState.career.seasonNumber} - Month {seasonTurn}
           </h2>
           <p className="text-[var(--text-secondary)] mt-1">
             {gameState.currentDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}

@@ -1,6 +1,7 @@
 import { createClient, type SupabaseClient, type User } from '@supabase/supabase-js';
 import type { GameState, SaveMetadata } from './types';
 import { ensureCareerState } from './careerSystem';
+import { getCareerSeasonTurnLimit } from './careerSeasons';
 
 // Cloud saves are optional: local save remains the source of fallback truth.
 // Vercel's Supabase integration creates NEXT_PUBLIC_* vars; local/dev may use VITE_*.
@@ -196,14 +197,14 @@ export async function cloudGetSaveMetadata(): Promise<SaveMetadata[]> {
 
   if (error) throw error;
   return (data as CloudSaveRow[]).map(row => {
-    const state = row.game_state;
+    const state = row.game_state ? { ...row.game_state, career: ensureCareerState(row.game_state) } : null;
     return {
       slot: numericSlot(row.slot),
       playerName: row.player_name || state?.playerName || 'Unknown',
       difficulty: (row.difficulty || state?.difficulty || 'normal') as SaveMetadata['difficulty'],
       currentTurn: row.current_turn || state?.currentTurn || 0,
-      turnLimit: state?.difficulty === 'easy' ? 120 : state?.difficulty === 'hard' ? 80 : state?.difficulty === 'expert' ? 60 : 100,
-      netWorth: Number(row.net_worth ?? latestNetWorth(state)),
+      turnLimit: state ? getCareerSeasonTurnLimit(state) : 100,
+      netWorth: Number(row.net_worth ?? (state ? latestNetWorth(state) : 0)),
       cash: Number(state?.cash ?? 0),
       date: new Date(row.created_at),
       updatedAt: new Date(row.updated_at),

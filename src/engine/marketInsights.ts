@@ -196,6 +196,7 @@ export function buildSeasonRecap(state: GameState): SeasonRecap {
   }
 
   const holdings = buildHoldingRecap(state).sort((a, b) => b.pnl - a.pnl);
+  const biggestDrag = [...holdings].reverse().find((holding) => holding.pnl < 0) || null;
   const watchedSet = new Set(state.watchlist || []);
   const totalTrades = state.transactionHistory.filter(isExecutedPlayerTrade).length;
 
@@ -207,7 +208,7 @@ export function buildSeasonRecap(state: GameState): SeasonRecap {
     worstTurn,
     maxDrawdownPct: roundCurrency(maxDrawdownPct),
     topWinner: holdings[0] || null,
-    biggestDrag: holdings.length ? holdings[holdings.length - 1] : null,
+    biggestDrag,
     totalTrades,
     totalFees: roundCurrency(state.totalFeesPaid || 0),
     totalDividends: roundCurrency(state.totalDividendsReceived || 0),

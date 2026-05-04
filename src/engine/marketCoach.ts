@@ -4,6 +4,7 @@ import { getMarketBreadthSummary, getUpcomingCatalysts, getWatchlistAlerts, isEx
 import { getLatestRisk } from './riskSystem';
 import { getScannerSignals } from './scannerSystem';
 import { getLatestTurnPerformance } from './turnPerformance';
+import { CHALLENGE_MODES, getActiveSeasonTheme } from './careerSeasons';
 import type { CatalystEvent, GameState, ScannerSignal, Screen, Stock } from './types';
 
 export type CoachTone = 'positive' | 'neutral' | 'warning' | 'danger';
@@ -156,6 +157,18 @@ function buildTips(state: GameState): CoachCard[] {
   const openPlans = (state.limitOrders?.length || 0) + (state.conditionalOrders?.length || 0);
   const scanner = getScannerSignals(state, 1)[0];
   const mission = state.activeMission;
+  const seasonTheme = getActiveSeasonTheme(state);
+  const challenge = CHALLENGE_MODES[state.career.challengeMode] || CHALLENGE_MODES.standard;
+
+  if (seasonTheme.id !== 'opening_bell' || state.career.challengeMode !== 'standard') {
+    tips.push({
+      id: 'season-theme-tip',
+      title: `${seasonTheme.title} season`,
+      tone: seasonTheme.volatilityMultiplier > 1.15 ? 'warning' : 'neutral',
+      body: `${challenge.badge}: ${seasonTheme.coachLine}`,
+      action: { label: 'Review HUD', screen: 'game' },
+    });
+  }
 
   if (watchedCount < 3) {
     tips.push({

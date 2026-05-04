@@ -1,11 +1,12 @@
 import { createContext, useContext, useReducer, useCallback, type ReactNode } from 'react';
-import type { ConditionalOrder, GameState, Difficulty, RebalancePreview, Screen, GameSettings, CareerStyle } from '../engine/types';
+import type { ConditionalOrder, GameState, Difficulty, RebalancePreview, Screen, GameSettings, CareerStyle, ChallengeModeId } from '../engine/types';
 import {
   createNewGame, executeBuy, executeSell, executeShort, executeCover,
   placeLimitOrder, cancelLimitOrder, placeConditionalOrder, cancelConditionalOrder, executeRebalancePreview, simulateTurn, autoSave,
   saveGame as saveGameEngine, loadGame as loadGameEngine,
   loadSettings, saveSettings, initSaveSystem, tradeErrorMessage,
   initialMarketIndex, createInitialRegime, createInitialMacroEnvironment, calculateRisk, createMission, defaultRNG, ensureUpcomingCatalysts, toggleWatchlistStock, ensureCareerState,
+  continueCareer as continueCareerEngine,
 } from '../engine';
 import { recordCompletedGame } from '../engine/completion';
 import { useAudio } from '@/hooks/useAudio';
@@ -15,7 +16,8 @@ interface GameContextType {
   settings: GameSettings;
   screen: Screen;
   previousScreen: Screen;
-  newGame: (name: string, difficulty: Difficulty, careerStyle?: CareerStyle) => void;
+  newGame: (name: string, difficulty: Difficulty, careerStyle?: CareerStyle, challengeMode?: ChallengeModeId) => void;
+  continueCareer: () => void;
   loadGame: (slot: 1 | 2 | 3 | 'auto') => Promise<void>;
   saveGame: (slot: 1 | 2 | 3 | 'auto') => void;
   advanceTurn: () => void;
@@ -112,14 +114,28 @@ export function GameProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(reducer, { gameState: null, settings: savedSettings || defaultSettings, screen: 'title', previousScreen: 'title', lastError: null });
   const { buy, sell, short, cover, dividend, gameOver, turn, marginCall, click, error } = useAudio({ soundEnabled: state.settings.soundEnabled, musicEnabled: state.settings.musicEnabled, screen: state.screen });
 
-  const newGame = useCallback((name: string, difficulty: Difficulty, careerStyle: CareerStyle = 'balanced') => {
-    const game = createNewGame(name, difficulty, careerStyle);
+  const newGame = useCallback((name: string, difficulty: Difficulty, careerStyle: CareerStyle = 'balanced', challengeMode: ChallengeModeId = 'standard') => {
+    const game = createNewGame(name, difficulty, careerStyle, challengeMode);
     dispatch({ type: 'CLEAR_ERROR' });
     dispatch({ type: 'SET_GAME_STATE', payload: game });
     dispatch({ type: 'SET_SCREEN', payload: 'game' });
     turn();
     saveAuto(game);
   }, [turn]);
+
+  const continueCareer = useCallback(() => {
+    if (!state.gameState || !state.gameState.isGameOver) return;
+    const continued = continueCareerEngine(state.gameState);
+    const nextState = {
+      ...continued,
+      activeMission: continued.activeMission || createMission(continued, defaultRNG),
+    };
+    dispatch({ type: 'CLEAR_ERROR' });
+    dispatch({ type: 'SET_GAME_STATE', payload: nextState });
+    dispatch({ type: 'SET_SCREEN', payload: 'game' });
+    saveAuto(nextState);
+    turn();
+  }, [state.gameState, turn]);
 
   const loadGame = useCallback(async (slot: 1 | 2 | 3 | 'auto') => {
     const loaded = await loadGameEngine(slot);
@@ -181,7 +197,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
   const clearError = useCallback(() => dispatch({ type: 'CLEAR_ERROR' }), []);
   const resetGame = useCallback(() => dispatch({ type: 'RESET' }), []);
 
-  const value: GameContextType = { gameState: state.gameState, settings: state.settings, screen: state.screen, previousScreen: state.previousScreen, lastError: state.lastError, clearError, newGame, loadGame, saveGame, advanceTurn, buyStock, sellStock, shortStock, coverStock, placeOrder, cancelOrder, placeProtectiveOrder, cancelProtectiveOrder, executeRebalance, toggleWatchlist, navigateTo, goBack, updateSettings, resetGame };
+  const value: GameContextType = { gameState: state.gameState, settings: state.settings, screen: state.screen, previousScreen: state.previousScreen, lastError: state.lastError, clearError, newGame, continueCareer, loadGame, saveGame, advanceTurn, buyStock, sellStock, shortStock, coverStock, placeOrder, cancelOrder, placeProtectiveOrder, cancelProtectiveOrder, executeRebalance, toggleWatchlist, navigateTo, goBack, updateSettings, resetGame };
   return <GameContext.Provider value={value}>{children}</GameContext.Provider>;
 }
 

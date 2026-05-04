@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useGame } from '../context/GameContext';
-import type { CareerStyle, Difficulty } from '../engine/types';
+import type { CareerStyle, ChallengeModeId, Difficulty } from '../engine/types';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Play,
@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { DIFFICULTY_CONFIGS } from '../engine/config';
 import { CAREER_ARCHETYPES } from '../engine/careerSystem';
+import { CHALLENGE_MODES } from '../engine/careerSeasons';
 import { getSaveMetadata } from '../engine/saveSystem';
 import type { SaveMetadata } from '../engine/types';
 
@@ -39,6 +40,7 @@ const MENU_ITEMS = [
 ];
 
 const CAREER_DATA = Object.values(CAREER_ARCHETYPES);
+const CHALLENGE_DATA = Object.values(CHALLENGE_MODES);
 
 function pseudoRandom(seed: number): number {
   const value = Math.sin(seed * 12.9898) * 43758.5453;
@@ -58,6 +60,7 @@ export default function TitleScreen() {
   const [showDifficulty, setShowDifficulty] = useState(false);
   const [selectedDifficulty, setSelectedDifficulty] = useState<Difficulty | null>(null);
   const [selectedCareer, setSelectedCareer] = useState<CareerStyle>('balanced');
+  const [selectedChallenge, setSelectedChallenge] = useState<ChallengeModeId>('standard');
   const [playerName, setPlayerName] = useState('');
   const [hasAutoSave, setHasAutoSave] = useState(false);
   const [loadDisabled, setLoadDisabled] = useState(true);
@@ -76,6 +79,7 @@ export default function TitleScreen() {
       setShowDifficulty(true);
       setSelectedDifficulty(null);
       setSelectedCareer('balanced');
+      setSelectedChallenge('standard');
       setPlayerName('');
     } else if (id === 'load-game') {
       if (!loadDisabled) navigateTo('load-save');
@@ -90,9 +94,9 @@ export default function TitleScreen() {
 
   const handleStartGame = useCallback(() => {
     if (selectedDifficulty && playerName.trim()) {
-      newGame(playerName.trim(), selectedDifficulty, selectedCareer);
+      newGame(playerName.trim(), selectedDifficulty, selectedCareer, selectedChallenge);
     }
-  }, [selectedDifficulty, selectedCareer, playerName, newGame]);
+  }, [selectedDifficulty, selectedCareer, selectedChallenge, playerName, newGame]);
 
   const handleAutoSaveContinue = useCallback(() => {
     navigateTo('load-save');
@@ -402,6 +406,46 @@ export default function TitleScreen() {
                           );
                         })}
                       </div>
+                    </div>
+
+                    <div className="mb-6">
+                      <label className="block text-heading-sm font-semibold text-[var(--text-primary)] mb-2">
+                        Choose Career Mode
+                      </label>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        {CHALLENGE_DATA.map((challenge) => {
+                          const isSelected = selectedChallenge === challenge.id;
+
+                          return (
+                            <button
+                              key={challenge.id}
+                              type="button"
+                              onClick={() => setSelectedChallenge(challenge.id)}
+                              className={`relative text-left rounded-xl border p-3 transition-all ${
+                                isSelected
+                                  ? 'bg-[rgba(59,130,246,0.12)] border-[var(--info-blue)]'
+                                  : 'bg-[var(--surface-1)] border-[var(--border)] hover:border-[var(--border-hover)]'
+                              }`}
+                            >
+                              {isSelected && (
+                                <div className="absolute top-2 right-2 w-5 h-5 rounded-full bg-[var(--info-blue)] flex items-center justify-center">
+                                  <Check className="w-3 h-3 text-black" />
+                                </div>
+                              )}
+                              <div className="flex items-center gap-2 pr-6">
+                                <p className="text-sm font-semibold text-[var(--text-primary)]">{challenge.title}</p>
+                                <span className="text-[9px] uppercase tracking-wider text-[var(--info-blue)] border border-[rgba(59,130,246,0.3)] rounded-full px-1.5 py-0.5">
+                                  {challenge.badge}
+                                </span>
+                              </div>
+                              <p className="text-[11px] text-[var(--text-secondary)] mt-1">{challenge.description}</p>
+                            </button>
+                          );
+                        })}
+                      </div>
+                      <p className="text-[10px] text-[var(--text-muted)] mt-2">
+                        Standard Career is recommended. Challenges are optional replay flavors, not extra homework.
+                      </p>
                     </div>
 
                     <label className="block text-heading-sm font-semibold text-[var(--text-primary)] mb-2">

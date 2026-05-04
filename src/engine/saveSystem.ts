@@ -2,9 +2,9 @@ import type { GameState, SaveMetadata, Stock } from './types';
 import { openDB, type DBSchema, type IDBPDatabase } from 'idb';
 import { z } from 'zod';
 import { cloudDeleteSave, cloudGetSaveMetadata, cloudLoadGame, cloudSaveGame, isCloudSaveConfigured } from './cloudSaveSystem';
-import { DIFFICULTY_CONFIGS } from './config';
 import { createInitialMacroEnvironment } from './macroSystem';
 import { ensureCareerState } from './careerSystem';
+import { getCareerSeasonTurnLimit } from './careerSeasons';
 
 const SAVE_SLOTS_KEY = 'marketmaster_save_slots';
 const AUTO_SAVE_KEY = 'marketmaster_autosave';
@@ -712,6 +712,7 @@ async function getLocalSaveMetadata(): Promise<SaveMetadata[]> {
     slots.push(emptySaveMetadata('auto'));
   } else if (auto) {
     const difficulty = auto.difficulty || 'normal';
+    const autoWithCareer = { ...auto, career: ensureCareerState(auto) };
     const cash = auto.cash || 0;
     const portfolioValue = (auto.netWorthHistory?.[auto.netWorthHistory.length - 1]?.portfolioValue) || 0;
     slots.push({
@@ -719,7 +720,7 @@ async function getLocalSaveMetadata(): Promise<SaveMetadata[]> {
       playerName: auto.playerName || 'Unknown',
       difficulty,
       currentTurn: auto.currentTurn || 0,
-      turnLimit: DIFFICULTY_CONFIGS[difficulty].turnLimit,
+      turnLimit: getCareerSeasonTurnLimit(autoWithCareer),
       netWorth: (auto.netWorthHistory?.[auto.netWorthHistory.length - 1]?.netWorth) || cash + portfolioValue,
       cash,
       date: new Date(auto.createdAt || Date.now()),
@@ -738,6 +739,7 @@ async function getLocalSaveMetadata(): Promise<SaveMetadata[]> {
     const data = slotsData[key];
     if (data) {
       const difficulty = (data.difficulty || 'normal') as SaveMetadata['difficulty'];
+      const dataWithCareer = { ...data, career: ensureCareerState(data as GameState) };
       const cash = data.cash || 0;
       const portfolioValue = (data.netWorthHistory?.[data.netWorthHistory.length - 1]?.portfolioValue) || 0;
       slots.push({
@@ -745,7 +747,7 @@ async function getLocalSaveMetadata(): Promise<SaveMetadata[]> {
         playerName: data.playerName || 'Unknown',
         difficulty,
         currentTurn: data.currentTurn || 0,
-        turnLimit: DIFFICULTY_CONFIGS[difficulty].turnLimit,
+        turnLimit: getCareerSeasonTurnLimit(dataWithCareer),
         netWorth: (data.netWorthHistory?.[data.netWorthHistory.length - 1]?.netWorth) || cash + portfolioValue,
         cash,
         date: new Date(data.createdAt || Date.now()),
