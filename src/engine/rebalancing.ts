@@ -76,6 +76,7 @@ function desiredShares(weight: number, netWorth: number, price: number) {
 
 function validateTargets(mode: RebalanceMode, state: GameState, targets: Map<string, number>) {
   const warnings: string[] = [];
+  const longOnlyMandate = state.career?.challengeMode === 'no_shorts';
   if (!targets.has(CASH_TARGET_ID)) {
     warnings.push('Rebalance targets must include a cash row.');
   } else if ((targets.get(CASH_TARGET_ID) || 0) < 0) {
@@ -95,6 +96,10 @@ function validateTargets(mode: RebalanceMode, state: GameState, targets: Map<str
     if (mode === 'sector' && !ALL_SECTORS.includes(id as Sector)) {
       warnings.push(`Unknown sector target: ${id}.`);
     }
+  }
+
+  if (longOnlyMandate && [...targets.entries()].some(([id, weight]) => id !== CASH_TARGET_ID && weight < 0)) {
+    warnings.push('Long-Only Mandate blocks negative targets and Bet Down trades.');
   }
 
   return warnings;
@@ -317,7 +322,8 @@ export function buildRebalancePreview(
   if (
     validationWarnings.some((warning) => warning.includes('cash row')) ||
     validationWarnings.some((warning) => warning.includes('cash target')) ||
-    validationWarnings.some((warning) => warning.includes('100%'))
+    validationWarnings.some((warning) => warning.includes('100%')) ||
+    validationWarnings.some((warning) => warning.includes('Long-Only Mandate'))
   ) {
     return {
       mode,

@@ -45,10 +45,11 @@ export default function StockDetailFixed() {
   const [chartRange, setChartRange] = useState(30);
   const [lastFeedback, setLastFeedback] = useState<TradeFeedback | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const selectedStockId = gameState ? localStorage.getItem('mm_selected') || gameState.stocks[0]?.id : '';
 
   if (!gameState) return null;
 
-  const stockId = localStorage.getItem('mm_selected') || gameState.stocks[0]?.id;
+  const stockId = selectedStockId;
   const stock = gameState.stocks.find(s => s.id === stockId);
   if (!stock) return null;
 
@@ -57,6 +58,8 @@ export default function StockDetailFixed() {
   const longShares = longPosition?.shares ?? 0;
   const shortShares = shortPosition?.shares ?? 0;
   const config = DIFFICULTY_CONFIGS[gameState.difficulty];
+  const longOnlyMandate = gameState.career?.challengeMode === 'no_shorts';
+  const activeTradeType = longOnlyMandate && (tradeType === 'short' || (tradeType === 'cover' && shortShares <= 0)) ? 'buy' : tradeType;
   const pendingUsed = gameState.limitOrders.length + (gameState.conditionalOrders?.length || 0);
   const isWatched = (gameState.watchlist || []).includes(stockId);
   const stockAlerts = getWatchlistAlerts(gameState, 10).filter((alert) => alert.stockId === stockId);
@@ -83,22 +86,28 @@ export default function StockDetailFixed() {
   const neededForBuy = tradeValue + fee;
   const availableCash = gameState.cash;
 
-  const tradePreview = getTradeFeedback(gameState, stockId, shares, tradeType);
-  const tradeLanguage = getTradeLanguage(tradeType);
+  const tradePreview = getTradeFeedback(gameState, stockId, shares, activeTradeType);
+  const tradeLanguage = getTradeLanguage(activeTradeType);
+  const availableTradeActions = TRADE_ACTIONS.filter((action) => {
+    if (!longOnlyMandate) return true;
+    if (action === 'short') return false;
+    if (action === 'cover') return shortShares > 0;
+    return true;
+  });
 
-  const canExecute = tradeType === 'buy'
+  const canExecute = activeTradeType === 'buy'
     ? gameState.cash >= neededForBuy
-    : tradeType === 'sell'
+    : activeTradeType === 'sell'
     ? longShares >= shares
-    : tradeType === 'short'
-    ? config.shortEnabled && gameState.cash >= shortCashNeeded
+    : activeTradeType === 'short'
+    ? !longOnlyMandate && config.shortEnabled && gameState.cash >= shortCashNeeded
     : shortShares >= shares && coverCashAfter >= 0;
 
   const disabledReason = (() => {
     if (canExecute) return '';
-    if (tradeType === 'buy') return `Need ${tradeFeedbackFormat.money(neededForBuy)}, available ${tradeFeedbackFormat.money(availableCash)}.`;
-    if (tradeType === 'sell') return longShares > 0 ? `Only ${longShares} owned shares available.` : 'No owned shares to sell.';
-    if (tradeType === 'short') return config.shortEnabled ? `Need ${tradeFeedbackFormat.money(shortCashNeeded)} cash reserved for this Bet Down trade and fee.` : 'Bet Down is disabled.';
+    if (activeTradeType === 'buy') return `Need ${tradeFeedbackFormat.money(neededForBuy)}, available ${tradeFeedbackFormat.money(availableCash)}.`;
+    if (activeTradeType === 'sell') return longShares > 0 ? `Only ${longShares} owned shares available.` : 'No owned shares to sell.';
+    if (activeTradeType === 'short') return longOnlyMandate ? 'Long-Only Mandate keeps Bet Down disabled.' : config.shortEnabled ? `Need ${tradeFeedbackFormat.money(shortCashNeeded)} cash reserved for this Bet Down trade and fee.` : 'Bet Down is disabled.';
     return shortShares > 0 ? `Only ${shortShares} Bet Down shares available.` : 'No Bet Down position to close.';
   })();
 
@@ -109,9 +118,9 @@ export default function StockDetailFixed() {
   };
 
   const setMaxShares = () => {
-    if (tradeType === 'sell') setWholeShares(longShares || 1);
-    else if (tradeType === 'cover') setWholeShares(shortShares || 1);
-    else if (tradeType === 'short') setWholeShares(gameState.cash / (stock.currentPrice * config.shortMarginRequirement + fee));
+    if (activeTradeType === 'sell') setWholeShares(longShares || 1);
+    else if (activeTradeType === 'cover') setWholeShares(shortShares || 1);
+    else if (activeTradeType === 'short') setWholeShares(gameState.cash / (stock.currentPrice * config.shortMarginRequirement + fee));
     else setWholeShares(gameState.cash / (stock.currentPrice + fee));
   };
 
@@ -132,18 +141,18 @@ export default function StockDetailFixed() {
     setIsSubmitting(true);
 
     if (tradePreview) setLastFeedback(tradePreview);
-    if (tradeType === 'buy') buyStock(stockId, shares);
-    if (tradeType === 'sell') sellStock(stockId, shares);
-    if (tradeType === 'short') shortStock(stockId, shares);
-    if (tradeType === 'cover') coverStock(stockId, shares);
+    if (activeTradeType === 'buy') buyStock(stockId, shares);
+    if (activeTradeType === 'sell') sellStock(stockId, shares);
+    if (activeTradeType === 'short') shortStock(stockId, shares);
+    if (activeTradeType === 'cover') coverStock(stockId, shares);
     window.setTimeout(() => setIsSubmitting(false), 600);
   };
 
-  const cashImpact = tradeType === 'sell'
+  const cashImpact = activeTradeType === 'sell'
     ? tradeValue - fee
-    : tradeType === 'short'
+    : activeTradeType === 'short'
     ? -shortCashNeeded
-    : tradeType === 'cover'
+    : activeTradeType === 'cover'
     ? coverCashAfter - gameState.cash
     : -(tradeValue + fee);
 
@@ -284,9 +293,15 @@ export default function StockDetailFixed() {
               Trade Now uses the current price this turn. Plan Ahead below is for automatic future orders.
             </p>
           </div>
+          {longOnlyMandate && (
+            <div className="mb-3 rounded-xl border border-[rgba(34,197,94,0.22)] bg-[rgba(34,197,94,0.08)] p-3">
+              <p className="text-xs font-semibold text-[var(--profit-green)]">Long-Only Mandate active</p>
+              <p className="mt-1 text-[11px] text-[var(--text-secondary)]">Bet Down is hidden for this challenge. Keep it simple with Buy Now, Sell, and cash buffers.</p>
+            </div>
+          )}
           <div className="flex gap-1 mb-3">
-            {TRADE_ACTIONS.map(t => (
-              <button key={t} onClick={() => selectTrade(t)} title={getTradeLanguage(t).description} className={`flex-1 py-2 rounded-lg text-xs font-semibold transition-all ${tradeType === t ? t === 'buy' ? 'bg-[var(--profit-green)] text-black' : t === 'sell' ? 'bg-[var(--loss-red)] text-white' : t === 'short' ? 'bg-[var(--neutral-amber)] text-black' : 'bg-[var(--info-blue)] text-white' : 'bg-[var(--surface-1)] text-[var(--text-secondary)] border border-[var(--border)]'}`}>{getTradeLanguage(t).label}</button>
+            {availableTradeActions.map(t => (
+              <button key={t} onClick={() => selectTrade(t)} title={getTradeLanguage(t).description} className={`flex-1 py-2 rounded-lg text-xs font-semibold transition-all ${activeTradeType === t ? t === 'buy' ? 'bg-[var(--profit-green)] text-black' : t === 'sell' ? 'bg-[var(--loss-red)] text-white' : t === 'short' ? 'bg-[var(--neutral-amber)] text-black' : 'bg-[var(--info-blue)] text-white' : 'bg-[var(--surface-1)] text-[var(--text-secondary)] border border-[var(--border)]'}`}>{getTradeLanguage(t).label}</button>
             ))}
           </div>
           <p className="text-[11px] text-[var(--text-muted)] mb-3">{tradeLanguage.description}</p>
@@ -306,8 +321,8 @@ export default function StockDetailFixed() {
 
           <div className="bg-[var(--surface-1)] rounded-lg p-3 mb-3 text-xs space-y-1.5">
             <div className="flex justify-between"><span className="text-[var(--text-muted)]">Trade Value</span><span className="font-mono-data text-[var(--text-primary)]">${tradeValue.toFixed(2)}</span></div>
-            {tradeType === 'short' && <div className="flex justify-between"><span className="text-[var(--text-muted)]">Cash Reserved</span><span className="font-mono-data text-[var(--text-secondary)]">${shortMargin.toFixed(2)}</span></div>}
-            {tradeType === 'cover' && <div className="flex justify-between"><span className="text-[var(--text-muted)]">Cash Released</span><span className="font-mono-data text-[var(--text-secondary)]">${coverMarginRelease.toFixed(2)}</span></div>}
+            {activeTradeType === 'short' && <div className="flex justify-between"><span className="text-[var(--text-muted)]">Cash Reserved</span><span className="font-mono-data text-[var(--text-secondary)]">${shortMargin.toFixed(2)}</span></div>}
+            {activeTradeType === 'cover' && <div className="flex justify-between"><span className="text-[var(--text-muted)]">Cash Released</span><span className="font-mono-data text-[var(--text-secondary)]">${coverMarginRelease.toFixed(2)}</span></div>}
             <div className="flex justify-between"><span className="text-[var(--text-muted)]">Fee</span><span className="font-mono-data text-[var(--text-secondary)]">${fee.toFixed(2)}</span></div>
             <div className="flex justify-between border-t border-[var(--border)] pt-1.5"><span className="text-[var(--text-primary)] font-medium">Cash Change</span><span className="font-mono-data font-bold text-[var(--text-primary)]">{cashImpact >= 0 ? '+' : '-'}${Math.abs(cashImpact).toFixed(2)}</span></div>
           </div>
@@ -329,7 +344,7 @@ export default function StockDetailFixed() {
           </div>
 
           {(localError || lastError) && <p className="text-xs text-[var(--loss-red)] mb-2">{localError || lastError}</p>}
-          <button onClick={execute} disabled={!canExecute || isSubmitting} title={!canExecute ? disabledReason : undefined} className={`w-full py-3 rounded-xl font-semibold text-sm transition-all ${canExecute && !isSubmitting ? tradeType === 'buy' ? 'bg-[var(--profit-green)] text-black hover:brightness-110' : tradeType === 'sell' ? 'bg-[var(--loss-red)] text-white hover:brightness-110' : tradeType === 'short' ? 'bg-[var(--neutral-amber)] text-black hover:brightness-110' : 'bg-[var(--info-blue)] text-white hover:brightness-110' : 'bg-[var(--surface-2)] text-[var(--text-muted)] cursor-not-allowed opacity-75'}`}>
+          <button onClick={execute} disabled={!canExecute || isSubmitting} title={!canExecute ? disabledReason : undefined} className={`w-full py-3 rounded-xl font-semibold text-sm transition-all ${canExecute && !isSubmitting ? activeTradeType === 'buy' ? 'bg-[var(--profit-green)] text-black hover:brightness-110' : activeTradeType === 'sell' ? 'bg-[var(--loss-red)] text-white hover:brightness-110' : activeTradeType === 'short' ? 'bg-[var(--neutral-amber)] text-black hover:brightness-110' : 'bg-[var(--info-blue)] text-white hover:brightness-110' : 'bg-[var(--surface-2)] text-[var(--text-muted)] cursor-not-allowed opacity-75'}`}>
             {isSubmitting ? 'Processing...' : canExecute ? `${tradeLanguage.label} ${shares} ${stock.ticker}` : disabledReason}
           </button>
         </div>

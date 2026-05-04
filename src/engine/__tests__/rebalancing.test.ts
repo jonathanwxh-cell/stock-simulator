@@ -61,6 +61,19 @@ describe('rebalancing', () => {
     expect(preview.warnings.some((warning) => warning.includes('negative'))).toBe(true);
   });
 
+  it('blocks negative targets during a long-only mandate', () => {
+    const state = createNewGame('Long Only Rebalance', 'normal', 'balanced', 'no_shorts');
+
+    const preview = buildRebalancePreview(state, 'stock', [
+      { id: 'goog', weight: -10 },
+      { id: 'cash', weight: 110 },
+    ]);
+
+    expect(preview.trades.some((trade) => trade.type === 'short')).toBe(false);
+    expect(preview.trades).toHaveLength(0);
+    expect(preview.warnings.some((warning) => warning.includes('Long-Only Mandate'))).toBe(true);
+  });
+
   it('adds a rounding warning when a target cannot buy a whole share', () => {
     let state = createNewGame('Rebalance', 'normal');
     state = withPrice(state, 'nvda', 20_000);

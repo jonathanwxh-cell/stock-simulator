@@ -110,6 +110,7 @@ export default function RebalanceCard({
   const [mode, setMode] = useState<RebalanceMode>('stock');
   const [rows, setRows] = useState<DraftRow[]>(() => buildCurrentRows(gameState, 'stock'));
   const [draftId, setDraftId] = useState(() => nextAvailableId(gameState, 'stock', buildCurrentRows(gameState, 'stock')));
+  const longOnlyMandate = gameState.career?.challengeMode === 'no_shorts';
 
   const options = availableOptions(gameState, mode);
   const current = currentWeights(gameState, mode);
@@ -126,7 +127,8 @@ export default function RebalanceCard({
   };
 
   const updateRow = (index: number, field: keyof DraftRow, value: string) => {
-    setRows((currentRows) => currentRows.map((row, rowIndex) => rowIndex === index ? { ...row, [field]: value } : row));
+    const nextValue = field === 'weight' && longOnlyMandate && parseWeight(value) < 0 ? '0.0' : value;
+    setRows((currentRows) => currentRows.map((row, rowIndex) => rowIndex === index ? { ...row, [field]: nextValue } : row));
   };
 
   const removeRow = (index: number) => {
@@ -160,7 +162,11 @@ export default function RebalanceCard({
           <Target className="w-4 h-4 text-[var(--profit-green)]" />
           <div>
             <h2 className="text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wider">Auto-Balance Portfolio</h2>
-            <p className="text-[10px] text-[var(--text-muted)]">Set where you want your money to end up. Use negative targets only when you want Bet Down exposure.</p>
+            <p className="text-[10px] text-[var(--text-muted)]">
+              {longOnlyMandate
+                ? 'Long-Only Mandate keeps targets at 0% or above.'
+                : 'Set where you want your money to end up. Use negative targets only when you want Bet Down exposure.'}
+            </p>
           </div>
         </div>
         <div className="flex gap-1 rounded-lg bg-[var(--surface-1)] p-1">
@@ -180,6 +186,13 @@ export default function RebalanceCard({
           </button>
         </div>
       </div>
+
+      {longOnlyMandate && (
+        <div className="mb-3 rounded-xl border border-[rgba(34,197,94,0.22)] bg-[rgba(34,197,94,0.08)] p-3">
+          <p className="text-xs font-semibold text-[var(--profit-green)]">Long-only guardrail</p>
+          <p className="mt-1 text-[11px] text-[var(--text-secondary)]">Negative targets are turned off so auto-balance will only buy, sell, or hold cash.</p>
+        </div>
+      )}
 
       <div className="flex flex-wrap gap-2 mb-3">
         <button
@@ -229,6 +242,7 @@ export default function RebalanceCard({
                     <input
                       type="number"
                       step="0.5"
+                      min={longOnlyMandate ? '0' : undefined}
                       value={row.weight}
                       onChange={(event) => updateRow(index, 'weight', event.target.value)}
                       className="mt-1 w-full rounded-lg border border-[var(--border)] bg-[var(--surface-0)] px-3 py-2 text-sm text-[var(--text-primary)] outline-none focus:border-[var(--info-blue)]"

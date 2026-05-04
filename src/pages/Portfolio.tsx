@@ -33,6 +33,7 @@ export default function Portfolio() {
   const marketReturn = getMarketReturnPct(gameState);
   const alpha = getAlphaPct(gameState);
   const risk = getLatestRisk(gameState);
+  const longOnlyMandate = gameState.career?.challengeMode === 'no_shorts';
 
   const holdings: HoldingRow[] = [];
   for (const [stockId, pos] of Object.entries(gameState.portfolio)) {
@@ -117,7 +118,7 @@ export default function Portfolio() {
 
         <h2 className="text-sm font-semibold text-[var(--text-secondary)] uppercase tracking-wider mb-3">Holdings ({holdings.length})</h2>
         {holdings.length === 0 ? (
-          <div className="bg-[var(--surface-0)] border border-[var(--border)] rounded-2xl p-8 text-center"><p className="text-[var(--text-muted)]">No holdings yet. Visit the Market to Buy Now or open a Bet Down position.</p></div>
+          <div className="bg-[var(--surface-0)] border border-[var(--border)] rounded-2xl p-8 text-center"><p className="text-[var(--text-muted)]">{longOnlyMandate ? 'No holdings yet. Visit the Market and use Buy Now when you find a long idea.' : 'No holdings yet. Visit the Market to Buy Now or open a Bet Down position.'}</p></div>
         ) : (
           <div className="space-y-2">
             {holdings.map(holding => (
