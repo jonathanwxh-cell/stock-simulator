@@ -40,7 +40,7 @@ export function generateAdvisorFeedback(_prevState: GameState, nextState: GameSt
 
   if (risk.level === 'high' || risk.level === 'extreme') notes.push(feedback('Risk is elevated', risk.warnings[0] ?? 'Portfolio risk is high relative to net worth.', risk.level === 'extreme' ? 'danger' : 'warning', ['risk']));
   if (cashRatio > 0.7 && marketMovePct > 0.5) notes.push(feedback('High cash during a rising market', 'Cash reduces drawdown risk, but it can slow mission progress when the market is moving up.', 'info', ['cash', 'opportunity-cost']));
-  if (shortRatio > 0.3) notes.push(feedback('Short exposure is high', 'A sharp rally could hurt quickly. Watch margin and cover discipline.', 'danger', ['shorts', 'risk']));
+  if (shortRatio > 0.3) notes.push(feedback('Bet Down exposure is high', 'A sharp rally could hurt quickly. Keep enough cash reserved and be ready to close the position.', 'danger', ['shorts', 'risk']));
 
   const regime = nextState.currentRegime;
   if (regime && Object.keys(regime.sectorEffects).length > 0) {

@@ -147,7 +147,7 @@ function buildStockModeTrades(
     appendTrade(trades, state, stock, 'sell', Math.max(0, currentLongShares - longTargetShares), `Reduce ${stock.ticker} toward target.`);
     appendTrade(trades, state, stock, 'cover', Math.max(0, currentShortShares - shortTargetShares), `Cover ${stock.ticker} toward target.`);
     appendTrade(trades, state, stock, 'buy', Math.max(0, longTargetShares - currentLongShares), `Increase ${stock.ticker} toward target.`);
-    appendTrade(trades, state, stock, 'short', Math.max(0, shortTargetShares - currentShortShares), `Increase ${stock.ticker} short exposure toward target.`);
+    appendTrade(trades, state, stock, 'short', Math.max(0, shortTargetShares - currentShortShares), `Increase ${stock.ticker} Bet Down exposure toward target.`);
   }
 
   return { trades, warnings: [...warnings] };
@@ -291,7 +291,7 @@ function buildSectorModeTrades(
           existingShorts.length > 0 ? existingShorts : proxy ? [proxy] : [],
           'short',
           residualShares,
-          `Raise ${sector} short exposure toward target.`,
+          `Raise ${sector} Bet Down exposure toward target.`,
         );
       }
     }

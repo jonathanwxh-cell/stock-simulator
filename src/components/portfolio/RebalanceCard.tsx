@@ -3,8 +3,9 @@ import { RefreshCw, Target, Trash2 } from 'lucide-react';
 import { SECTOR_LABELS } from '../../engine/config';
 import { buildRebalancePreview } from '../../engine/rebalancing';
 import { getNetWorth } from '../../engine/marketSimulator';
+import { getTradeLanguage } from '../../engine/tradeLanguage';
 import { ALL_SECTORS } from '../../engine/types';
-import type { AllocationTarget, GameState, RebalanceMode, RebalancePreview } from '../../engine/types';
+import type { AllocationTarget, GameState, RebalanceMode, RebalancePreview, RebalanceTrade } from '../../engine/types';
 
 type DraftRow = { id: string; weight: string };
 
@@ -94,7 +95,7 @@ function buildTargets(rows: DraftRow[]): { targets: AllocationTarget[]; cashWeig
   };
 }
 
-function tradeTone(type: string) {
+function tradeTone(type: RebalanceTrade['type']) {
   if (type === 'buy' || type === 'cover') return 'text-[var(--profit-green)]';
   return 'text-[var(--loss-red)]';
 }
@@ -158,8 +159,8 @@ export default function RebalanceCard({
         <div className="flex items-center gap-2">
           <Target className="w-4 h-4 text-[var(--profit-green)]" />
           <div>
-            <h2 className="text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wider">Portfolio Rebalancer</h2>
-            <p className="text-[10px] text-[var(--text-muted)]">Set signed stock or sector targets. Cash is auto-balanced to the remaining weight.</p>
+            <h2 className="text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wider">Auto-Balance Portfolio</h2>
+            <p className="text-[10px] text-[var(--text-muted)]">Set where you want your money to end up. Use negative targets only when you want Bet Down exposure.</p>
           </div>
         </div>
         <div className="flex gap-1 rounded-lg bg-[var(--surface-1)] p-1">
@@ -224,7 +225,7 @@ export default function RebalanceCard({
                     </select>
                   </label>
                   <label className="text-xs text-[var(--text-muted)] min-w-[108px]">
-                    Weight %
+                    Target %
                     <input
                       type="number"
                       step="0.5"
@@ -279,7 +280,7 @@ export default function RebalanceCard({
 
       <div className="grid grid-cols-3 gap-2 mb-3 text-xs">
         <div className="rounded-xl bg-[var(--surface-1)] p-3">
-          <span className="text-[var(--text-muted)] block uppercase tracking-wider">Basis</span>
+          <span className="text-[var(--text-muted)] block uppercase tracking-wider">Plan Basis</span>
           <span className="font-mono-data text-[var(--text-primary)]">${preview.totalBasis.toFixed(2)}</span>
         </div>
         <div className="rounded-xl bg-[var(--surface-1)] p-3">
@@ -306,7 +307,7 @@ export default function RebalanceCard({
       <div className="rounded-xl border border-[var(--border)] bg-[var(--surface-1)] p-3">
         <div className="flex items-center justify-between gap-3 mb-3">
           <div>
-            <h3 className="text-sm font-semibold text-[var(--text-primary)]">Trade Preview</h3>
+            <h3 className="text-sm font-semibold text-[var(--text-primary)]">Plan Preview</h3>
             <p className="text-[10px] text-[var(--text-muted)]">{preview.trades.length} planned trade{preview.trades.length === 1 ? '' : 's'}</p>
           </div>
           <button
@@ -315,22 +316,23 @@ export default function RebalanceCard({
             disabled={preview.trades.length === 0}
             className="rounded-xl bg-[var(--profit-green)] px-4 py-2.5 text-sm font-semibold text-black hover:brightness-110 disabled:opacity-40 disabled:cursor-not-allowed"
           >
-            Rebalance Now
+            Apply Plan
           </button>
         </div>
 
         {preview.trades.length === 0 ? (
-          <p className="text-sm text-[var(--text-muted)]">No trades yet. Add or change target weights to generate a rebalance plan.</p>
+          <p className="text-sm text-[var(--text-muted)]">No changes yet. Add or change target percentages to create an auto-balance plan.</p>
         ) : (
           <div className="space-y-2">
             {preview.trades.map((trade) => {
               const stock = gameState.stocks.find((entry) => entry.id === trade.stockId);
+              const tradeLanguage = getTradeLanguage(trade.type);
               return (
                 <div key={`${trade.stockId}-${trade.type}-${trade.reason}`} className="rounded-lg border border-[var(--border)] bg-[var(--surface-0)] p-3">
                   <div className="flex items-center justify-between gap-3">
                     <div>
                       <div className="flex items-center gap-2">
-                        <span className={`text-[10px] font-semibold uppercase ${tradeTone(trade.type)}`}>{trade.type}</span>
+                        <span className={`text-[10px] font-semibold uppercase ${tradeTone(trade.type)}`}>{tradeLanguage.shortLabel}</span>
                         <span className="text-sm font-semibold text-[var(--text-primary)]">{stock?.ticker || trade.stockId}</span>
                       </div>
                       <p className="text-xs text-[var(--text-secondary)] mt-1">{trade.reason}</p>

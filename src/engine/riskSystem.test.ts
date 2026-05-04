@@ -125,7 +125,7 @@ describe('calculateRisk', () => {
     }));
     expect(risk.totalScore).toBeGreaterThanOrEqual(55);
     expect(risk.level).toBe('high');
-    expect(risk.warnings).toContain('Short exposure is above 20% of net worth.');
+    expect(risk.warnings).toContain('Bet Down exposure is above 20% of net worth.');
   });
 
   it('escalates short exposure above 50% of net worth to extreme', () => {

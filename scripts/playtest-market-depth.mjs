@@ -117,8 +117,14 @@ async function playToCompletion(page) {
 
 async function clickNTimes(locator, times) {
   for (let index = 0; index < times; index++) {
+    await locator.evaluate((element) => element.scrollIntoView({ block: 'center', inline: 'center' }));
     await locator.click();
   }
+}
+
+async function clickCentered(locator) {
+  await locator.evaluate((element) => element.scrollIntoView({ block: 'center', inline: 'center' }));
+  await locator.click();
 }
 
 async function assertPageAtTop(page, label) {
@@ -226,7 +232,7 @@ async function main() {
     await waitForVisible(page.getByText('Next Catalyst', { exact: true }), 'stock detail catalyst card');
     await waitForVisible(page.getByText('Research Brief', { exact: true }), 'stock detail research brief');
     await waitForVisible(page.getByText('Watchlist Context', { exact: true }), 'stock detail watchlist context');
-    await waitForVisible(page.getByText('Orders & Automation', { exact: true }), 'stock detail pending orders card');
+    await waitForVisible(page.getByText('Plan Ahead', { exact: true }), 'stock detail pending orders card');
     await page.mouse.wheel(0, 900);
     await page.getByRole('button', { name: 'Market', exact: true }).click();
     await waitForVisible(page.getByText('Stock Market', { exact: false }), 'stock market screen after detail navigation');
@@ -234,25 +240,25 @@ async function main() {
     await expectSingleButton(page, 'Show stock filters', 'stock filter toggle');
     await page.getByPlaceholder('Search tickers or names...').fill(catalystTicker);
     await getStockCardButton(page, catalystTicker).click();
-    await waitForVisible(page.getByText('Orders & Automation', { exact: true }), 'stock detail after navigation reset check');
+    await waitForVisible(page.getByText('Plan Ahead', { exact: true }), 'stock detail after navigation reset check');
     log('Stock detail shows catalyst and watchlist context');
 
     log(`Buying four ${catalystTicker} shares to exercise the order tools`);
     await clickNTimes(page.getByRole('button', { name: '+', exact: true }), 3);
-    await page.getByRole('button', { name: new RegExp(`Buy 4 ${escapeRegex(catalystTicker)}`) }).click();
-    await waitForVisible(page.getByText('Long:', { exact: true }), 'long position badge');
+    await clickCentered(page.getByRole('button', { name: new RegExp(`Buy Now 4 ${escapeRegex(catalystTicker)}`) }));
+    await waitForVisible(page.getByText('Owned:', { exact: true }), 'owned position badge');
 
-    const limitCard = page.locator('div').filter({ has: page.getByText('Limit Order', { exact: true }) }).first();
-    await limitCard.getByRole('button', { name: 'Limit Sell' }).click();
+    const limitCard = page.locator('div').filter({ has: page.getByText('Buy or Sell Later', { exact: true }) }).first();
+    await limitCard.getByRole('button', { name: 'Sell If Price Rises To' }).click();
     await page.getByRole('spinbutton', { name: 'Shares' }).nth(0).fill('4');
-    await limitCard.getByLabel('Target Price').fill('0.01');
-    await limitCard.getByRole('button', { name: 'Place Limit Sell' }).click();
+    await limitCard.getByLabel('Sell at or above').fill('0.01');
+    await limitCard.getByRole('button', { name: 'Place Sell If Price Rises To' }).click();
 
-    const protectiveCard = page.locator('div').filter({ has: page.getByText('Protective Exit', { exact: true }) }).first();
+    const protectiveCard = page.locator('div').filter({ has: page.getByText('Protect Your Shares', { exact: true }) }).first();
     await page.getByRole('spinbutton', { name: 'Shares' }).nth(1).fill('4');
-    await protectiveCard.getByLabel('Trigger Price').fill('0.01');
-    await protectiveCard.getByRole('button', { name: 'Place Stop-Loss' }).click();
-    log('Placed an immediate limit sell and stop-loss for the selected stock');
+    await protectiveCard.getByLabel('Sell if price reaches').fill('0.01');
+    await protectiveCard.getByRole('button', { name: 'Place Auto-Sell If Price Drops' }).click();
+    log('Placed a planned sell-higher order and a protective auto-sell for the selected stock');
 
     await page.getByRole('button', { name: /News/ }).click();
     await waitForVisible(page.getByText('Market News', { exact: true }), 'news screen');
@@ -276,23 +282,23 @@ async function main() {
     await waitForVisible(page.getByText('Stock Market', { exact: false }), 'stock market screen before rebalance seed buy');
     await page.getByPlaceholder('Search tickers or names...').fill(catalystTicker);
     await getStockCardButton(page, catalystTicker).click();
-    await waitForVisible(page.getByText('Orders & Automation', { exact: true }), 'stock detail before rebalance seed buy');
-    await page.getByRole('button', { name: new RegExp(`Buy 1 ${escapeRegex(catalystTicker)}`) }).click();
-    await waitForVisible(page.getByText('Long:', { exact: true }), 'rebalance seed long position');
+    await waitForVisible(page.getByText('Plan Ahead', { exact: true }), 'stock detail before rebalance seed buy');
+    await clickCentered(page.getByRole('button', { name: new RegExp(`Buy Now 1 ${escapeRegex(catalystTicker)}`) }));
+    await waitForVisible(page.getByText('Owned:', { exact: true }), 'rebalance seed owned position');
     log('Rebought one share so the rebalancer has a live holding to close');
 
     await page.getByRole('button', { name: /Portfolio/ }).click();
     await waitForVisible(page.getByText('Performance Chart', { exact: true }), 'portfolio performance chart');
-    await waitForVisible(page.getByText('Open Orders', { exact: true }), 'portfolio open orders card');
-    await waitForVisible(page.getByText('No pending orders yet. Use limit orders, stop-losses, or take-profits to automate exits and entries.', { exact: true }), 'resolved pending orders state');
-    await waitForVisible(page.getByText('Portfolio Rebalancer', { exact: true }), 'portfolio rebalancer');
+    await waitForVisible(page.getByText('Planned Orders', { exact: true }), 'portfolio open orders card');
+    await waitForVisible(page.getByText('No planned orders yet. Use Plan Ahead on a stock page to auto-buy lower, limit losses, or lock gains on future turns.', { exact: true }), 'resolved pending orders state');
+    await waitForVisible(page.getByText('Auto-Balance Portfolio', { exact: true }), 'portfolio rebalancer');
     log('Portfolio shows the new chart, cleared orders, and rebalance card');
 
     await page.getByRole('button', { name: 'Clear' }).click();
-    await waitForVisible(page.getByText('Trade Preview', { exact: true }), 'rebalance trade preview');
+    await waitForVisible(page.getByText('Plan Preview', { exact: true }), 'rebalance trade preview');
     await waitForVisible(page.getByText(/planned trade/i), 'rebalance plan summary');
-    await page.getByRole('button', { name: 'Rebalance Now' }).click();
-    await waitForVisible(page.getByText('No holdings yet. Visit the Market to buy stocks or open shorts.', { exact: true }), 'post-rebalance empty portfolio');
+    await page.getByRole('button', { name: 'Apply Plan' }).click();
+    await waitForVisible(page.getByText('No holdings yet. Visit the Market to Buy Now or open a Bet Down position.', { exact: true }), 'post-rebalance empty portfolio');
     log('Rebalance preview and execution work on the portfolio screen');
 
     log('Fast-forwarding to the end of the run');

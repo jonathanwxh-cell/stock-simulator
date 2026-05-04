@@ -192,7 +192,7 @@ export default function StockMarket() {
                       {stock.dividendYield > 0 && <span className="text-[10px] px-1 py-0.5 rounded bg-[var(--neutral-amber)]/15 text-[var(--neutral-amber)]">DIV</span>}
                       {isWatched && <span className="text-[10px] px-1 py-0.5 rounded bg-[rgba(59,130,246,0.15)] text-[var(--info-blue)]">WATCH</span>}
                       {position && position.shares > 0 && <span className="text-[10px] px-1 py-0.5 rounded bg-[var(--profit-green)]/15 text-[var(--profit-green)]">HOLD</span>}
-                      {shortPosition && shortPosition.shares > 0 && <span className="text-[10px] px-1 py-0.5 rounded bg-[var(--loss-red)]/15 text-[var(--loss-red)]">SHORT</span>}
+                      {shortPosition && shortPosition.shares > 0 && <span className="text-[10px] px-1 py-0.5 rounded bg-[var(--loss-red)]/15 text-[var(--loss-red)]">BET DOWN</span>}
                       {regimeTone === 'tailwind' && <span className="text-[10px] px-1 py-0.5 rounded bg-[rgba(34,197,94,0.15)] text-[var(--profit-green)]">TAILWIND</span>}
                       {regimeTone === 'headwind' && <span className="text-[10px] px-1 py-0.5 rounded bg-[rgba(239,68,68,0.15)] text-[var(--loss-red)]">HEADWIND</span>}
                     </div>

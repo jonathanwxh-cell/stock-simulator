@@ -76,7 +76,7 @@ export function calculateRisk(state: GameState): RiskSnapshot {
   if (meaningfulExposure && largestPositionToNw > 0.25) warnings.push('Single-stock concentration is above 25% of net worth.');
   if (meaningfulExposure && sectorByExposure > 0.5) warnings.push('One sector is more than 50% of invested exposure.');
   if (cashRatio < 0.1) warnings.push('Cash buffer is below 10%.');
-  if (shortRatio > 0.2) warnings.push('Short exposure is above 20% of net worth.');
+  if (shortRatio > 0.2) warnings.push('Bet Down exposure is above 20% of net worth.');
   if (drawdown > 0.1) warnings.push('Drawdown exceeds 10%.');
 
   const concentrationScore = meaningfulExposure

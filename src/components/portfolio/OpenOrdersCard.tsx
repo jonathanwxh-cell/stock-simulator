@@ -1,5 +1,6 @@
 import { Clock3, ShieldAlert, X } from 'lucide-react';
 import { DIFFICULTY_CONFIGS } from '../../engine/config';
+import { getLimitOrderKind, getOrderLanguage } from '../../engine/tradeLanguage';
 import type { ConditionalOrder, GameState, LimitOrder } from '../../engine/types';
 
 type OrderRow = {
@@ -12,11 +13,13 @@ type OrderRow = {
   priceLabel: string;
   distancePct: number;
   kind: 'limit' | 'protective';
+  tone: 'green' | 'red' | 'blue';
 };
 
-function badgeClass(label: string) {
-  if (label.includes('buy') || label.includes('take-profit')) return 'bg-[rgba(34,197,94,0.14)] text-[var(--profit-green)]';
-  if (label.includes('sell') || label.includes('stop-loss')) return 'bg-[rgba(239,68,68,0.14)] text-[var(--loss-red)]';
+function badgeClass(tone: OrderRow['tone']) {
+  if (tone === 'green') return 'bg-[rgba(34,197,94,0.14)] text-[var(--profit-green)]';
+  if (tone === 'red') return 'bg-[rgba(239,68,68,0.14)] text-[var(--loss-red)]';
+  if (tone === 'blue') return 'bg-[rgba(59,130,246,0.14)] text-[var(--info-blue)]';
   return 'bg-[var(--surface-1)] text-[var(--text-secondary)]';
 }
 
@@ -25,16 +28,18 @@ function buildLimitRows(gameState: GameState): OrderRow[] {
     const stock = gameState.stocks.find((entry) => entry.id === order.stockId);
     const currentPrice = stock?.currentPrice || order.targetPrice;
     const distancePct = currentPrice > 0 ? ((order.targetPrice - currentPrice) / currentPrice) * 100 : 0;
+    const language = getOrderLanguage(getLimitOrderKind(order.type));
     return {
       id: order.id,
       stockId: order.stockId,
       ticker: stock?.ticker || order.stockId,
-      label: `limit ${order.type}`,
+      label: language.shortLabel,
       shares: order.shares,
       placedTurn: order.placedTurn,
       priceLabel: `$${order.targetPrice.toFixed(2)}`,
       distancePct,
       kind: 'limit',
+      tone: order.type === 'buy' ? 'green' : 'red',
     };
   });
 }
@@ -44,16 +49,18 @@ function buildConditionalRows(gameState: GameState): OrderRow[] {
     const stock = gameState.stocks.find((entry) => entry.id === order.stockId);
     const currentPrice = stock?.currentPrice || order.triggerPrice;
     const distancePct = currentPrice > 0 ? ((order.triggerPrice - currentPrice) / currentPrice) * 100 : 0;
+    const language = getOrderLanguage(order.type);
     return {
       id: order.id,
       stockId: order.stockId,
       ticker: stock?.ticker || order.stockId,
-      label: order.type === 'stop_loss' ? 'stop-loss' : 'take-profit',
+      label: language.shortLabel,
       shares: order.shares,
       placedTurn: order.placedTurn,
       priceLabel: `$${order.triggerPrice.toFixed(2)}`,
       distancePct,
       kind: 'protective',
+      tone: order.type === 'stop_loss' ? 'red' : 'blue',
     };
   });
 }
@@ -81,23 +88,23 @@ export default function OpenOrdersCard({
         <div className="flex items-center gap-2">
           <Clock3 className="w-4 h-4 text-[var(--neutral-amber)]" />
           <div>
-            <h2 className="text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wider">Open Orders</h2>
-            <p className="text-[10px] text-[var(--text-muted)]">{rows.length} of {pendingCap} pending slots in use.</p>
+            <h2 className="text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wider">Planned Orders</h2>
+            <p className="text-[10px] text-[var(--text-muted)]">{rows.length} of {pendingCap} automatic plan slots in use.</p>
           </div>
         </div>
         <span className="text-[10px] px-2 py-1 rounded-full border border-[var(--border)] text-[var(--text-muted)] uppercase tracking-wide">
-          Limits + protective
+          Future turns
         </span>
       </div>
 
       {rows.length === 0 ? (
         <div className="rounded-xl border border-dashed border-[var(--border)] bg-[var(--surface-1)] p-4">
-          <p className="text-sm text-[var(--text-muted)]">No pending orders yet. Use limit orders, stop-losses, or take-profits to automate exits and entries.</p>
+          <p className="text-sm text-[var(--text-muted)]">No planned orders yet. Use Plan Ahead on a stock page to auto-buy lower, limit losses, or lock gains on future turns.</p>
         </div>
       ) : (
         <div className="space-y-2">
           {rows.map((row) => {
-            const directionClass = badgeClass(row.label);
+            const directionClass = badgeClass(row.tone);
             return (
               <div key={row.id} className="rounded-xl border border-[var(--border)] bg-[var(--surface-1)] p-3">
                 <div className="flex items-start justify-between gap-3">

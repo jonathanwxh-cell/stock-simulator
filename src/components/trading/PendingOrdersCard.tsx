@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Clock3, ShieldAlert, X } from 'lucide-react';
 import type { ConditionalOrder, LimitOrder, Stock } from '../../engine/types';
+import { getLimitOrderKind, getOrderLanguage } from '../../engine/tradeLanguage';
 
 function buttonClass(active: boolean, tone: 'green' | 'red' | 'blue') {
   if (!active) return 'bg-[var(--surface-1)] border border-[var(--border)] text-[var(--text-secondary)]';
@@ -56,6 +57,9 @@ export default function PendingOrdersCard({
 
   const stockLimitOrders = limitOrders.filter((order) => order.stockId === stock.id);
   const stockConditionalOrders = conditionalOrders.filter((order) => order.stockId === stock.id);
+  const limitKind = limitType === 'buy' ? 'limit_buy' : 'limit_sell';
+  const limitLanguage = getOrderLanguage(limitKind);
+  const protectiveLanguage = getOrderLanguage(protectiveType);
 
   const submitLimitOrder = () => {
     const shares = parsePositiveWhole(limitShares);
@@ -97,8 +101,8 @@ export default function PendingOrdersCard({
         <div className="flex items-center gap-2">
           <Clock3 className="w-4 h-4 text-[var(--neutral-amber)]" />
           <div>
-            <h2 className="text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wider">Orders & Automation</h2>
-            <p className="text-[10px] text-[var(--text-muted)]">{pendingUsed} of {pendingCap} pending order slots in use.</p>
+            <h2 className="text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wider">Plan Ahead</h2>
+            <p className="text-[10px] text-[var(--text-muted)]">{pendingUsed} of {pendingCap} automatic plan slots in use.</p>
           </div>
         </div>
         <span className="text-[10px] px-2 py-1 rounded-full border border-[var(--border)] text-[var(--text-muted)] uppercase tracking-wide">
@@ -109,12 +113,13 @@ export default function PendingOrdersCard({
       <div className="grid grid-cols-1 gap-3 mb-4">
         <div className="rounded-xl border border-[var(--border)] bg-[var(--surface-1)] p-3">
           <div className="flex items-center justify-between mb-3">
-            <h3 className="text-sm font-semibold text-[var(--text-primary)]">Limit Order</h3>
+            <h3 className="text-sm font-semibold text-[var(--text-primary)]">Buy or Sell Later</h3>
             <div className="flex gap-1">
-              <button type="button" onClick={() => setLimitType('buy')} className={`px-2.5 py-1 rounded text-[10px] font-semibold ${buttonClass(limitType === 'buy', 'green')}`}>Limit Buy</button>
-              <button type="button" onClick={() => setLimitType('sell')} className={`px-2.5 py-1 rounded text-[10px] font-semibold ${buttonClass(limitType === 'sell', 'red')}`}>Limit Sell</button>
+              <button type="button" onClick={() => setLimitType('buy')} className={`px-2.5 py-1 rounded text-[10px] font-semibold ${buttonClass(limitType === 'buy', 'green')}`}>{getOrderLanguage('limit_buy').label}</button>
+              <button type="button" onClick={() => setLimitType('sell')} className={`px-2.5 py-1 rounded text-[10px] font-semibold ${buttonClass(limitType === 'sell', 'red')}`}>{getOrderLanguage('limit_sell').label}</button>
             </div>
           </div>
+          <p className="text-[10px] text-[var(--text-muted)] mb-3">{limitLanguage.description}</p>
           <div className="grid grid-cols-2 gap-2 mb-3">
             <label className="text-xs text-[var(--text-muted)]">
               Shares
@@ -128,7 +133,7 @@ export default function PendingOrdersCard({
               />
             </label>
             <label className="text-xs text-[var(--text-muted)]">
-              Target Price
+              {limitType === 'buy' ? 'Buy at or below' : 'Sell at or above'}
               <input
                 type="number"
                 min="0.01"
@@ -144,7 +149,7 @@ export default function PendingOrdersCard({
             onClick={submitLimitOrder}
             className="w-full rounded-xl bg-[var(--surface-0)] border border-[var(--border)] px-3 py-2.5 text-sm font-semibold text-[var(--text-primary)] hover:border-[var(--border-hover)]"
           >
-            Place {limitType === 'buy' ? 'Limit Buy' : 'Limit Sell'}
+            Place {limitLanguage.label}
           </button>
         </div>
 
@@ -152,7 +157,7 @@ export default function PendingOrdersCard({
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
               <ShieldAlert className="w-4 h-4 text-[var(--neutral-amber)]" />
-              <h3 className="text-sm font-semibold text-[var(--text-primary)]">Protective Exit</h3>
+              <h3 className="text-sm font-semibold text-[var(--text-primary)]">Protect Your Shares</h3>
             </div>
             <div className="flex gap-1">
               <button
@@ -163,7 +168,7 @@ export default function PendingOrdersCard({
                 }}
                 className={`px-2 py-1 rounded text-[10px] font-semibold ${buttonClass(protectiveType === 'stop_loss', 'red')}`}
               >
-                Stop-Loss
+                {getOrderLanguage('stop_loss').label}
               </button>
               <button
                 type="button"
@@ -173,10 +178,11 @@ export default function PendingOrdersCard({
                 }}
                 className={`px-2 py-1 rounded text-[10px] font-semibold ${buttonClass(protectiveType === 'take_profit', 'blue')}`}
               >
-                Take-Profit
+                {getOrderLanguage('take_profit').label}
               </button>
             </div>
           </div>
+          <p className="text-[10px] text-[var(--text-muted)] mb-3">{protectiveLanguage.description}</p>
           <div className="grid grid-cols-2 gap-2 mb-3">
             <label className="text-xs text-[var(--text-muted)]">
               Shares
@@ -190,7 +196,7 @@ export default function PendingOrdersCard({
               />
             </label>
             <label className="text-xs text-[var(--text-muted)]">
-              Trigger Price
+              Sell if price reaches
               <input
                 type="number"
                 min="0.01"
@@ -209,7 +215,7 @@ export default function PendingOrdersCard({
             onClick={submitProtectiveOrder}
             className="w-full rounded-xl bg-[var(--surface-0)] border border-[var(--border)] px-3 py-2.5 text-sm font-semibold text-[var(--text-primary)] hover:border-[var(--border-hover)]"
           >
-            Place {protectiveType === 'stop_loss' ? 'Stop-Loss' : 'Take-Profit'}
+            Place {protectiveLanguage.label}
           </button>
         </div>
       </div>
@@ -222,11 +228,8 @@ export default function PendingOrdersCard({
         <div className="space-y-2">
           {[...stockLimitOrders, ...stockConditionalOrders].map((order) => {
             const isLimitOrder = 'targetPrice' in order;
-            const badgeText = isLimitOrder
-              ? `LIMIT ${order.type.toUpperCase()}`
-              : order.type === 'stop_loss'
-              ? 'STOP-LOSS'
-              : 'TAKE-PROFIT';
+            const orderLanguage = getOrderLanguage(isLimitOrder ? getLimitOrderKind(order.type) : order.type);
+            const badgeText = orderLanguage.shortLabel.toUpperCase();
             const badgeTone = isLimitOrder
               ? order.type === 'buy'
                 ? 'bg-[rgba(34,197,94,0.14)] text-[var(--profit-green)]'
@@ -243,7 +246,7 @@ export default function PendingOrdersCard({
                       <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded ${badgeTone}`}>{badgeText}</span>
                       <span className="text-xs text-[var(--text-muted)]">{order.shares} shares</span>
                     </div>
-                    <p className="text-sm text-[var(--text-primary)] mt-1">Trigger at ${price.toFixed(2)}</p>
+                    <p className="text-sm text-[var(--text-primary)] mt-1">{orderLanguage.label} ${price.toFixed(2)}</p>
                     <p className="text-[10px] text-[var(--text-secondary)] mt-1">Placed on turn {order.placedTurn}</p>
                   </div>
                   <button
@@ -261,7 +264,7 @@ export default function PendingOrdersCard({
         </div>
       ) : (
         <div className="rounded-xl border border-dashed border-[var(--border)] bg-[var(--surface-1)] p-4">
-          <p className="text-sm text-[var(--text-muted)]">No pending orders on {stock.ticker} yet.</p>
+          <p className="text-sm text-[var(--text-muted)]">No planned orders on {stock.ticker} yet.</p>
         </div>
       )}
     </div>

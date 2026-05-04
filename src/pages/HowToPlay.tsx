@@ -6,7 +6,7 @@ import { DIFFICULTY_CONFIGS } from '../engine/config';
 const sections = [
   { icon: Target, title: 'Goal', text: 'Grow your starting cash into a target net worth within a limited number of turns. Each turn represents one month.' },
   { icon: BarChart3, title: 'Stock Market', text: 'Browse 60 stocks across 12 sectors. Prices change every turn based on market conditions, news events, and active scenarios.' },
-  { icon: Briefcase, title: 'Trading', text: 'Buy and sell shares at current market prices. Use the trade modal to select quantities and confirm trades.' },
+  { icon: Briefcase, title: 'Trading', text: 'Use Trade Now to buy or sell immediately at the current price. Use Plan Ahead when you want the game to auto-buy or auto-sell on a future turn if your target price is reached.' },
   { icon: Newspaper, title: 'News & Events', text: 'Random market news affects stock prices. Active scenarios create multi-turn market conditions impacting specific sectors.' },
   { icon: Zap, title: 'Dividends', text: 'Some stocks pay quarterly dividends. Dividend yield is shown on the stock detail page.' },
   { icon: Trophy, title: 'Grading', text: 'Your performance is graded S through F based on your final net worth relative to the goal. Reach 3x the goal for an S rank!' },

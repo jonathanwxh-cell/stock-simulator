@@ -5,6 +5,7 @@ import { SECTOR_COLORS, SECTOR_LABELS } from '../engine/config';
 import { getPortfolioValue, getNetWorth, getShortLiability } from '../engine/marketSimulator';
 import { getAlphaPct, getMarketReturnPct, getPlayerReturnPct } from '../engine/marketIndex';
 import { getLatestRisk } from '../engine/riskSystem';
+import { getTransactionLanguage } from '../engine/tradeLanguage';
 import type { Stock } from '../engine/types';
 import PerformanceChartCard from '../components/portfolio/PerformanceChartCard';
 import OpenOrdersCard from '../components/portfolio/OpenOrdersCard';
@@ -116,14 +117,14 @@ export default function Portfolio() {
 
         <h2 className="text-sm font-semibold text-[var(--text-secondary)] uppercase tracking-wider mb-3">Holdings ({holdings.length})</h2>
         {holdings.length === 0 ? (
-          <div className="bg-[var(--surface-0)] border border-[var(--border)] rounded-2xl p-8 text-center"><p className="text-[var(--text-muted)]">No holdings yet. Visit the Market to buy stocks or open shorts.</p></div>
+          <div className="bg-[var(--surface-0)] border border-[var(--border)] rounded-2xl p-8 text-center"><p className="text-[var(--text-muted)]">No holdings yet. Visit the Market to Buy Now or open a Bet Down position.</p></div>
         ) : (
           <div className="space-y-2">
             {holdings.map(holding => (
               <motion.button key={`${holding.kind}-${holding.stockId}`} initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} onClick={() => openStock(holding.stockId)} className="w-full bg-[var(--surface-0)] border border-[var(--border)] rounded-xl p-4 text-left hover:border-[var(--border-hover)] transition-all">
                 <div className="flex items-center justify-between">
                   <div>
-                    <div className="flex items-center gap-2"><span className="font-semibold text-[var(--text-primary)]">{holding.stock.ticker}</span><span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded ${holding.kind === 'long' ? 'bg-[rgba(34,197,94,0.15)] text-[var(--profit-green)]' : 'bg-[rgba(239,68,68,0.15)] text-[var(--loss-red)]'}`}>{holding.kind.toUpperCase()}</span><span className="text-xs text-[var(--text-muted)]">{holding.shares} shares</span></div>
+                    <div className="flex items-center gap-2"><span className="font-semibold text-[var(--text-primary)]">{holding.stock.ticker}</span><span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded ${holding.kind === 'long' ? 'bg-[rgba(34,197,94,0.15)] text-[var(--profit-green)]' : 'bg-[rgba(239,68,68,0.15)] text-[var(--loss-red)]'}`}>{holding.kind === 'long' ? 'OWNED' : 'BET DOWN'}</span><span className="text-xs text-[var(--text-muted)]">{holding.shares} shares</span></div>
                     <span className="text-xs text-[var(--text-muted)]">{holding.kind === 'long' ? 'Avg' : 'Entry'}: ${holding.basis.toFixed(2)}</span>
                   </div>
                   <div className="text-right"><p className="font-mono-data font-semibold text-[var(--text-primary)]">${holding.value.toFixed(2)}</p><p className={`text-xs font-mono-data ${holding.pnl >= 0 ? 'text-[var(--profit-green)]' : 'text-[var(--loss-red)]'}`}>{holding.pnl >= 0 ? '+' : ''}{holding.pnl.toFixed(2)} ({holding.pnlPct >= 0 ? '+' : ''}{holding.pnlPct.toFixed(1)}%)</p></div>
@@ -133,7 +134,28 @@ export default function Portfolio() {
           </div>
         )}
 
-        {gameState.transactionHistory.length > 0 && <div className="mt-6"><h2 className="text-sm font-semibold text-[var(--text-secondary)] uppercase tracking-wider mb-3">Recent Trades</h2><div className="bg-[var(--surface-0)] border border-[var(--border)] rounded-2xl divide-y divide-[var(--border)]">{gameState.transactionHistory.slice(-5).reverse().map(txn => { const stock = gameState.stocks.find(s => s.id === txn.stockId); const positive = txn.type === 'buy' || txn.type === 'cover' || txn.type === 'dividend' || txn.type === 'mission_reward'; return <div key={txn.id} className="p-3 flex items-center justify-between"><div className="flex items-center gap-2"><span className={`text-xs font-semibold px-1.5 py-0.5 rounded ${positive ? 'bg-[rgba(34,197,94,0.15)] text-[var(--profit-green)]' : 'bg-[rgba(239,68,68,0.15)] text-[var(--loss-red)]'}`}>{txn.type.toUpperCase()}</span><span className="text-sm text-[var(--text-primary)]">{stock?.ticker || txn.stockId}</span><span className="text-xs text-[var(--text-muted)]">{txn.shares} @ ${txn.price.toFixed(2)}</span></div><span className="text-sm font-mono-data text-[var(--text-secondary)]">${txn.total.toFixed(2)}</span></div>; })}</div></div>}
+        {gameState.transactionHistory.length > 0 && (
+          <div className="mt-6">
+            <h2 className="text-sm font-semibold text-[var(--text-secondary)] uppercase tracking-wider mb-3">Recent Trades</h2>
+            <div className="bg-[var(--surface-0)] border border-[var(--border)] rounded-2xl divide-y divide-[var(--border)]">
+              {gameState.transactionHistory.slice(-5).reverse().map(txn => {
+                const stock = gameState.stocks.find(s => s.id === txn.stockId);
+                const label = getTransactionLanguage(txn.type);
+                const positive = txn.type === 'buy' || txn.type === 'cover' || txn.type === 'limit_buy' || txn.type === 'dividend' || txn.type === 'mission_reward';
+                return (
+                  <div key={txn.id} className="p-3 flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className={`text-xs font-semibold px-1.5 py-0.5 rounded ${positive ? 'bg-[rgba(34,197,94,0.15)] text-[var(--profit-green)]' : 'bg-[rgba(239,68,68,0.15)] text-[var(--loss-red)]'}`}>{label.shortLabel}</span>
+                      <span className="text-sm text-[var(--text-primary)]">{stock?.ticker || txn.stockId}</span>
+                      <span className="text-xs text-[var(--text-muted)]">{txn.shares} @ ${txn.price.toFixed(2)}</span>
+                    </div>
+                    <span className="text-sm font-mono-data text-[var(--text-secondary)]">${txn.total.toFixed(2)}</span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
       </motion.div>
     </div>
   );

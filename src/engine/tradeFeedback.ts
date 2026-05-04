@@ -57,9 +57,9 @@ function positionWeightPct(state: GameState, stockId: string): number {
 function getPositionLabel(state: GameState, stockId: string): string {
   const longShares = state.portfolio[stockId]?.shares ?? 0;
   const shortShares = state.shortPositions[stockId]?.shares ?? 0;
-  if (longShares > 0 && shortShares > 0) return `Long ${longShares} · Short ${shortShares}`;
-  if (longShares > 0) return `${longShares} long shares`;
-  if (shortShares > 0) return `${shortShares} short shares`;
+  if (longShares > 0 && shortShares > 0) return `Owned ${longShares} · Bet Down ${shortShares}`;
+  if (longShares > 0) return `${longShares} owned shares`;
+  if (shortShares > 0) return `${shortShares} Bet Down shares`;
   return 'No position';
 }
 
@@ -103,14 +103,14 @@ export function getTradeFeedback(state: GameState, stockId: string, shares: numb
     details.push({ label: 'Realized P/L', value: signedMoney(grossPnl - transaction.fee), tone: grossPnl - transaction.fee >= 0 ? 'positive' : 'danger' }, { label: 'Cash after', value: money(cashAfter) }, { label: 'Cash impact', value: signedMoney(cashDelta), tone: 'positive' }, { label: 'Position after', value: positionLabel });
   } else if (action === 'short') {
     const marginUsed = roundCurrency(transaction.total * DIFFICULTY_CONFIGS[state.difficulty].shortMarginRequirement);
-    headline = `Shorted ${shares} ${stock.ticker}`;
-    subheadline = `Exposure ${money(transaction.total)} · Fee ${money(transaction.fee)}`;
-    details.push({ label: 'Margin required', value: money(marginUsed), tone: 'warning' }, { label: 'Cash after', value: money(cashAfter) }, { label: 'Short exposure', value: `${positionWeightAfter.toFixed(1)}% of net worth`, tone: positionWeightAfter >= 50 ? 'danger' : positionWeightAfter >= 20 ? 'warning' : 'neutral' }, { label: 'Position after', value: positionLabel });
+    headline = `Bet Down ${shares} ${stock.ticker}`;
+    subheadline = `Position value ${money(transaction.total)} · Fee ${money(transaction.fee)}`;
+    details.push({ label: 'Cash reserved', value: money(marginUsed), tone: 'warning' }, { label: 'Cash after', value: money(cashAfter) }, { label: 'Bet Down exposure', value: `${positionWeightAfter.toFixed(1)}% of net worth`, tone: positionWeightAfter >= 50 ? 'danger' : positionWeightAfter >= 20 ? 'warning' : 'neutral' }, { label: 'Position after', value: positionLabel });
   } else {
     const shortEntry = state.shortPositions[stockId]?.entryPrice ?? stock.currentPrice;
     const grossPnl = roundCurrency((shortEntry - stock.currentPrice) * shares);
-    headline = `Covered ${shares} ${stock.ticker}`;
-    subheadline = `Cover value ${money(transaction.total)} · Fee ${money(transaction.fee)}`;
+    headline = `Closed Short ${shares} ${stock.ticker}`;
+    subheadline = `Close value ${money(transaction.total)} · Fee ${money(transaction.fee)}`;
     details.push({ label: 'Realized P/L', value: signedMoney(grossPnl - transaction.fee), tone: grossPnl - transaction.fee >= 0 ? 'positive' : 'danger' }, { label: 'Cash after', value: money(cashAfter) }, { label: 'Cash impact', value: signedMoney(cashDelta), tone: cashDelta >= 0 ? 'positive' : 'danger' }, { label: 'Position after', value: positionLabel });
   }
 

@@ -7,10 +7,12 @@ import { CATALYST_TYPE_LABELS } from '../engine/catalystSystem';
 import { getUpcomingCatalysts, getWatchlistAlerts } from '../engine/marketInsights';
 import { buildResearchBrief } from '../engine/scannerSystem';
 import { getTradeFeedback, tradeFeedbackFormat, type FeedbackTone, type TradeAction, type TradeFeedback } from '../engine/tradeFeedback';
+import { getTradeLanguage } from '../engine/tradeLanguage';
 import PendingOrdersCard from '../components/trading/PendingOrdersCard';
 import ResearchBriefCard from '../components/market/ResearchBriefCard';
 
 type TradeType = TradeAction;
+const TRADE_ACTIONS: TradeType[] = ['buy', 'sell', 'short', 'cover'];
 
 function toneClass(tone?: FeedbackTone) {
   if (tone === 'positive') return 'text-[var(--profit-green)]';
@@ -79,6 +81,7 @@ export default function StockDetailFixed() {
   const availableCash = gameState.cash;
 
   const tradePreview = getTradeFeedback(gameState, stockId, shares, tradeType);
+  const tradeLanguage = getTradeLanguage(tradeType);
 
   const canExecute = tradeType === 'buy'
     ? gameState.cash >= neededForBuy
@@ -91,9 +94,9 @@ export default function StockDetailFixed() {
   const disabledReason = (() => {
     if (canExecute) return '';
     if (tradeType === 'buy') return `Need ${tradeFeedbackFormat.money(neededForBuy)}, available ${tradeFeedbackFormat.money(availableCash)}.`;
-    if (tradeType === 'sell') return longShares > 0 ? `Only ${longShares} long shares available.` : 'No long position to sell.';
-    if (tradeType === 'short') return config.shortEnabled ? `Need ${tradeFeedbackFormat.money(shortCashNeeded)} cash for margin and fee.` : 'Short selling is disabled.';
-    return shortShares > 0 ? `Only ${shortShares} short shares available.` : 'No short position to cover.';
+    if (tradeType === 'sell') return longShares > 0 ? `Only ${longShares} owned shares available.` : 'No owned shares to sell.';
+    if (tradeType === 'short') return config.shortEnabled ? `Need ${tradeFeedbackFormat.money(shortCashNeeded)} cash reserved for this Bet Down trade and fee.` : 'Bet Down is disabled.';
+    return shortShares > 0 ? `Only ${shortShares} Bet Down shares available.` : 'No Bet Down position to close.';
   })();
 
   const setWholeShares = (value: number) => {
@@ -230,8 +233,8 @@ export default function StockDetailFixed() {
 
         {(longPosition || shortPosition) && (
           <div className="pt-2 border-t border-[var(--border)] text-xs space-y-1">
-            {longPosition && <p className="flex items-center gap-2"><Shield className="w-3 h-3 text-[var(--text-muted)]" /><span className="text-[var(--text-muted)]">Long:</span><span className="font-semibold text-[var(--profit-green)]">+{longPosition.shares} @ ${longPosition.avgCost.toFixed(2)}</span></p>}
-            {shortPosition && <p className="flex items-center gap-2"><Shield className="w-3 h-3 text-[var(--text-muted)]" /><span className="text-[var(--text-muted)]">Short:</span><span className="font-semibold text-[var(--loss-red)]">-{shortPosition.shares} @ ${shortPosition.entryPrice.toFixed(2)}</span></p>}
+            {longPosition && <p className="flex items-center gap-2"><Shield className="w-3 h-3 text-[var(--text-muted)]" /><span className="text-[var(--text-muted)]">Owned:</span><span className="font-semibold text-[var(--profit-green)]">+{longPosition.shares} @ ${longPosition.avgCost.toFixed(2)}</span></p>}
+            {shortPosition && <p className="flex items-center gap-2"><Shield className="w-3 h-3 text-[var(--text-muted)]" /><span className="text-[var(--text-muted)]">Bet Down:</span><span className="font-semibold text-[var(--loss-red)]">-{shortPosition.shares} @ ${shortPosition.entryPrice.toFixed(2)}</span></p>}
           </div>
         )}
 
@@ -269,28 +272,19 @@ export default function StockDetailFixed() {
           </div>
         )}
 
-        <PendingOrdersCard
-          stock={stock}
-          currentPrice={stock.currentPrice}
-          longShares={longShares}
-          pendingUsed={pendingUsed}
-          pendingCap={config.maxLimitOrders}
-          limitOrders={gameState.limitOrders}
-          conditionalOrders={gameState.conditionalOrders || []}
-          lastError={lastError}
-          onPlaceLimitOrder={placeOrder}
-          onCancelLimitOrder={cancelOrder}
-          onPlaceProtectiveOrder={placeProtectiveOrder}
-          onCancelProtectiveOrder={cancelProtectiveOrder}
-        />
-
         <div className="bg-[var(--surface-0)] border border-[var(--border)] rounded-2xl p-5">
-          <h2 className="text-sm font-semibold text-[var(--text-primary)] mb-3">Trade {stock.ticker}</h2>
+          <div className="mb-3">
+            <h2 className="text-sm font-semibold text-[var(--text-primary)]">Trade Now: {stock.ticker}</h2>
+            <p className="text-xs text-[var(--text-muted)] mt-1">
+              Trade Now uses the current price this turn. Plan Ahead below is for automatic future orders.
+            </p>
+          </div>
           <div className="flex gap-1 mb-3">
-            {(['buy', 'sell', 'short', 'cover'] as const).map(t => (
-              <button key={t} onClick={() => selectTrade(t)} className={`flex-1 py-2 rounded-lg text-xs font-semibold transition-all ${tradeType === t ? t === 'buy' ? 'bg-[var(--profit-green)] text-black' : t === 'sell' ? 'bg-[var(--loss-red)] text-white' : t === 'short' ? 'bg-[var(--neutral-amber)] text-black' : 'bg-[var(--info-blue)] text-white' : 'bg-[var(--surface-1)] text-[var(--text-secondary)] border border-[var(--border)]'}`}>{t.charAt(0).toUpperCase() + t.slice(1)}</button>
+            {TRADE_ACTIONS.map(t => (
+              <button key={t} onClick={() => selectTrade(t)} title={getTradeLanguage(t).description} className={`flex-1 py-2 rounded-lg text-xs font-semibold transition-all ${tradeType === t ? t === 'buy' ? 'bg-[var(--profit-green)] text-black' : t === 'sell' ? 'bg-[var(--loss-red)] text-white' : t === 'short' ? 'bg-[var(--neutral-amber)] text-black' : 'bg-[var(--info-blue)] text-white' : 'bg-[var(--surface-1)] text-[var(--text-secondary)] border border-[var(--border)]'}`}>{getTradeLanguage(t).label}</button>
             ))}
           </div>
+          <p className="text-[11px] text-[var(--text-muted)] mb-3">{tradeLanguage.description}</p>
 
           <div className="flex items-center gap-2 mb-3">
             <button onClick={() => setWholeShares(shares - 10)} className="w-8 h-8 rounded-lg bg-[var(--surface-1)] border border-[var(--border)] text-[var(--text-secondary)] text-xs">-10</button>
@@ -306,11 +300,11 @@ export default function StockDetailFixed() {
           </div>
 
           <div className="bg-[var(--surface-1)] rounded-lg p-3 mb-3 text-xs space-y-1.5">
-            <div className="flex justify-between"><span className="text-[var(--text-muted)]">Est. Value</span><span className="font-mono-data text-[var(--text-primary)]">${tradeValue.toFixed(2)}</span></div>
-            {tradeType === 'short' && <div className="flex justify-between"><span className="text-[var(--text-muted)]">Margin Required</span><span className="font-mono-data text-[var(--text-secondary)]">${shortMargin.toFixed(2)}</span></div>}
-            {tradeType === 'cover' && <div className="flex justify-between"><span className="text-[var(--text-muted)]">Margin Released</span><span className="font-mono-data text-[var(--text-secondary)]">${coverMarginRelease.toFixed(2)}</span></div>}
+            <div className="flex justify-between"><span className="text-[var(--text-muted)]">Trade Value</span><span className="font-mono-data text-[var(--text-primary)]">${tradeValue.toFixed(2)}</span></div>
+            {tradeType === 'short' && <div className="flex justify-between"><span className="text-[var(--text-muted)]">Cash Reserved</span><span className="font-mono-data text-[var(--text-secondary)]">${shortMargin.toFixed(2)}</span></div>}
+            {tradeType === 'cover' && <div className="flex justify-between"><span className="text-[var(--text-muted)]">Cash Released</span><span className="font-mono-data text-[var(--text-secondary)]">${coverMarginRelease.toFixed(2)}</span></div>}
             <div className="flex justify-between"><span className="text-[var(--text-muted)]">Fee</span><span className="font-mono-data text-[var(--text-secondary)]">${fee.toFixed(2)}</span></div>
-            <div className="flex justify-between border-t border-[var(--border)] pt-1.5"><span className="text-[var(--text-primary)] font-medium">Cash Impact</span><span className="font-mono-data font-bold text-[var(--text-primary)]">{cashImpact >= 0 ? '+' : '-'}${Math.abs(cashImpact).toFixed(2)}</span></div>
+            <div className="flex justify-between border-t border-[var(--border)] pt-1.5"><span className="text-[var(--text-primary)] font-medium">Cash Change</span><span className="font-mono-data font-bold text-[var(--text-primary)]">{cashImpact >= 0 ? '+' : '-'}${Math.abs(cashImpact).toFixed(2)}</span></div>
           </div>
 
           <div className={`rounded-xl p-3 mb-3 border ${tradePreview ? 'bg-[rgba(59,130,246,0.06)] border-[rgba(59,130,246,0.18)]' : 'bg-[var(--surface-1)] border-[var(--border)]'}`}>
@@ -320,7 +314,7 @@ export default function StockDetailFixed() {
             </div>
             {tradePreview ? (
               <>
-                <p className="text-sm font-semibold text-[var(--text-primary)]">{tradePreview.headline.replace(/^(Bought|Sold|Shorted|Covered)/, tradeType === 'buy' ? 'Buy' : tradeType === 'sell' ? 'Sell' : tradeType === 'short' ? 'Short' : 'Cover')}</p>
+                <p className="text-sm font-semibold text-[var(--text-primary)]">{tradePreview.headline.replace(/^(Bought|Sold|Shorted|Covered)/, tradeLanguage.label)}</p>
                 <p className="text-xs text-[var(--text-muted)] mb-3">{tradePreview.subheadline}</p>
                 <FeedbackDetails feedback={tradePreview} />
               </>
@@ -331,9 +325,24 @@ export default function StockDetailFixed() {
 
           {(localError || lastError) && <p className="text-xs text-[var(--loss-red)] mb-2">{localError || lastError}</p>}
           <button onClick={execute} disabled={!canExecute || isSubmitting} title={!canExecute ? disabledReason : undefined} className={`w-full py-3 rounded-xl font-semibold text-sm transition-all ${canExecute && !isSubmitting ? tradeType === 'buy' ? 'bg-[var(--profit-green)] text-black hover:brightness-110' : tradeType === 'sell' ? 'bg-[var(--loss-red)] text-white hover:brightness-110' : tradeType === 'short' ? 'bg-[var(--neutral-amber)] text-black hover:brightness-110' : 'bg-[var(--info-blue)] text-white hover:brightness-110' : 'bg-[var(--surface-2)] text-[var(--text-muted)] cursor-not-allowed opacity-75'}`}>
-            {isSubmitting ? 'Processing…' : canExecute ? `${tradeType.charAt(0).toUpperCase() + tradeType.slice(1)} ${shares} ${stock.ticker}` : disabledReason}
+            {isSubmitting ? 'Processing...' : canExecute ? `${tradeLanguage.label} ${shares} ${stock.ticker}` : disabledReason}
           </button>
         </div>
+
+        <PendingOrdersCard
+          stock={stock}
+          currentPrice={stock.currentPrice}
+          longShares={longShares}
+          pendingUsed={pendingUsed}
+          pendingCap={config.maxLimitOrders}
+          limitOrders={gameState.limitOrders}
+          conditionalOrders={gameState.conditionalOrders || []}
+          lastError={lastError}
+          onPlaceLimitOrder={placeOrder}
+          onCancelLimitOrder={cancelOrder}
+          onPlaceProtectiveOrder={placeProtectiveOrder}
+          onCancelProtectiveOrder={cancelProtectiveOrder}
+        />
       </div>
     </div>
   );

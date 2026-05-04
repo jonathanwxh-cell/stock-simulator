@@ -14,7 +14,7 @@ describe('trade feedback', () => {
     const feedback = getTradeFeedback(state, 'aapl', 1, 'short');
 
     expect(feedback).not.toBeNull();
-    expect(detailValue(feedback!, 'Short exposure')).toBe('0.8% of net worth');
+    expect(detailValue(feedback!, 'Bet Down exposure')).toBe('0.8% of net worth');
     expect(feedback!.positionWeightAfter).toBeCloseTo(0.8, 1);
   });
 
@@ -23,7 +23,7 @@ describe('trade feedback', () => {
     const feedback = getTradeFeedback(state, 'aapl', 10, 'short');
 
     expect(feedback).not.toBeNull();
-    expect(detailValue(feedback!, 'Short exposure')).toBe('7.7% of net worth');
+    expect(detailValue(feedback!, 'Bet Down exposure')).toBe('7.7% of net worth');
     expect(feedback!.positionWeightAfter).toBeCloseTo(7.7, 1);
   });
 
@@ -32,7 +32,7 @@ describe('trade feedback', () => {
     const feedback = getTradeFeedback(state, 'amd', 3, 'short');
 
     expect(feedback).not.toBeNull();
-    expect(detailValue(feedback!, 'Short exposure')).toBe('2.1% of net worth');
+    expect(detailValue(feedback!, 'Bet Down exposure')).toBe('2.1% of net worth');
     expect(feedback!.positionWeightAfter).toBeCloseTo(2.1, 1);
   });
 
@@ -47,7 +47,7 @@ describe('trade feedback', () => {
 
     const feedback = getTradeFeedback(state, 'amd', 3, 'short');
     expect(feedback).not.toBeNull();
-    expect(feedback!.positionLabel).toBe('6 short shares');
+    expect(feedback!.positionLabel).toBe('6 Bet Down shares');
 
     const second = executeShort(state, 'amd', 3);
     expect(second.ok).toBe(true);

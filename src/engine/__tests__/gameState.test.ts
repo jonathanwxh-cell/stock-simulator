@@ -50,6 +50,17 @@ describe('game state trade invariants', () => {
     expect(result.state.transactionHistory.filter(t => t.type === 'short')).toHaveLength(1);
   });
 
+  it('uses beginner-facing copy for Bet Down trade feedback', () => {
+    const state = createNewGame('Tester', 'normal');
+    const feedback = getTradeFeedback(state, 'tsla', 1, 'short');
+
+    expect(feedback).not.toBeNull();
+    expect(feedback?.headline).toContain('Bet Down');
+    expect(feedback?.details.map((detail) => detail.label)).toContain('Cash reserved');
+    expect(feedback?.details.map((detail) => detail.label)).toContain('Bet Down exposure');
+    expect(feedback?.positionLabel).toContain('Bet Down');
+  });
+
   it('uses net-worth basis for first-buy sector exposure preview', () => {
     const state = createNewGame('Tester', 'normal');
     const feedback = getTradeFeedback(state, 'aapl', 1, 'buy');
