@@ -41,4 +41,3 @@ The game is becoming a fictional-market career sim: low-friction trading, readab
 - Player-facing changes are summarized in [CHANGELOG.md](../CHANGELOG.md).
 - GitHub release entries should mirror the changelog section for each tag.
 - Before a new release, verify `npm.cmd run test:run`, `npm.cmd run lint`, and `npm.cmd run build`.
-
