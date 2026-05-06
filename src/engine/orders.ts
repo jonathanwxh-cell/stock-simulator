@@ -26,6 +26,10 @@ function recordFee(state: GameState, fee: number, stockId: string) {
   });
 }
 
+function isShortConditionalOrder(type: ConditionalOrder['type']): boolean {
+  return type === 'short_stop_loss' || type === 'short_take_profit';
+}
+
 function executeLimitOrder(state: GameState, order: LimitOrder): boolean {
   const config = DIFFICULTY_CONFIGS[state.difficulty];
   const stock = getTradeStock(state, order.stockId);
@@ -96,6 +100,44 @@ function executeConditionalOrder(state: GameState, order: ConditionalOrder): boo
   const config = DIFFICULTY_CONFIGS[state.difficulty];
   const stock = getTradeStock(state, order.stockId);
   if (!stock) return true;
+
+  if (isShortConditionalOrder(order.type)) {
+    const shortPosition = state.shortPositions[order.stockId];
+    if (!shortPosition || shortPosition.shares <= 0) return true;
+
+    const shouldCover =
+      (order.type === 'short_stop_loss' && stock.currentPrice >= order.triggerPrice) ||
+      (order.type === 'short_take_profit' && stock.currentPrice <= order.triggerPrice);
+    if (!shouldCover) return false;
+
+    const sharesToCover = Math.min(shortPosition.shares, order.shares);
+    if (sharesToCover <= 0) return true;
+
+    const total = roundCurrency(stock.currentPrice * sharesToCover);
+    const fee = calcBrokerFee(total, config);
+    const marginRelease = roundCurrency((shortPosition.marginUsed / shortPosition.shares) * sharesToCover);
+    const pnl = roundCurrency((shortPosition.entryPrice - stock.currentPrice) * sharesToCover);
+    state.cash = roundCurrency(state.cash + marginRelease + pnl - fee);
+    state.marginUsed = roundCurrency(state.marginUsed - marginRelease);
+    recordFee(state, fee, order.stockId);
+    shortPosition.shares -= sharesToCover;
+    shortPosition.marginUsed = roundCurrency(shortPosition.marginUsed - marginRelease);
+    if (shortPosition.shares <= 0) delete state.shortPositions[order.stockId];
+
+    state.transactionHistory.push({
+      id: `txn_${order.id}_exec`,
+      date: new Date(state.currentDate),
+      turn: state.currentTurn,
+      stockId: order.stockId,
+      type: order.type,
+      shares: sharesToCover,
+      price: roundCurrency(stock.currentPrice),
+      total,
+      fee,
+    });
+
+    return true;
+  }
 
   const position = state.portfolio[order.stockId];
   if (!position || position.shares <= 0) return true;
@@ -217,8 +259,10 @@ export function placeConditionalOrder(
   if (!stock) return { ok: false, reason: 'stock_not_found' };
 
   const position = state.portfolio[stockId];
-  if (!position || position.shares <= 0) return { ok: false, reason: 'no_position' };
-  if (position.shares < shares) return { ok: false, reason: 'insufficient_shares' };
+  const shortPosition = state.shortPositions[stockId];
+  const protectedPosition = isShortConditionalOrder(type) ? shortPosition : position;
+  if (!protectedPosition || protectedPosition.shares <= 0) return { ok: false, reason: 'no_position' };
+  if (protectedPosition.shares < shares) return { ok: false, reason: 'insufficient_shares' };
   if (state.cash < config.limitOrderFee) return { ok: false, reason: 'insufficient_funds' };
 
   const nextState = deepCloneGameState(state);

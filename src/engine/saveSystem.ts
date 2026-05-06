@@ -352,7 +352,7 @@ const LimitOrderSchema = z.object({
 const ConditionalOrderSchema = z.object({
   id: z.string(),
   stockId: z.string(),
-  type: z.enum(['stop_loss', 'take_profit']),
+  type: z.enum(['stop_loss', 'take_profit', 'short_stop_loss', 'short_take_profit']),
   shares: z.number(),
   triggerPrice: z.number(),
   placedTurn: z.number(),
@@ -371,6 +371,8 @@ const TransactionSchema = z.object({
     'limit_sell',
     'stop_loss',
     'take_profit',
+    'short_stop_loss',
+    'short_take_profit',
     'dividend',
     'fee',
     'margin_call',

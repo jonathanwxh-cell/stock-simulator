@@ -17,6 +17,8 @@ const EXECUTED_ORDER_TRADE_TYPES = new Set<Transaction['type']>([
   'limit_sell',
   'stop_loss',
   'take_profit',
+  'short_stop_loss',
+  'short_take_profit',
 ]);
 
 export function isExecutedPlayerTrade(txn: Transaction): boolean {

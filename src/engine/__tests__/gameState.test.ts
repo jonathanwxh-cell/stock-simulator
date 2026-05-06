@@ -2,6 +2,16 @@ import { describe, expect, it } from 'vitest';
 import { createNewGame, executeBuy, executeShort, placeLimitOrder, simulateTurn, toggleWatchlistStock } from '../index';
 import { getTradeFeedback } from '../tradeFeedback';
 import { SeededRNG } from '../rng';
+import { unwrap } from './_helpers';
+
+function withPrice(state: ReturnType<typeof createNewGame>, stockId: string, price: number) {
+  return {
+    ...state,
+    stocks: state.stocks.map((stock) =>
+      stock.id === stockId ? { ...stock, currentPrice: price } : stock,
+    ),
+  };
+}
 
 describe('game state trade invariants', () => {
   it('rejects fractional shares for immediate trades', () => {
@@ -48,6 +58,36 @@ describe('game state trade invariants', () => {
     expect(result.state.portfolio.tsla).toBeUndefined();
     expect(result.state.shortPositions.tsla?.shares).toBe(1);
     expect(result.state.transactionHistory.filter(t => t.type === 'short')).toHaveLength(1);
+  });
+
+  it('nets buys against existing short exposure before opening long shares', () => {
+    let state = withPrice(createNewGame('Tester', 'normal'), 'aapl', 100);
+    state = unwrap(state, (current) => executeShort(current, 'aapl', 10));
+
+    state = unwrap(state, (current) => executeBuy(current, 'aapl', 4));
+
+    expect(state.shortPositions.aapl?.shares).toBe(6);
+    expect(state.portfolio.aapl).toBeUndefined();
+
+    state = unwrap(state, (current) => executeBuy(current, 'aapl', 8));
+
+    expect(state.shortPositions.aapl).toBeUndefined();
+    expect(state.portfolio.aapl?.shares).toBe(2);
+  });
+
+  it('nets Bet Down trades against owned shares before opening shorts', () => {
+    let state = withPrice(createNewGame('Tester', 'normal'), 'aapl', 100);
+    state = unwrap(state, (current) => executeBuy(current, 'aapl', 10));
+
+    state = unwrap(state, (current) => executeShort(current, 'aapl', 4));
+
+    expect(state.portfolio.aapl?.shares).toBe(6);
+    expect(state.shortPositions.aapl).toBeUndefined();
+
+    state = unwrap(state, (current) => executeShort(current, 'aapl', 8));
+
+    expect(state.portfolio.aapl).toBeUndefined();
+    expect(state.shortPositions.aapl?.shares).toBe(2);
   });
 
   it('uses beginner-facing copy for Bet Down trade feedback', () => {

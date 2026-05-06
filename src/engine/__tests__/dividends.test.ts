@@ -95,17 +95,18 @@ describe('Dividends', () => {
     expect(shortDivTxn!.price).toBeLessThan(0);
   });
 
-  it('long + short on same stock: net dividend effect correct', () => {
+  it('shorting owned dividend shares nets down the long position before dividends', () => {
     let state = createNewGame('Test', 'normal');
     const divStock = state.stocks.find(s => s.dividendYield > 0)!;
     state = unwrap(state, s => executeBuy(s, divStock.id, 10));
     state = unwrap(state, s => executeShort(s, divStock.id, 5));
 
+    expect(state.portfolio[divStock.id]?.shares).toBe(5);
+    expect(state.shortPositions[divStock.id]).toBeUndefined();
+
     state = forceDateToMonth(state, 11); // Dec -> Jan
     state = simulateTurn(state);
 
-    // Find dividend transactions directly; do not rely on net cash,
-    // which can include margin interest and mission rewards.
     const longDiv = state.transactionHistory.find(
       t => t.type === 'dividend' && t.stockId === divStock.id && t.total > 0
     );
@@ -114,19 +115,9 @@ describe('Dividends', () => {
     );
 
     expect(longDiv).toBeDefined();
-    expect(shortDiv).toBeDefined();
-
-    const longCredit = longDiv!.total;
-    const shortDebit = Math.abs(shortDiv!.total);
-    const netDividend = longCredit - shortDebit;
-
-    // Long 10 shares should receive exactly 2x what short 5 shares pays.
-    expect(longCredit).toBeCloseTo(shortDebit * 2, 1);
-
-    // Net dividend should be positive (long > short).
-    expect(netDividend).toBeGreaterThan(0);
-    expect(longCredit).toBeGreaterThan(0);
-    expect(shortDebit).toBeGreaterThan(0);
+    expect(longDiv!.shares).toBe(5);
+    expect(longDiv!.total).toBeGreaterThan(0);
+    expect(shortDiv).toBeUndefined();
   });
 
   it('dividend transaction has correct shape', () => {

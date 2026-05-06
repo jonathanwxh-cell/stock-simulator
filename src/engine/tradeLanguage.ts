@@ -53,6 +53,16 @@ export const ORDER_LANGUAGE: Record<PlannedOrderKind, ActionLanguage> = {
     shortLabel: 'Lock Gain',
     description: 'Wait for a future turn and sell your shares if the stock rises to this trigger price.',
   },
+  short_stop_loss: {
+    label: 'Close Short If Price Rises To',
+    shortLabel: 'Limit Short Loss',
+    description: 'Wait for a future turn and close your short if the stock rises to this trigger price.',
+  },
+  short_take_profit: {
+    label: 'Close Short If Price Falls To',
+    shortLabel: 'Lock Short Gain',
+    description: 'Wait for a future turn and close your short if the stock falls to this trigger price.',
+  },
 };
 
 export const TRANSACTION_LANGUAGE: Record<Transaction['type'], ActionLanguage> = {
@@ -95,6 +105,16 @@ export const TRANSACTION_LANGUAGE: Record<Transaction['type'], ActionLanguage> =
     label: 'Auto-Sold Gain',
     shortLabel: 'Locked Gain',
     description: ORDER_LANGUAGE.take_profit.description,
+  },
+  short_stop_loss: {
+    label: 'Auto-Closed Short Loss',
+    shortLabel: 'Short Stop',
+    description: ORDER_LANGUAGE.short_stop_loss.description,
+  },
+  short_take_profit: {
+    label: 'Auto-Closed Short Gain',
+    shortLabel: 'Short Gain',
+    description: ORDER_LANGUAGE.short_take_profit.description,
   },
   dividend: {
     label: 'Dividend Paid',

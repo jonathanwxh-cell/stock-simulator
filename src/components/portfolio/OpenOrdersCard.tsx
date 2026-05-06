@@ -23,6 +23,10 @@ function badgeClass(tone: OrderRow['tone']) {
   return 'bg-[var(--surface-1)] text-[var(--text-secondary)]';
 }
 
+function isLossLimitOrder(order: ConditionalOrder) {
+  return order.type === 'stop_loss' || order.type === 'short_stop_loss';
+}
+
 function buildLimitRows(gameState: GameState): OrderRow[] {
   return gameState.limitOrders.map((order: LimitOrder) => {
     const stock = gameState.stocks.find((entry) => entry.id === order.stockId);
@@ -60,7 +64,7 @@ function buildConditionalRows(gameState: GameState): OrderRow[] {
       priceLabel: `$${order.triggerPrice.toFixed(2)}`,
       distancePct,
       kind: 'protective',
-      tone: order.type === 'stop_loss' ? 'red' : 'blue',
+      tone: isLossLimitOrder(order) ? 'red' : 'blue',
     };
   });
 }

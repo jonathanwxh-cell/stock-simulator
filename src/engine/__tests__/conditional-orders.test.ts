@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { unwrap } from './_helpers';
-import { createNewGame, executeBuy, executeSell } from '../gameState';
+import { createNewGame, executeBuy, executeSell, executeShort } from '../gameState';
 import { placeConditionalOrder, placeLimitOrder, resolvePendingOrders } from '../orders';
 
 function withPrice(state: ReturnType<typeof createNewGame>, stockId: string, price: number) {
@@ -70,6 +70,63 @@ describe('Conditional orders', () => {
     expect(state.conditionalOrders).toHaveLength(0);
     expect(state.portfolio[stockId]?.shares).toBe(2);
     expect(state.transactionHistory.some((txn) => txn.type === 'take_profit')).toBe(true);
+  });
+
+  it('places a short stop-loss on open short shares', () => {
+    let state = createNewGame('Protect', 'normal');
+    state = withPrice(state, stockId, 100);
+    state = unwrap(state, (current) => executeShort(current, stockId, 5));
+
+    const result = placeConditionalOrder(state, stockId, 'short_stop_loss', 3, 110);
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.state.conditionalOrders).toHaveLength(1);
+    expect(result.state.conditionalOrders?.[0]).toMatchObject({
+      stockId,
+      type: 'short_stop_loss',
+      shares: 3,
+      triggerPrice: 110,
+    });
+  });
+
+  it('rejects short protective shares above the short position', () => {
+    let state = createNewGame('Protect', 'normal');
+    state = withPrice(state, stockId, 100);
+    state = unwrap(state, (current) => executeShort(current, stockId, 2));
+
+    const result = placeConditionalOrder(state, stockId, 'short_take_profit', 3, 90);
+
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.reason).toBe('insufficient_shares');
+  });
+
+  it('executes a short stop-loss when price rises to the trigger', () => {
+    let state = createNewGame('Protect', 'normal');
+    state = withPrice(state, stockId, 100);
+    state = unwrap(state, (current) => executeShort(current, stockId, 5));
+    state = unwrap(state, (current) => placeConditionalOrder(current, stockId, 'short_stop_loss', 3, 110));
+
+    state = withPrice(state, stockId, 120);
+    state = resolvePendingOrders(state);
+
+    expect(state.conditionalOrders).toHaveLength(0);
+    expect(state.shortPositions[stockId]?.shares).toBe(2);
+    expect(state.transactionHistory.some((txn) => txn.type === 'short_stop_loss' && txn.shares === 3)).toBe(true);
+  });
+
+  it('executes a short take-profit when price falls to the trigger', () => {
+    let state = createNewGame('Protect', 'normal');
+    state = withPrice(state, stockId, 100);
+    state = unwrap(state, (current) => executeShort(current, stockId, 5));
+    state = unwrap(state, (current) => placeConditionalOrder(current, stockId, 'short_take_profit', 2, 90));
+
+    state = withPrice(state, stockId, 80);
+    state = resolvePendingOrders(state);
+
+    expect(state.conditionalOrders).toHaveLength(0);
+    expect(state.shortPositions[stockId]?.shares).toBe(3);
+    expect(state.transactionHistory.some((txn) => txn.type === 'short_take_profit' && txn.shares === 2)).toBe(true);
   });
 
   it('consumes a triggered protective order after the shares are gone', () => {

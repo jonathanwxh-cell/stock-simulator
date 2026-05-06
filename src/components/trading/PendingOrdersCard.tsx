@@ -20,10 +20,25 @@ function parsePositiveCurrency(value: string) {
   return Number.isFinite(parsed) && parsed > 0 ? parsed : 0;
 }
 
+function isShortProtectiveType(type: ConditionalOrder['type']) {
+  return type === 'short_stop_loss' || type === 'short_take_profit';
+}
+
+function protectiveTone(type: ConditionalOrder['type']): 'red' | 'blue' {
+  return type === 'stop_loss' || type === 'short_stop_loss' ? 'red' : 'blue';
+}
+
+function triggerLabel(type: ConditionalOrder['type']) {
+  if (type === 'short_stop_loss') return 'Close short if price rises to';
+  if (type === 'short_take_profit') return 'Close short if price falls to';
+  return 'Sell if price reaches';
+}
+
 export default function PendingOrdersCard({
   stock,
   currentPrice,
   longShares,
+  shortShares,
   pendingUsed,
   pendingCap,
   limitOrders,
@@ -37,6 +52,7 @@ export default function PendingOrdersCard({
   stock: Stock;
   currentPrice: number;
   longShares: number;
+  shortShares: number;
   pendingUsed: number;
   pendingCap: number;
   limitOrders: LimitOrder[];
@@ -60,6 +76,8 @@ export default function PendingOrdersCard({
   const limitKind = limitType === 'buy' ? 'limit_buy' : 'limit_sell';
   const limitLanguage = getOrderLanguage(limitKind);
   const protectiveLanguage = getOrderLanguage(protectiveType);
+  const protectiveIsShort = isShortProtectiveType(protectiveType);
+  const protectiveAvailableShares = protectiveIsShort ? shortShares : longShares;
 
   const submitLimitOrder = () => {
     const shares = parsePositiveWhole(limitShares);
@@ -83,12 +101,12 @@ export default function PendingOrdersCard({
       setLocalError('Enter a positive whole-share amount and trigger price.');
       return;
     }
-    if (longShares <= 0) {
-      setLocalError('Protective orders need an active long position.');
+    if (protectiveAvailableShares <= 0) {
+      setLocalError(protectiveIsShort ? 'Short protective orders need an active Bet Down position.' : 'Protective orders need an active long position.');
       return;
     }
-    if (shares > longShares) {
-      setLocalError(`Only ${longShares} long shares are available to protect.`);
+    if (shares > protectiveAvailableShares) {
+      setLocalError(`Only ${protectiveAvailableShares} ${protectiveIsShort ? 'Bet Down' : 'long'} shares are available to protect.`);
       return;
     }
     setLocalError('');
@@ -157,9 +175,9 @@ export default function PendingOrdersCard({
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
               <ShieldAlert className="w-4 h-4 text-[var(--neutral-amber)]" />
-              <h3 className="text-sm font-semibold text-[var(--text-primary)]">Protect Your Shares</h3>
+              <h3 className="text-sm font-semibold text-[var(--text-primary)]">Protect a Position</h3>
             </div>
-            <div className="flex gap-1">
+            <div className="grid grid-cols-2 gap-1">
               <button
                 type="button"
                 onClick={() => {
@@ -168,7 +186,7 @@ export default function PendingOrdersCard({
                 }}
                 className={`px-2 py-1 rounded text-[10px] font-semibold ${buttonClass(protectiveType === 'stop_loss', 'red')}`}
               >
-                {getOrderLanguage('stop_loss').label}
+                {getOrderLanguage('stop_loss').shortLabel}
               </button>
               <button
                 type="button"
@@ -178,7 +196,27 @@ export default function PendingOrdersCard({
                 }}
                 className={`px-2 py-1 rounded text-[10px] font-semibold ${buttonClass(protectiveType === 'take_profit', 'blue')}`}
               >
-                {getOrderLanguage('take_profit').label}
+                {getOrderLanguage('take_profit').shortLabel}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setProtectiveType('short_stop_loss');
+                  setProtectivePrice((currentPrice * 1.08).toFixed(2));
+                }}
+                className={`px-2 py-1 rounded text-[10px] font-semibold ${buttonClass(protectiveType === 'short_stop_loss', 'red')}`}
+              >
+                {getOrderLanguage('short_stop_loss').shortLabel}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setProtectiveType('short_take_profit');
+                  setProtectivePrice((currentPrice * 0.92).toFixed(2));
+                }}
+                className={`px-2 py-1 rounded text-[10px] font-semibold ${buttonClass(protectiveType === 'short_take_profit', 'blue')}`}
+              >
+                {getOrderLanguage('short_take_profit').shortLabel}
               </button>
             </div>
           </div>
@@ -196,7 +234,7 @@ export default function PendingOrdersCard({
               />
             </label>
             <label className="text-xs text-[var(--text-muted)]">
-              Sell if price reaches
+              {triggerLabel(protectiveType)}
               <input
                 type="number"
                 min="0.01"
@@ -208,7 +246,7 @@ export default function PendingOrdersCard({
             </label>
           </div>
           <p className="text-[10px] text-[var(--text-muted)] mb-3">
-            Works on long shares only. You currently hold {longShares} long share{longShares === 1 ? '' : 's'}.
+            You currently hold {longShares} long and {shortShares} Bet Down share{shortShares === 1 ? '' : 's'}.
           </p>
           <button
             type="button"
@@ -234,7 +272,7 @@ export default function PendingOrdersCard({
               ? order.type === 'buy'
                 ? 'bg-[rgba(34,197,94,0.14)] text-[var(--profit-green)]'
                 : 'bg-[rgba(239,68,68,0.14)] text-[var(--loss-red)]'
-              : order.type === 'stop_loss'
+              : protectiveTone(order.type) === 'red'
               ? 'bg-[rgba(239,68,68,0.14)] text-[var(--loss-red)]'
               : 'bg-[rgba(59,130,246,0.14)] text-[var(--info-blue)]';
             const price = isLimitOrder ? order.targetPrice : order.triggerPrice;

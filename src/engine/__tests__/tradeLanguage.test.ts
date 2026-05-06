@@ -24,6 +24,8 @@ describe('trade language', () => {
     expect(getOrderLanguage('limit_sell').label).toBe('Sell If Price Rises To');
     expect(getOrderLanguage('stop_loss').label).toBe('Auto-Sell If Price Drops');
     expect(getOrderLanguage('take_profit').label).toBe('Auto-Sell If Price Rises');
+    expect(getOrderLanguage('short_stop_loss').label).toBe('Close Short If Price Rises To');
+    expect(getOrderLanguage('short_take_profit').label).toBe('Close Short If Price Falls To');
   });
 
   it('explains that planned orders wait for a future turn', () => {
@@ -37,5 +39,6 @@ describe('trade language', () => {
     expect(getTransactionLanguage('cover').label).toBe('Closed Short');
     expect(getTransactionLanguage('limit_buy').label).toBe('Auto-Bought Lower');
     expect(getTransactionLanguage('stop_loss').label).toBe('Auto-Sold Drop');
+    expect(getTransactionLanguage('short_take_profit').label).toBe('Auto-Closed Short Gain');
   });
 });

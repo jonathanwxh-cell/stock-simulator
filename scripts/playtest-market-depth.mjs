@@ -257,7 +257,7 @@ async function main() {
     await limitCard.getByLabel('Sell at or above').fill('0.01');
     await limitCard.getByRole('button', { name: 'Place Sell If Price Rises To' }).click();
 
-    const protectiveCard = page.locator('div').filter({ has: page.getByText('Protect Your Shares', { exact: true }) }).first();
+    const protectiveCard = page.locator('div').filter({ has: page.getByText('Protect a Position', { exact: true }) }).first();
     await page.getByRole('spinbutton', { name: 'Shares' }).nth(1).fill('4');
     await protectiveCard.getByLabel('Sell if price reaches').fill('0.01');
     await protectiveCard.getByRole('button', { name: 'Place Auto-Sell If Price Drops' }).click();

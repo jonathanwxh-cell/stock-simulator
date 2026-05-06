@@ -137,8 +137,9 @@ export interface Stock {
 export interface Position { stockId: string; shares: number; avgCost: number; }
 export interface ShortPosition { stockId: string; shares: number; entryPrice: number; marginUsed: number; }
 export interface LimitOrder { id: string; stockId: string; type: 'buy' | 'sell'; shares: number; targetPrice: number; placedTurn: number; }
-export interface ConditionalOrder { id: string; stockId: string; type: 'stop_loss' | 'take_profit'; shares: number; triggerPrice: number; placedTurn: number; }
-export type PlayerTradeType = 'buy' | 'sell' | 'short' | 'cover' | 'limit_buy' | 'limit_sell' | 'stop_loss' | 'take_profit';
+export type ConditionalOrderType = 'stop_loss' | 'take_profit' | 'short_stop_loss' | 'short_take_profit';
+export interface ConditionalOrder { id: string; stockId: string; type: ConditionalOrderType; shares: number; triggerPrice: number; placedTurn: number; }
+export type PlayerTradeType = 'buy' | 'sell' | 'short' | 'cover' | 'limit_buy' | 'limit_sell' | 'stop_loss' | 'take_profit' | 'short_stop_loss' | 'short_take_profit';
 
 export interface Transaction {
   id: string;

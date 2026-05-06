@@ -105,6 +105,8 @@ const PLAYER_TRADE_TYPES: PlayerTradeType[] = [
   'limit_sell',
   'stop_loss',
   'take_profit',
+  'short_stop_loss',
+  'short_take_profit',
 ];
 
 export const TROPHY_COLLECTIONS: TrophyCollectionDefinition[] = [
@@ -231,7 +233,7 @@ export const TROPHY_DEFINITIONS: TrophyDefinition[] = [
     collectionId: 'first_steps',
     rarity: 'bronze',
     artKey: 'profit_stamp',
-    condition: (state) => hasTransaction(state, ['sell', 'limit_sell', 'stop_loss', 'take_profit']),
+    condition: (state) => hasTransaction(state, ['sell', 'limit_sell', 'stop_loss', 'take_profit', 'short_stop_loss', 'short_take_profit']),
   },
   {
     id: 'first_watch',
@@ -270,7 +272,7 @@ export const TROPHY_DEFINITIONS: TrophyDefinition[] = [
     condition: (state) =>
       state.limitOrders.length > 0 ||
       (state.conditionalOrders?.length ?? 0) > 0 ||
-      hasTransaction(state, ['limit_buy', 'limit_sell', 'stop_loss', 'take_profit']),
+      hasTransaction(state, ['limit_buy', 'limit_sell', 'stop_loss', 'take_profit', 'short_stop_loss', 'short_take_profit']),
   },
   {
     id: 'first_season_complete',

@@ -77,15 +77,37 @@ export default function StockDetail() {
   const domainPad = Math.max((maxPrice - minPrice) * 0.15, 1);
 
   const tradeValue = stock.currentPrice * shares;
-  const fee = calcBrokerFee(tradeValue, config);
-  const shortMargin = tradeValue * config.shortMarginRequirement;
-  const shortCashNeeded = shortMargin + fee;
+  const sellFee = calcBrokerFee(tradeValue, config);
+  const buyCoverShares = Math.min(shares, shortShares);
+  const buyOpenShares = Math.max(shares - buyCoverShares, 0);
+  const buyCoverValue = stock.currentPrice * buyCoverShares;
+  const buyOpenValue = stock.currentPrice * buyOpenShares;
+  const buyCoverFee = calcBrokerFee(buyCoverValue, config);
+  const buyOpenFee = calcBrokerFee(buyOpenValue, config);
+  const buyCoverMarginRelease = shortPosition ? (shortPosition.marginUsed / shortPosition.shares) * buyCoverShares : 0;
+  const buyCoverPnl = shortPosition ? (shortPosition.entryPrice - stock.currentPrice) * buyCoverShares : 0;
+  const buyCashAfter = gameState.cash + buyCoverMarginRelease + buyCoverPnl - buyCoverFee - buyOpenValue - buyOpenFee;
+  const shortSellShares = Math.min(shares, longShares);
+  const shortOpenShares = Math.max(shares - shortSellShares, 0);
+  const shortSellValue = stock.currentPrice * shortSellShares;
+  const shortOpenValue = stock.currentPrice * shortOpenShares;
+  const shortSellFee = calcBrokerFee(shortSellValue, config);
+  const shortOpenFee = calcBrokerFee(shortOpenValue, config);
+  const shortMargin = shortOpenValue * config.shortMarginRequirement;
+  const shortCashAfter = gameState.cash + shortSellValue - shortSellFee - shortMargin - shortOpenFee;
   const coverShares = Math.min(shares, shortShares || shares);
   const coverMarginRelease = shortPosition ? (shortPosition.marginUsed / shortPosition.shares) * coverShares : 0;
   const coverPnl = shortPosition ? (shortPosition.entryPrice - stock.currentPrice) * coverShares : 0;
-  const coverCashAfter = gameState.cash + coverMarginRelease + coverPnl - fee;
-  const neededForBuy = tradeValue + fee;
-  const availableCash = gameState.cash;
+  const coverFee = calcBrokerFee(stock.currentPrice * coverShares, config);
+  const coverCashAfter = gameState.cash + coverMarginRelease + coverPnl - coverFee;
+  const activeFee = activeTradeType === 'buy'
+    ? buyCoverFee + buyOpenFee
+    : activeTradeType === 'short'
+    ? shortSellFee + shortOpenFee
+    : activeTradeType === 'cover'
+    ? coverFee
+    : sellFee;
+  const neededForBuy = Math.max(0, -buyCashAfter);
 
   const tradePreview = getTradeFeedback(gameState, stockId, shares, activeTradeType);
   const tradeLanguage = getTradeLanguage(activeTradeType);
@@ -98,18 +120,18 @@ export default function StockDetail() {
   });
 
   const canExecute = activeTradeType === 'buy'
-    ? gameState.cash >= neededForBuy
+    ? buyCashAfter >= 0
     : activeTradeType === 'sell'
     ? longShares >= shares
     : activeTradeType === 'short'
-    ? !longOnlyMandate && config.shortEnabled && gameState.cash >= shortCashNeeded
+    ? !longOnlyMandate && config.shortEnabled && shortCashAfter >= 0
     : shortShares >= shares && coverCashAfter >= 0;
 
   const disabledReason = (() => {
     if (canExecute) return '';
-    if (activeTradeType === 'buy') return `Need ${tradeFeedbackFormat.money(neededForBuy)}, available ${tradeFeedbackFormat.money(availableCash)}.`;
+    if (activeTradeType === 'buy') return `Need ${tradeFeedbackFormat.money(neededForBuy)} more cash after netting any Bet Down exposure.`;
     if (activeTradeType === 'sell') return longShares > 0 ? `Only ${longShares} owned shares available.` : 'No owned shares to sell.';
-    if (activeTradeType === 'short') return longOnlyMandate ? 'Long-Only Mandate keeps Bet Down disabled.' : config.shortEnabled ? `Need ${tradeFeedbackFormat.money(shortCashNeeded)} cash reserved for this Bet Down trade and fee.` : 'Bet Down is disabled.';
+    if (activeTradeType === 'short') return longOnlyMandate ? 'Long-Only Mandate keeps Bet Down disabled.' : config.shortEnabled ? `Need ${tradeFeedbackFormat.money(Math.max(0, -shortCashAfter))} more cash after netting owned shares.` : 'Bet Down is disabled.';
     return shortShares > 0 ? `Only ${shortShares} Bet Down shares available.` : 'No Bet Down position to close.';
   })();
 
@@ -144,12 +166,12 @@ export default function StockDetail() {
   };
 
   const cashImpact = activeTradeType === 'sell'
-    ? tradeValue - fee
+    ? tradeValue - activeFee
     : activeTradeType === 'short'
-    ? -shortCashNeeded
+    ? shortCashAfter - gameState.cash
     : activeTradeType === 'cover'
     ? coverCashAfter - gameState.cash
-    : -(tradeValue + fee);
+    : buyCashAfter - gameState.cash;
 
   return (
     <div className="min-h-[calc(100dvh-56px-72px)] p-4 pb-32 max-w-lg mx-auto">
@@ -330,7 +352,7 @@ export default function StockDetail() {
             <div className="flex justify-between"><span className="text-[var(--text-muted)]">Trade Value</span><span className="font-mono-data text-[var(--text-primary)]">${tradeValue.toFixed(2)}</span></div>
             {activeTradeType === 'short' && <div className="flex justify-between"><span className="text-[var(--text-muted)]">Cash Reserved</span><span className="font-mono-data text-[var(--text-secondary)]">${shortMargin.toFixed(2)}</span></div>}
             {activeTradeType === 'cover' && <div className="flex justify-between"><span className="text-[var(--text-muted)]">Cash Released</span><span className="font-mono-data text-[var(--text-secondary)]">${coverMarginRelease.toFixed(2)}</span></div>}
-            <div className="flex justify-between"><span className="text-[var(--text-muted)]">Fee</span><span className="font-mono-data text-[var(--text-secondary)]">${fee.toFixed(2)}</span></div>
+            <div className="flex justify-between"><span className="text-[var(--text-muted)]">Fee</span><span className="font-mono-data text-[var(--text-secondary)]">${activeFee.toFixed(2)}</span></div>
             <div className="flex justify-between border-t border-[var(--border)] pt-1.5"><span className="text-[var(--text-primary)] font-medium">Cash Change</span><span className="font-mono-data font-bold text-[var(--text-primary)]">{cashImpact >= 0 ? '+' : '-'}${Math.abs(cashImpact).toFixed(2)}</span></div>
           </div>
 
@@ -360,6 +382,7 @@ export default function StockDetail() {
           stock={stock}
           currentPrice={stock.currentPrice}
           longShares={longShares}
+          shortShares={shortShares}
           pendingUsed={pendingUsed}
           pendingCap={config.maxLimitOrders}
           limitOrders={gameState.limitOrders}

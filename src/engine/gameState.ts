@@ -1,5 +1,5 @@
 import { deepCloneGameState } from './cloneState';
-import type { GameState, Difficulty, Transaction, TradeResult, CareerStyle, ChallengeModeId } from './types';
+import type { ConditionalOrder, GameState, Difficulty, Transaction, TradeResult, CareerStyle, ChallengeModeId } from './types';
 import { DIFFICULTY_CONFIGS, calcBrokerFee } from './config';
 import { isPositiveCurrency, isPositiveWholeNumber, roundCurrency } from './financialMath';
 import { cloneInitialStocks } from './stockData';
@@ -94,6 +94,14 @@ export function canBuy(state: GameState, stockId: string, shares: number): boole
   if (!isPositiveWholeNumber(shares)) return false;
   const stock = getTradeStock(state, stockId);
   if (!stock) return false;
+  const shortPosition = state.shortPositions[stockId];
+  if (shortPosition?.shares > 0) {
+    const sharesToCover = Math.min(shares, shortPosition.shares);
+    const coverResult = executeCover(state, stockId, sharesToCover);
+    if (!coverResult.ok) return false;
+    const remainingShares = shares - sharesToCover;
+    return remainingShares === 0 || canBuy(coverResult.state, stockId, remainingShares);
+  }
   const cost = roundCurrency(stock.currentPrice * shares);
   const fee = calcBrokerFee(cost, DIFFICULTY_CONFIGS[state.difficulty]);
   return state.cash >= cost + fee;
@@ -111,6 +119,14 @@ export function canShort(state: GameState, stockId: string, shares: number): boo
   if (!config.shortEnabled || !isPositiveWholeNumber(shares)) return false;
   const stock = getTradeStock(state, stockId);
   if (!stock) return false;
+  const longPosition = state.portfolio[stockId];
+  if (longPosition?.shares > 0) {
+    const sharesToSell = Math.min(shares, longPosition.shares);
+    const sellResult = executeSell(state, stockId, sharesToSell);
+    if (!sellResult.ok) return false;
+    const remainingShares = shares - sharesToSell;
+    return remainingShares === 0 || canShort(sellResult.state, stockId, remainingShares);
+  }
   const proceeds = roundCurrency(stock.currentPrice * shares);
   const marginReq = roundCurrency(proceeds * config.shortMarginRequirement);
   const fee = calcBrokerFee(proceeds, config);
@@ -177,6 +193,15 @@ function recordFee(newState: GameState, fee: number, stockId: string) {
 
 export function executeBuy(state: GameState, stockId: string, shares: number): TradeResult {
   if (!isPositiveWholeNumber(shares)) return { ok: false, reason: 'invalid_shares' };
+  const shortPosition = state.shortPositions[stockId];
+  if (shortPosition?.shares > 0) {
+    const sharesToCover = Math.min(shares, shortPosition.shares);
+    const coverResult = executeCover(state, stockId, sharesToCover);
+    if (!coverResult.ok) return coverResult;
+    const remainingShares = shares - sharesToCover;
+    if (remainingShares === 0) return coverResult;
+    return executeBuy(coverResult.state, stockId, remainingShares);
+  }
   if (!canBuy(state, stockId, shares)) return { ok: false, reason: 'insufficient_funds' };
   const stock = getTradeStock(state, stockId)!;
   const config = DIFFICULTY_CONFIGS[state.difficulty];
@@ -241,10 +266,23 @@ export function executeSell(state: GameState, stockId: string, shares: number): 
 }
 
 export function executeShort(state: GameState, stockId: string, shares: number): TradeResult {
+  if (!isPositiveWholeNumber(shares)) return { ok: false, reason: 'invalid_shares' };
+  const config = DIFFICULTY_CONFIGS[state.difficulty];
+  if (state.career?.challengeMode === 'no_shorts') return { ok: false, reason: 'challenge_restricted' };
+  if (!config.shortEnabled) return { ok: false, reason: 'short_disabled' };
+  const stock = getTradeStock(state, stockId);
+  if (!stock) return { ok: false, reason: 'stock_not_found' };
+  const longPosition = state.portfolio[stockId];
+  if (longPosition?.shares > 0) {
+    const sharesToSell = Math.min(shares, longPosition.shares);
+    const sellResult = executeSell(state, stockId, sharesToSell);
+    if (!sellResult.ok) return sellResult;
+    const remainingShares = shares - sharesToSell;
+    if (remainingShares === 0) return sellResult;
+    return executeShort(sellResult.state, stockId, remainingShares);
+  }
   const error = getShortError(state, stockId, shares);
   if (error) return { ok: false, reason: error };
-  const stock = getTradeStock(state, stockId)!;
-  const config = DIFFICULTY_CONFIGS[state.difficulty];
   const proceeds = roundCurrency(stock.currentPrice * shares);
   const marginReq = roundCurrency(proceeds * config.shortMarginRequirement);
   const fee = calcBrokerFee(proceeds, config);
@@ -318,7 +356,7 @@ export function cancelLimitOrder(state: GameState, orderId: string): GameState {
   return cancelLimitOrderImpl(state, orderId);
 }
 
-export function placeConditionalOrder(state: GameState, stockId: string, type: 'stop_loss' | 'take_profit', shares: number, triggerPrice: number): TradeResult {
+export function placeConditionalOrder(state: GameState, stockId: string, type: ConditionalOrder['type'], shares: number, triggerPrice: number): TradeResult {
   return placeConditionalOrderImpl(state, stockId, type, shares, triggerPrice);
 }
 
