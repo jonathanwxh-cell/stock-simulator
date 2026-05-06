@@ -6,7 +6,9 @@ All notable changes to this project are documented here. Format follows
 
 ## [Unreleased]
 
-No notable changes yet.
+### Security
+
+- Updated the dev/build dependency tree to resolve all current `npm audit` findings, including the vulnerable Vitest/Vite, Rollup, PostCSS, glob, and utility-package chains.
 
 ## [1.6.0] — 2026-05-06
 
