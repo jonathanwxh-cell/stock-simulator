@@ -246,7 +246,7 @@ export default function PendingOrdersCard({
             </label>
           </div>
           <p className="text-[10px] text-[var(--text-muted)] mb-3">
-            You currently hold {longShares} long and {shortShares} Bet Down share{shortShares === 1 ? '' : 's'}.
+            You currently hold {longShares} long share{longShares === 1 ? '' : 's'} and {shortShares} Bet Down share{shortShares === 1 ? '' : 's'}.
           </p>
           <button
             type="button"
