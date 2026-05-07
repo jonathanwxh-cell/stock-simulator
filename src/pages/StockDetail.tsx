@@ -77,36 +77,26 @@ export default function StockDetail() {
   const domainPad = Math.max((maxPrice - minPrice) * 0.15, 1);
 
   const tradeValue = stock.currentPrice * shares;
-  const sellFee = calcBrokerFee(tradeValue, config);
+  const combinedFee = calcBrokerFee(tradeValue, config);
+  const sellFee = combinedFee;
   const buyCoverShares = Math.min(shares, shortShares);
   const buyOpenShares = Math.max(shares - buyCoverShares, 0);
-  const buyCoverValue = stock.currentPrice * buyCoverShares;
   const buyOpenValue = stock.currentPrice * buyOpenShares;
-  const buyCoverFee = calcBrokerFee(buyCoverValue, config);
-  const buyOpenFee = calcBrokerFee(buyOpenValue, config);
   const buyCoverMarginRelease = shortPosition ? (shortPosition.marginUsed / shortPosition.shares) * buyCoverShares : 0;
   const buyCoverPnl = shortPosition ? (shortPosition.entryPrice - stock.currentPrice) * buyCoverShares : 0;
-  const buyCashAfter = gameState.cash + buyCoverMarginRelease + buyCoverPnl - buyCoverFee - buyOpenValue - buyOpenFee;
+  const buyCashAfter = gameState.cash + buyCoverMarginRelease + buyCoverPnl - buyOpenValue - combinedFee;
   const shortSellShares = Math.min(shares, longShares);
   const shortOpenShares = Math.max(shares - shortSellShares, 0);
   const shortSellValue = stock.currentPrice * shortSellShares;
   const shortOpenValue = stock.currentPrice * shortOpenShares;
-  const shortSellFee = calcBrokerFee(shortSellValue, config);
-  const shortOpenFee = calcBrokerFee(shortOpenValue, config);
   const shortMargin = shortOpenValue * config.shortMarginRequirement;
-  const shortCashAfter = gameState.cash + shortSellValue - shortSellFee - shortMargin - shortOpenFee;
+  const shortCashAfter = gameState.cash + shortSellValue - shortMargin - combinedFee;
   const coverShares = Math.min(shares, shortShares || shares);
   const coverMarginRelease = shortPosition ? (shortPosition.marginUsed / shortPosition.shares) * coverShares : 0;
   const coverPnl = shortPosition ? (shortPosition.entryPrice - stock.currentPrice) * coverShares : 0;
   const coverFee = calcBrokerFee(stock.currentPrice * coverShares, config);
   const coverCashAfter = gameState.cash + coverMarginRelease + coverPnl - coverFee;
-  const activeFee = activeTradeType === 'buy'
-    ? buyCoverFee + buyOpenFee
-    : activeTradeType === 'short'
-    ? shortSellFee + shortOpenFee
-    : activeTradeType === 'cover'
-    ? coverFee
-    : sellFee;
+  const activeFee = activeTradeType === 'cover' ? coverFee : activeTradeType === 'sell' ? sellFee : combinedFee;
   const neededForBuy = Math.max(0, -buyCashAfter);
 
   const tradePreview = getTradeFeedback(gameState, stockId, shares, activeTradeType);
