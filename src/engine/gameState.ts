@@ -277,7 +277,7 @@ export function executeBuy(state: GameState, stockId: string, shares: number): T
 
   newState.transactionHistory.push(...txns);
   newState.updatedAt = new Date();
-  return { ok: true, state: newState, transaction: txns[0] };
+  return { ok: true, state: newState, transaction: txns[txns.length - 1] };
 }
 
 export function executeSell(state: GameState, stockId: string, shares: number): TradeResult {
@@ -371,7 +371,7 @@ export function executeShort(state: GameState, stockId: string, shares: number):
 
   newState.transactionHistory.push(...txns);
   newState.updatedAt = new Date();
-  return { ok: true, state: newState, transaction: txns[0] };
+  return { ok: true, state: newState, transaction: txns[txns.length - 1] };
 }
 
 export function executeCover(state: GameState, stockId: string, shares: number): TradeResult {
