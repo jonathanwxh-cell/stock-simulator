@@ -145,4 +145,26 @@ describe('News templates (JSON data)', () => {
 
     expect(headlines).not.toContain('{company} EV Deliveries Exceed Production Targets');
   });
+
+  it('every sector/polarity has at least 10 templates to avoid intra-run repetition', async () => {
+    const data = await import('../data/news-templates.json');
+    const buckets = data.default as Record<string, { positive: unknown[]; negative: unknown[] }>;
+    const sectors = Object.keys(buckets);
+    expect(sectors.length).toBeGreaterThanOrEqual(13);
+
+    for (const sector of sectors) {
+      expect(buckets[sector].positive.length, `${sector}/positive`).toBeGreaterThanOrEqual(10);
+      expect(buckets[sector].negative.length, `${sector}/negative`).toBeGreaterThanOrEqual(10);
+    }
+  });
+
+  it('total template count meets the ≥250 floor set in issue #26', async () => {
+    const data = await import('../data/news-templates.json');
+    const buckets = data.default as Record<string, { positive: unknown[]; negative: unknown[] }>;
+    const total = Object.values(buckets).reduce(
+      (sum, bucket) => sum + bucket.positive.length + bucket.negative.length,
+      0,
+    );
+    expect(total).toBeGreaterThanOrEqual(250);
+  });
 });

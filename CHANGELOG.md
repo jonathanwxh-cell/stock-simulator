@@ -6,6 +6,10 @@ All notable changes to this project are documented here. Format follows
 
 ## [Unreleased]
 
+### Added
+
+- Doubled the news template library from 132 to 260 entries (≥10 per sector per polarity), reducing intra-run headline repetition. New templates broaden the verb set (acquires, divests, refinances, buys back, settles) and add macro, M&A, refinancing, and operational scenarios across all 13 sector buckets. Closes #26.
+
 ### Security
 
 - Updated the dev/build dependency tree to resolve all current `npm audit` findings, including the vulnerable Vitest/Vite, Rollup, PostCSS, glob, and utility-package chains.
