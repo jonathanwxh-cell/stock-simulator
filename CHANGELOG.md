@@ -13,6 +13,7 @@ All notable changes to this project are documented here. Format follows
 ### Changed
 
 - **Removed scenario polarity rubber-banding** (difficulty rebalance). Scenario polarity is now determined by RNG and difficulty alone — previously, the engine biased toward negative scenarios when the player was winning (`netWorthRatio > 1.5`) and toward positive when struggling. The bias was opaque to players and made successful runs feel unearned. Expect Normal+ runs to feel slightly less forgiving in mid-late game. Closes #27.
+- **Rebalanced grade thresholds** so S and A are skill-achievable rather than luck-gated (closes #28). Goal multiplier requirements: S `3.0×` → `2.0×`, A `1.5×` → `1.3×`, C `0.75×` → `0.8×`, D `0.5×` → `0.6×`. B (meeting the goal exactly) and the F floor are unchanged in concept but the F threshold tightens with the new D boundary. On Normal, an S run now requires net worth `≥ $250k` (was `$375k`) — ambitious but reachable through disciplined play.
 
 ### Security
 

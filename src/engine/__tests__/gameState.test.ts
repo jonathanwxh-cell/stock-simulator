@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { createNewGame, executeBuy, executeShort, placeLimitOrder, simulateTurn, toggleWatchlistStock } from '../index';
+import { calculateGrade } from '../gameState';
 import { getTradeFeedback } from '../tradeFeedback';
 import { SeededRNG } from '../rng';
 import { unwrap } from './_helpers';
@@ -120,5 +121,46 @@ describe('game state trade invariants', () => {
     expect(added.watchlist).toEqual(['aapl']);
     expect(toggleWatchlistStock(added, 'aapl').watchlist).toEqual([]);
     expect(removed.watchlist).toEqual([]);
+  });
+});
+
+describe('calculateGrade boundaries (#28)', () => {
+  // Build a state whose net worth is exactly `ratio × seasonGoal`.
+  // Normal difficulty: starting cash $25k, goal multiplier 5 → goal $125k.
+  // We adjust `cash` directly since getNetWorth(state) = cash + portfolio_value - shorts.
+  function stateAtRatio(ratio: number) {
+    const state = createNewGame('Tester', 'normal');
+    // Wipe portfolio and shorts so getNetWorth = cash exactly.
+    return { ...state, cash: 125_000 * ratio, portfolio: {}, shortPositions: {} };
+  }
+
+  it('S grade requires ratio ≥ 2.0', () => {
+    expect(calculateGrade(stateAtRatio(2.0))).toBe('S');
+    expect(calculateGrade(stateAtRatio(1.99))).toBe('A');
+  });
+
+  it('A grade boundary is 1.3', () => {
+    expect(calculateGrade(stateAtRatio(1.3))).toBe('A');
+    expect(calculateGrade(stateAtRatio(1.29))).toBe('B');
+  });
+
+  it('B grade requires meeting the goal exactly', () => {
+    expect(calculateGrade(stateAtRatio(1.0))).toBe('B');
+    expect(calculateGrade(stateAtRatio(0.99))).toBe('C');
+  });
+
+  it('C grade boundary is 0.8', () => {
+    expect(calculateGrade(stateAtRatio(0.8))).toBe('C');
+    expect(calculateGrade(stateAtRatio(0.79))).toBe('D');
+  });
+
+  it('D grade boundary is 0.6, F below', () => {
+    expect(calculateGrade(stateAtRatio(0.6))).toBe('D');
+    expect(calculateGrade(stateAtRatio(0.59))).toBe('F');
+    expect(calculateGrade(stateAtRatio(0.0))).toBe('F');
+  });
+
+  it('extremely strong runs still grade S, not above', () => {
+    expect(calculateGrade(stateAtRatio(10))).toBe('S');
   });
 });

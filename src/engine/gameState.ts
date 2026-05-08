@@ -434,13 +434,17 @@ export function toggleWatchlistStock(state: GameState, stockId: string): GameSta
   return newState;
 }
 
+// Grade thresholds rebalanced in #28: S/A lowered so they're skill-achievable
+// without margin abuse or luck; D/C raised so the F band is more meaningful.
+// Old: S≥3.0  A≥1.5  B≥1.0  C≥0.75  D≥0.5
+// New: S≥2.0  A≥1.3  B≥1.0  C≥0.8   D≥0.6
 export function calculateGrade(state: GameState): 'S' | 'A' | 'B' | 'C' | 'D' | 'F' {
   const ratio = getNetWorth(state) / getCareerSeasonGoal(state);
-  if (ratio >= 3) return 'S';
-  if (ratio >= 1.5) return 'A';
+  if (ratio >= 2) return 'S';
+  if (ratio >= 1.3) return 'A';
   if (ratio >= 1) return 'B';
-  if (ratio >= 0.75) return 'C';
-  if (ratio >= 0.5) return 'D';
+  if (ratio >= 0.8) return 'C';
+  if (ratio >= 0.6) return 'D';
   return 'F';
 }
 
