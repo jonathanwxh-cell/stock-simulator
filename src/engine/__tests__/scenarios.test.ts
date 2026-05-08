@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { createNewGame } from '../gameState';
 import { generateDistinctNewsEvents, generateScenario, generateNewsEvent } from '../scenarioGenerator';
-import type { RNG } from '../rng';
+import { SeededRNG, type RNG } from '../rng';
 import type { GameState } from '../types';
 
 const POSITIVE_TITLES = [
@@ -53,45 +53,58 @@ describe('Scenario generator', () => {
     expect(scenario.title).toBeTruthy();
   });
 
-  it('adaptive difficulty: doing well → fewer positive scenarios', () => {
-    const state = createNewGame('Test', 'normal');
-    const wellState: GameState = { ...state, cash: state.cash * 10 };
-
-    let positiveCount = 0;
-    const runs = 1000;
-
-    for (let i = 0; i < runs; i++) {
-      const scenario = generateScenario(wellState);
-      if (isPositive(scenario.title)) positiveCount++;
-    }
-
-    // When doing well, positive should be minority (< 40%)
-    const ratio = positiveCount / runs;
-    expect(ratio).toBeLessThan(0.4);
-  });
-
-  it('adaptive difficulty: struggling → more positive scenarios', () => {
-    const state = createNewGame('Test', 'normal');
-    // Zero out portfolio to minimize net worth
-    const struggleState: GameState = {
-      ...state,
+  it('scenario polarity is independent of player net worth (no rubber-banding)', () => {
+    // Issue #27: scenario polarity must depend on RNG and difficulty alone,
+    // never on the player's current net worth. Compare distributions across
+    // a winning state, a struggling state, and the baseline; all should match.
+    const baseline = createNewGame('Test', 'normal');
+    const winning: GameState = { ...baseline, cash: baseline.cash * 10 };
+    const struggling: GameState = {
+      ...baseline,
       cash: 100,
       portfolio: {},
       shortPositions: {},
       marginUsed: 0,
     };
 
-    let positiveCount = 0;
     const runs = 1000;
+    const countPositive = (state: GameState) => {
+      let n = 0;
+      for (let i = 0; i < runs; i++) {
+        if (isPositive(generateScenario(state).title)) n++;
+      }
+      return n / runs;
+    };
 
-    for (let i = 0; i < runs; i++) {
-      const scenario = generateScenario(struggleState);
-      if (isPositive(scenario.title)) positiveCount++;
-    }
+    const baselineRatio = countPositive(baseline);
+    const winningRatio = countPositive(winning);
+    const strugglingRatio = countPositive(struggling);
 
-    // When struggling, positive should be majority (> 40%)
-    const ratio = positiveCount / runs;
-    expect(ratio).toBeGreaterThan(0.4);
+    // All three should converge near the same value (35% positive baseline).
+    // Tolerance is 8 percentage points to absorb RNG variance at 1000 samples.
+    expect(Math.abs(winningRatio - baselineRatio)).toBeLessThan(0.08);
+    expect(Math.abs(strugglingRatio - baselineRatio)).toBeLessThan(0.08);
+    expect(baselineRatio).toBeGreaterThan(0.27);
+    expect(baselineRatio).toBeLessThan(0.43);
+  });
+
+  it('seeded scenario sequence is identical regardless of player wealth', () => {
+    // Stronger guarantee than the statistical test above: at a fixed seed,
+    // the chosen scenario type for the first 20 calls must be identical
+    // for any GameState that differs only in cash/portfolio.
+    const baseline = createNewGame('Test', 'normal');
+    const winning: GameState = { ...baseline, cash: baseline.cash * 100 };
+
+    const titlesAt = (state: GameState) => {
+      const titles: string[] = [];
+      const rng = new SeededRNG(1234);
+      for (let i = 0; i < 20; i++) {
+        titles.push(generateScenario(state, rng).title);
+      }
+      return titles;
+    };
+
+    expect(titlesAt(winning)).toEqual(titlesAt(baseline));
   });
 
   it('generateNewsEvent returns a valid event with headline', () => {
@@ -144,5 +157,27 @@ describe('News templates (JSON data)', () => {
     const headlines = consumer.positive.map(template => template.headline);
 
     expect(headlines).not.toContain('{company} EV Deliveries Exceed Production Targets');
+  });
+
+  it('every sector/polarity has at least 10 templates to avoid intra-run repetition', async () => {
+    const data = await import('../data/news-templates.json');
+    const buckets = data.default as Record<string, { positive: unknown[]; negative: unknown[] }>;
+    const sectors = Object.keys(buckets);
+    expect(sectors.length).toBeGreaterThanOrEqual(13);
+
+    for (const sector of sectors) {
+      expect(buckets[sector].positive.length, `${sector}/positive`).toBeGreaterThanOrEqual(10);
+      expect(buckets[sector].negative.length, `${sector}/negative`).toBeGreaterThanOrEqual(10);
+    }
+  });
+
+  it('total template count meets the ≥250 floor set in issue #26', async () => {
+    const data = await import('../data/news-templates.json');
+    const buckets = data.default as Record<string, { positive: unknown[]; negative: unknown[] }>;
+    const total = Object.values(buckets).reduce(
+      (sum, bucket) => sum + bucket.positive.length + bucket.negative.length,
+      0,
+    );
+    expect(total).toBeGreaterThanOrEqual(250);
   });
 });
