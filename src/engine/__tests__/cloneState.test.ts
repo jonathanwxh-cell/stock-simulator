@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { deepCloneGameState } from '../cloneState';
-import { createNewGame, placeConditionalOrder } from '../index';
+import { createNewGame, executeBuy, placeConditionalOrder } from '../index';
 import type { GameState } from '../types';
 
 describe('deepCloneGameState', () => {
@@ -37,12 +37,18 @@ describe('deepCloneGameState', () => {
   });
 
   it('clones conditionalOrders by reference isolation', () => {
-    const state = createNewGame('Tester', 'normal');
-    const firstStock = state.stocks.find(s => s.currentPrice > 1);
+    // placeConditionalOrder('stop_loss') requires an existing long position,
+    // so buy first, then place the protective order.
+    const initial = createNewGame('Tester', 'normal');
+    const firstStock = initial.stocks.find(s => s.currentPrice > 1);
     if (!firstStock) throw new Error('no stock found');
 
+    const buyResult = executeBuy(initial, firstStock.id, 5);
+    if (!buyResult.ok) throw new Error(`buy failed: ${buyResult.reason}`);
+    const stateWithPosition = buyResult.state;
+
     const withOrder = placeConditionalOrder(
-      state,
+      stateWithPosition,
       firstStock.id,
       'stop_loss',
       1,

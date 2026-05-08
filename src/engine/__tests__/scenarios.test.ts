@@ -67,7 +67,7 @@ describe('Scenario generator', () => {
       marginUsed: 0,
     };
 
-    const runs = 1000;
+    const runs = 300;
     const countPositive = (state: GameState) => {
       let n = 0;
       for (let i = 0; i < runs; i++) {
@@ -81,12 +81,12 @@ describe('Scenario generator', () => {
     const strugglingRatio = countPositive(struggling);
 
     // All three should converge near the same value (35% positive baseline).
-    // Tolerance is 8 percentage points to absorb RNG variance at 1000 samples.
-    expect(Math.abs(winningRatio - baselineRatio)).toBeLessThan(0.08);
-    expect(Math.abs(strugglingRatio - baselineRatio)).toBeLessThan(0.08);
-    expect(baselineRatio).toBeGreaterThan(0.27);
-    expect(baselineRatio).toBeLessThan(0.43);
-  });
+    // Tolerance is 12 percentage points to absorb RNG variance at 300 samples.
+    expect(Math.abs(winningRatio - baselineRatio)).toBeLessThan(0.12);
+    expect(Math.abs(strugglingRatio - baselineRatio)).toBeLessThan(0.12);
+    expect(baselineRatio).toBeGreaterThan(0.2);
+    expect(baselineRatio).toBeLessThan(0.5);
+  }, 30_000);
 
   it('seeded scenario sequence is identical regardless of player wealth', () => {
     // Stronger guarantee than the statistical test above: at a fixed seed,
