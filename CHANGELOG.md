@@ -10,6 +10,10 @@ All notable changes to this project are documented here. Format follows
 
 - Doubled the news template library from 132 to 260 entries (≥10 per sector per polarity), reducing intra-run headline repetition. New templates broaden the verb set (acquires, divests, refinances, buys back, settles) and add macro, M&A, refinancing, and operational scenarios across all 13 sector buckets. Closes #26.
 
+### Changed
+
+- **Removed scenario polarity rubber-banding** (difficulty rebalance). Scenario polarity is now determined by RNG and difficulty alone — previously, the engine biased toward negative scenarios when the player was winning (`netWorthRatio > 1.5`) and toward positive when struggling. The bias was opaque to players and made successful runs feel unearned. Expect Normal+ runs to feel slightly less forgiving in mid-late game. Closes #27.
+
 ### Security
 
 - Updated the dev/build dependency tree to resolve all current `npm audit` findings, including the vulnerable Vitest/Vite, Rollup, PostCSS, glob, and utility-package chains.

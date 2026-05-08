@@ -1,8 +1,6 @@
 import type { Sector, ActiveScenario, NewsEvent, GameState } from './types';
 import type { RNG } from './rng';
 import { defaultRNG } from './rng';
-import { DIFFICULTY_CONFIGS } from './config';
-import { getNetWorth } from './marketSimulator';
 import templatesData from './data/news-templates.json';
 
 function genId(prefix: string): string {
@@ -53,17 +51,16 @@ const MIXED_SCENARIO_TITLES = [
 // ── Public API ────────────────────────────────────────────────────────
 
 export function generateScenario(gameState: GameState, rng: RNG = defaultRNG): ActiveScenario {
-  const netWorthRatio = getNetWorthRatio(gameState);
-
+  // Scenario polarity is determined by RNG and difficulty alone — never by the
+  // player's current net worth. A previous version biased toward negative
+  // scenarios when the player was winning and toward positive when losing,
+  // which made successful runs feel unearned and was opaque to players.
+  // See issue #27 for the full rationale.
   let scenarioType: 'positive' | 'negative' | 'mixed';
   const r = rng.next();
-  if (netWorthRatio > 1.5) {
-    scenarioType = r < 0.45 ? 'negative' : r < 0.75 ? 'mixed' : 'positive';
-  } else if (netWorthRatio < 0.8) {
-    scenarioType = r < 0.45 ? 'positive' : r < 0.75 ? 'mixed' : 'negative';
-  } else {
-    scenarioType = r < 0.35 ? 'positive' : r < 0.7 ? 'negative' : 'mixed';
-  }
+  if (r < 0.35) scenarioType = 'positive';
+  else if (r < 0.7) scenarioType = 'negative';
+  else scenarioType = 'mixed';
 
   const numEvents = rng.int(2, 5);
   const events: NewsEvent[] = [];
@@ -205,10 +202,4 @@ export function generateDistinctNewsEvents(
   }
 
   return events;
-}
-
-function getNetWorthRatio(state: GameState): number {
-  const config = DIFFICULTY_CONFIGS[state.difficulty];
-  const goal = config.startingCash * config.goalMultiplier;
-  return getNetWorth(state) / goal;
 }
