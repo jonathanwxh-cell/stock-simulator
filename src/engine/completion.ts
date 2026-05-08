@@ -23,7 +23,7 @@ export function buildLeaderboardEntry(state: GameState): LeaderboardEntry {
   return {
     id: entryId,
     runId,
-    playerName: state.playerName,
+    playerName: state.playerName.trim().slice(0, 64),
     difficulty: state.difficulty,
     finalNetWorth: getNetWorth(state),
     startingCash: config.startingCash,

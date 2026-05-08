@@ -77,9 +77,6 @@ function reducer(state: State, action: Action): State {
   }
 }
 
-function saveAuto(state: GameState) {
-  autoSave(state).catch(e => console.warn('save:', e));
-}
 
 export function GameProvider({ children }: { children: ReactNode }) {
   try {
@@ -96,6 +93,12 @@ export function GameProvider({ children }: { children: ReactNode }) {
     const result = recordTrophyProgress(nextGameState);
     dispatch({ type: 'SET_TROPHY_CASE', payload: result.trophyCase });
     if (result.newUnlocks.length > 0) dispatch({ type: 'ADD_TROPHY_UNLOCKS', payload: result.newUnlocks });
+  }, []);
+
+  const saveAuto = useCallback((gs: GameState) => {
+    autoSave(gs).catch(() => {
+      dispatch({ type: 'SET_ERROR', payload: 'Auto-save failed — use Save Game to preserve your progress.' });
+    });
   }, []);
 
   const newGame = useCallback((name: string, difficulty: Difficulty, careerStyle: CareerStyle = 'balanced', challengeMode: ChallengeModeId = 'standard') => {

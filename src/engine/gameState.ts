@@ -258,7 +258,7 @@ export function executeBuy(state: GameState, stockId: string, shares: number): T
       const totalShares = existing.shares + plan.sharesToBuy;
       const totalCostBasis = roundCurrency((existing.avgCost * existing.shares) + plan.buyCost);
       existing.shares = totalShares;
-      existing.avgCost = roundCurrency(totalCostBasis / totalShares);
+      if (totalShares > 0) existing.avgCost = roundCurrency(totalCostBasis / totalShares);
     } else {
       newState.portfolio[stockId] = { stockId, shares: plan.sharesToBuy, avgCost: price };
     }
@@ -350,7 +350,7 @@ export function executeShort(state: GameState, stockId: string, shares: number):
     const existing = newState.shortPositions[stockId];
     if (existing) {
       const totalShares = existing.shares + plan.sharesToShort;
-      existing.entryPrice = roundCurrency(((existing.entryPrice * existing.shares) + (stock.currentPrice * plan.sharesToShort)) / totalShares);
+      if (totalShares > 0) existing.entryPrice = roundCurrency(((existing.entryPrice * existing.shares) + (stock.currentPrice * plan.sharesToShort)) / totalShares);
       existing.shares = totalShares;
       existing.marginUsed = roundCurrency(existing.marginUsed + plan.marginReq);
     } else {

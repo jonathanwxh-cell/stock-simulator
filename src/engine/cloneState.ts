@@ -32,6 +32,7 @@ export function deepCloneGameState(state: GameState): GameState {
     portfolio: Object.fromEntries(Object.entries(state.portfolio).map(([k, v]) => [k, { ...v }])),
     shortPositions: Object.fromEntries(Object.entries(state.shortPositions).map(([k, v]) => [k, { ...v }])),
     limitOrders: state.limitOrders.map(o => ({ ...o })),
+    conditionalOrders: (state.conditionalOrders || []).map(o => ({ ...o })),
     transactionHistory: state.transactionHistory.map(t => ({ ...t, date: new Date(t.date) })),
     netWorthHistory: state.netWorthHistory.map(n => ({ ...n, date: new Date(n.date) })),
     marketIndexHistory: (state.marketIndexHistory || []).map(m => ({ ...m })),

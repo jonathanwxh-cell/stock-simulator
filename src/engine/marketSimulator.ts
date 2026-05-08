@@ -1,3 +1,4 @@
+import { addMonths } from 'date-fns';
 import { deepCloneGameState } from './cloneState';
 import type { GameState, Stock } from './types';
 import type { RNG } from './rng';
@@ -33,8 +34,7 @@ export function simulateTurn(gameState: GameState, rng: RNG = defaultRNG): GameS
   let newState = deepCloneGameState(gameState);
 
   newState.currentTurn += 1;
-  const currentDate = new Date(newState.currentDate);
-  currentDate.setMonth(currentDate.getMonth() + 1);
+  const currentDate = addMonths(new Date(newState.currentDate), 1);
   newState.currentDate = currentDate;
 
   newState.currentRegime = advanceRegime(newState.currentRegime, newState.currentTurn, rng);
