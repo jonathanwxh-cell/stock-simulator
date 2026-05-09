@@ -1,0 +1,242 @@
+{
+  "aapl": {
+    "positive": [
+      { "headline": "{company} Modular Hub Sells Out in Pre-Order Window", "description": "{company}'s newest modular hub line cleared its pre-order quota in 36 hours, with attach rates for the subscription tier above expectations.", "sector": "technology", "impact": "positive", "magnitudeRange": [0.05, 0.1] },
+      { "headline": "{company} Wins Smart-Home Standard Showdown", "description": "Industry working group adopts {company}'s connected-home framework as the reference spec, locking in a long royalty stream.", "sector": "technology", "impact": "positive", "magnitudeRange": [0.04, 0.08] }
+    ],
+    "negative": [
+      { "headline": "{company} Forced to Pause Hub Shipments After Battery Issue", "description": "A battery supplier flag triggers a precautionary pause on hub shipments. {company} says the fix is straightforward but margins for the quarter will compress.", "sector": "technology", "impact": "negative", "magnitudeRange": [0.05, 0.1] },
+      { "headline": "Regulators Open Probe Into {company} Subscription Bundling", "description": "Antitrust reviewers in two jurisdictions open an inquiry into whether {company} ties its subscription support unfairly to hardware sales.", "sector": "technology", "impact": "negative", "magnitudeRange": [0.06, 0.12] }
+    ]
+  },
+  "msft": {
+    "positive": [
+      { "headline": "{company} Lands Multi-Year Government Cloud Contract", "description": "{company} signs a multi-year framework agreement to host federal workflow tooling across three agencies.", "sector": "technology", "impact": "positive", "magnitudeRange": [0.05, 0.09] },
+      { "headline": "{company} Developer Platform Crosses 5M Active Builders", "description": "The {company} developer platform passes 5M active builders this quarter, a milestone tied to the new pricing tier.", "sector": "technology", "impact": "positive", "magnitudeRange": [0.04, 0.08] }
+    ],
+    "negative": [
+      { "headline": "{company} Outage Takes Down Enterprise Email for Six Hours", "description": "A misconfigured update at {company} cascades into a multi-region enterprise email outage. SLAs will trigger refunds.", "sector": "technology", "impact": "negative", "magnitudeRange": [0.05, 0.1] },
+      { "headline": "Major Customer Migrates Off {company} Cloud Suite", "description": "A top-five {company} customer signals migration to an open-source alternative, citing licensing costs and lock-in concerns.", "sector": "technology", "impact": "negative", "magnitudeRange": [0.06, 0.11] }
+    ]
+  },
+  "nvda": {
+    "positive": [
+      { "headline": "{company} AI Accelerator Sells Out Through Next Year", "description": "Hyperscaler demand for the new {company} accelerator family pushes lead times past 12 months. ASPs holding.", "sector": "semiconductors", "impact": "positive", "magnitudeRange": [0.07, 0.14] },
+      { "headline": "{company} Unveils Next-Gen Training Stack", "description": "{company} previews a next-generation training stack with bandwidth and energy improvements that beat roadmap targets.", "sector": "semiconductors", "impact": "positive", "magnitudeRange": [0.05, 0.1] }
+    ],
+    "negative": [
+      { "headline": "{company} Faces New Export Restrictions on Top-End Chips", "description": "New export rules cap {company}'s ability to ship its highest-tier accelerators to a key region. Guidance under review.", "sector": "semiconductors", "impact": "negative", "magnitudeRange": [0.08, 0.15] },
+      { "headline": "Hyperscaler Designs In-House Chip to Reduce {company} Dependence", "description": "A top-three hyperscaler announces an in-house silicon program intended to cut {company} purchases over three years.", "sector": "semiconductors", "impact": "negative", "magnitudeRange": [0.07, 0.13] }
+    ]
+  },
+  "tsm": {
+    "positive": [
+      { "headline": "{company} Advanced Node Yields Beat Internal Targets", "description": "{company} reports its advanced-node yields are tracking ahead of internal targets, with foundry pricing power intact.", "sector": "semiconductors", "impact": "positive", "magnitudeRange": [0.05, 0.1] },
+      { "headline": "{company} Lands Anchor Customer for New Fab", "description": "{company} secures an anchor customer for its next-generation fab, derisking the multi-year capex cycle.", "sector": "semiconductors", "impact": "positive", "magnitudeRange": [0.04, 0.08] }
+    ],
+    "negative": [
+      { "headline": "{company} Delays New Fab Ramp Citing Equipment Shortage", "description": "{company} slips the ramp of its newest fab by two quarters, citing tool delivery and qualification delays.", "sector": "semiconductors", "impact": "negative", "magnitudeRange": [0.05, 0.1] },
+      { "headline": "Geopolitical Tensions Cloud {company} Capacity Plans", "description": "Renewed cross-strait tensions cloud {company}'s long-term capacity expansion plans and rattle order books.", "sector": "semiconductors", "impact": "negative", "magnitudeRange": [0.06, 0.13] }
+    ]
+  },
+  "jnj": {
+    "positive": [
+      { "headline": "{company} Wound-Care Line Wins Hospital Formulary Vote", "description": "A national hospital purchasing group adds {company}'s flagship wound-care line to its preferred formulary.", "sector": "healthcare", "impact": "positive", "magnitudeRange": [0.03, 0.07] },
+      { "headline": "{company} Raises Dividend for the 30th Consecutive Year", "description": "{company} announces a modest dividend hike, extending an unbroken streak that anchors income-focused funds.", "sector": "healthcare", "impact": "positive", "magnitudeRange": [0.02, 0.06] }
+    ],
+    "negative": [
+      { "headline": "{company} Faces Talc Litigation Class Expansion", "description": "A judge expands the class in the {company} talc litigation, increasing the potential settlement exposure.", "sector": "healthcare", "impact": "negative", "magnitudeRange": [0.04, 0.09] },
+      { "headline": "{company} Recalls OTC Cold Medicine Lot", "description": "{company} issues a precautionary recall of an over-the-counter cold-medicine lot after a packaging defect.", "sector": "healthcare", "impact": "negative", "magnitudeRange": [0.03, 0.07] }
+    ]
+  },
+  "unh": {
+    "positive": [
+      { "headline": "{company} Wins Government Managed-Care Contract Renewal", "description": "{company} retains a multi-billion-dollar government managed-care contract on improved terms.", "sector": "healthcare", "impact": "positive", "magnitudeRange": [0.04, 0.08] },
+      { "headline": "{company} Pharmacy Benefits Arm Reports Record Margin", "description": "The pharmacy benefits arm of {company} posts a record operating margin on rebate negotiation gains.", "sector": "healthcare", "impact": "positive", "magnitudeRange": [0.03, 0.07] }
+    ],
+    "negative": [
+      { "headline": "{company} Cyber Incident Disrupts Provider Payments", "description": "A cyber incident at a {company} subsidiary disrupts provider payments nationwide. Regulators are probing the response.", "sector": "healthcare", "impact": "negative", "magnitudeRange": [0.06, 0.12] },
+      { "headline": "Senate Hearing Targets {company} Prior-Authorization Practices", "description": "A Senate subcommittee opens hearings on {company}'s prior-authorization practices and denial rates.", "sector": "healthcare", "impact": "negative", "magnitudeRange": [0.04, 0.09] }
+    ]
+  },
+  "mrna": {
+    "positive": [
+      { "headline": "{company} Cancer Vaccine Reads Out Strong Phase 2", "description": "{company}'s lead personalized cancer vaccine candidate posts strong phase 2 immune response data.", "sector": "biotech", "impact": "positive", "magnitudeRange": [0.1, 0.2] },
+      { "headline": "{company} Signs Pandemic Preparedness Pact", "description": "{company} signs a multi-government pandemic preparedness agreement covering rapid-response platform reservation.", "sector": "biotech", "impact": "positive", "magnitudeRange": [0.06, 0.12] }
+    ],
+    "negative": [
+      { "headline": "{company} Trial Halt Triggers Stock Drop", "description": "{company} pauses a mid-stage trial after a safety signal. The company says the program remains viable but timelines slip.", "sector": "biotech", "impact": "negative", "magnitudeRange": [0.1, 0.2] },
+      { "headline": "{company} Burn Rate Raises Funding Questions", "description": "Analysts flag {company}'s elevated burn rate and question whether a near-term capital raise is unavoidable.", "sector": "biotech", "impact": "negative", "magnitudeRange": [0.07, 0.14] }
+    ]
+  },
+  "vrtx": {
+    "positive": [
+      { "headline": "{company} Cystic Fibrosis Therapy Wins Label Expansion", "description": "Regulators expand the label on {company}'s flagship cystic fibrosis therapy to a younger patient population.", "sector": "biotech", "impact": "positive", "magnitudeRange": [0.06, 0.12] },
+      { "headline": "{company} Pipeline Catalyst Beats Consensus", "description": "A pipeline catalyst from {company} beats sell-side consensus on both efficacy and durability.", "sector": "biotech", "impact": "positive", "magnitudeRange": [0.05, 0.1] }
+    ],
+    "negative": [
+      { "headline": "{company} Drug Pricing Negotiations Hit Wall", "description": "Government drug-pricing negotiations on a {company} flagship therapy stall, with revenue cuts now likely.", "sector": "biotech", "impact": "negative", "magnitudeRange": [0.06, 0.12] },
+      { "headline": "Generic Threat Looms for {company} Franchise", "description": "A patent challenge inches closer to opening {company}'s top franchise to generic competition earlier than expected.", "sector": "biotech", "impact": "negative", "magnitudeRange": [0.07, 0.14] }
+    ]
+  },
+  "xom": {
+    "positive": [
+      { "headline": "{company} Discovers Major Offshore Reserve", "description": "{company} announces a sizable offshore reserve discovery in a frontier basin, materially extending its resource base.", "sector": "energy", "impact": "positive", "magnitudeRange": [0.05, 0.1] },
+      { "headline": "{company} Buybacks Accelerate on Strong Cash Flow", "description": "{company} accelerates its buyback program after a quarter of unusually strong free cash flow generation.", "sector": "energy", "impact": "positive", "magnitudeRange": [0.04, 0.08] }
+    ],
+    "negative": [
+      { "headline": "{company} Refinery Fire Cuts Output", "description": "A fire at a major {company} refinery forces a temporary shutdown, trimming quarterly production guidance.", "sector": "energy", "impact": "negative", "magnitudeRange": [0.05, 0.1] },
+      { "headline": "Shareholder Climate Vote Pressures {company} Board", "description": "A binding shareholder climate proposal at {company} passes, forcing accelerated emissions disclosures.", "sector": "energy", "impact": "negative", "magnitudeRange": [0.04, 0.09] }
+    ]
+  },
+  "enph": {
+    "positive": [
+      { "headline": "{company} Wins Utility-Scale Battery Tender", "description": "{company} wins a competitive utility-scale battery storage tender, locking in multi-year shipment volumes.", "sector": "energy", "impact": "positive", "magnitudeRange": [0.07, 0.14] },
+      { "headline": "{company} Posts Record Microinverter Shipments", "description": "{company} reports record quarterly microinverter shipments as the residential solar pipeline accelerates.", "sector": "energy", "impact": "positive", "magnitudeRange": [0.06, 0.12] }
+    ],
+    "negative": [
+      { "headline": "{company} Faces Tariff Hit on Imported Components", "description": "New tariffs on imported solar components squeeze {company}'s gross margin and force a reseller pricing reset.", "sector": "energy", "impact": "negative", "magnitudeRange": [0.07, 0.14] },
+      { "headline": "Inventory Glut at Distributors Slows {company} Orders", "description": "Distributors flag elevated inventory levels for {company} products, signaling slower reorder cadence ahead.", "sector": "energy", "impact": "negative", "magnitudeRange": [0.08, 0.15] }
+    ]
+  },
+  "amzn": {
+    "positive": [
+      { "headline": "{company} Logistics Arm Beats Holiday Targets", "description": "The logistics arm of {company} beats holiday throughput targets while keeping cost-per-package flat.", "sector": "consumer", "impact": "positive", "magnitudeRange": [0.05, 0.1] },
+      { "headline": "{company} Cloud Workloads Grow Faster Than Guidance", "description": "{company}'s cloud unit posts year-over-year workload growth above the high end of guidance.", "sector": "consumer", "impact": "positive", "magnitudeRange": [0.04, 0.09] }
+    ],
+    "negative": [
+      { "headline": "{company} Warehouse Workers Vote to Unionize", "description": "Workers at a flagship {company} fulfillment center vote to unionize, kicking off contract negotiations.", "sector": "consumer", "impact": "negative", "magnitudeRange": [0.04, 0.09] },
+      { "headline": "{company} Faces Antitrust Suit Over Marketplace Practices", "description": "Regulators file a long-anticipated antitrust suit against {company} targeting third-party marketplace practices.", "sector": "consumer", "impact": "negative", "magnitudeRange": [0.06, 0.12] }
+    ]
+  },
+  "tsla": {
+    "positive": [
+      { "headline": "{company} Q4 Deliveries Crush Sell-Side Estimates", "description": "{company} reports Q4 vehicle deliveries comfortably above sell-side estimates, with a stronger product mix.", "sector": "consumer", "impact": "positive", "magnitudeRange": [0.08, 0.16] },
+      { "headline": "{company} Energy Storage Backlog Doubles", "description": "{company}'s energy storage backlog roughly doubles year over year as utility customers lock in capacity.", "sector": "consumer", "impact": "positive", "magnitudeRange": [0.06, 0.12] }
+    ],
+    "negative": [
+      { "headline": "{company} Cuts Prices Across Vehicle Lineup", "description": "{company} cuts prices across its vehicle lineup to defend share, sparking margin concerns.", "sector": "consumer", "impact": "negative", "magnitudeRange": [0.08, 0.16] },
+      { "headline": "{company} Self-Driving Beta Triggers New Probe", "description": "Regulators open a new probe into {company}'s self-driving beta following a series of reported incidents.", "sector": "consumer", "impact": "negative", "magnitudeRange": [0.07, 0.14] }
+    ]
+  },
+  "jpm": {
+    "positive": [
+      { "headline": "{company} Posts Record Investment Banking Revenue", "description": "{company} books record investment banking revenue for the quarter as deal pipelines reopen.", "sector": "financials", "impact": "positive", "magnitudeRange": [0.04, 0.09] },
+      { "headline": "{company} Lifts Trading Desk Revenue on Volatility", "description": "{company} reports a strong quarter from its trading desk, capitalizing on rate and FX volatility.", "sector": "financials", "impact": "positive", "magnitudeRange": [0.04, 0.08] }
+    ],
+    "negative": [
+      { "headline": "{company} Sets Aside Larger Loan-Loss Reserve", "description": "{company} sets aside a larger-than-expected loan-loss reserve as commercial real estate stress builds.", "sector": "financials", "impact": "negative", "magnitudeRange": [0.05, 0.1] },
+      { "headline": "Regulator Fines {company} Over Trade Surveillance Lapse", "description": "Federal regulators fine {company} after finding gaps in its trade surveillance and reporting controls.", "sector": "financials", "impact": "negative", "magnitudeRange": [0.04, 0.09] }
+    ]
+  },
+  "v": {
+    "positive": [
+      { "headline": "{company} Cross-Border Volume Hits New High", "description": "{company} reports a new high in cross-border transaction volume on resilient travel and remittance flows.", "sector": "financials", "impact": "positive", "magnitudeRange": [0.04, 0.08] },
+      { "headline": "{company} Signs Co-Brand Deal With Major Airline", "description": "{company} signs a multi-year co-brand deal with a top-three global airline, displacing a rival.", "sector": "financials", "impact": "positive", "magnitudeRange": [0.03, 0.07] }
+    ],
+    "negative": [
+      { "headline": "Merchants Sue {company} Over Interchange Fees", "description": "A retailer coalition files a fresh class action against {company} alleging anti-competitive interchange fees.", "sector": "financials", "impact": "negative", "magnitudeRange": [0.04, 0.08] },
+      { "headline": "Regulator Caps Debit Interchange Hit {company} Forecast", "description": "A new debit-interchange cap forces {company} to lower forward revenue guidance for the segment.", "sector": "financials", "impact": "negative", "magnitudeRange": [0.05, 0.1] }
+    ]
+  },
+  "dis": {
+    "positive": [
+      { "headline": "{company} Park Attendance Sets Quarterly Record", "description": "{company}'s flagship parks set quarterly attendance records, helped by a new headline attraction.", "sector": "media", "impact": "positive", "magnitudeRange": [0.04, 0.09] },
+      { "headline": "{company} Streaming Bundle Crosses Subscriber Milestone", "description": "{company}'s streaming bundle crosses a closely-watched subscriber milestone, with churn improving sequentially.", "sector": "media", "impact": "positive", "magnitudeRange": [0.05, 0.1] }
+    ],
+    "negative": [
+      { "headline": "{company} Tentpole Film Disappoints at Box Office", "description": "A tentpole {company} film opens below the low end of expectations, raising concerns about the slate.", "sector": "media", "impact": "negative", "magnitudeRange": [0.05, 0.1] },
+      { "headline": "{company} Activist Investor Pushes Asset Spinoff", "description": "An activist takes a stake in {company} and publicly pushes for spinning off the linear TV portfolio.", "sector": "media", "impact": "negative", "magnitudeRange": [0.04, 0.08] }
+    ]
+  },
+  "nflx": {
+    "positive": [
+      { "headline": "{company} Ad Tier Adds Subscribers Faster Than Forecast", "description": "{company}'s ad-supported tier adds subscribers faster than internal forecasts, with monetization holding up.", "sector": "media", "impact": "positive", "magnitudeRange": [0.05, 0.11] },
+      { "headline": "{company} Original Series Becomes Global Phenomenon", "description": "A new {company} original series tops the streaming charts in 80+ countries within a week of launch.", "sector": "media", "impact": "positive", "magnitudeRange": [0.04, 0.09] }
+    ],
+    "negative": [
+      { "headline": "{company} Faces Account-Sharing Backlash in Key Market", "description": "Account-sharing enforcement at {company} triggers a measurable churn spike in a key European market.", "sector": "media", "impact": "negative", "magnitudeRange": [0.05, 0.1] },
+      { "headline": "Content Cost Inflation Pressures {company} Margin", "description": "Production cost inflation in two key content categories forces {company} to revisit its margin guidance.", "sector": "media", "impact": "negative", "magnitudeRange": [0.04, 0.09] }
+    ]
+  },
+  "pld": {
+    "positive": [
+      { "headline": "{company} Logistics Properties Post Record Lease Spreads", "description": "{company} reports record cash lease spreads on logistics renewals, anchored by e-commerce demand.", "sector": "realestate", "impact": "positive", "magnitudeRange": [0.04, 0.08] },
+      { "headline": "{company} Closes Mega-Distribution Lease With Retail Giant", "description": "{company} closes a mega-distribution lease with a top-three retailer covering 4M square feet.", "sector": "realestate", "impact": "positive", "magnitudeRange": [0.03, 0.07] }
+    ],
+    "negative": [
+      { "headline": "Rising Cap Rates Pressure {company} NAV", "description": "Rising cap rates in industrial logistics force analysts to mark down {company}'s NAV estimates.", "sector": "realestate", "impact": "negative", "magnitudeRange": [0.04, 0.08] },
+      { "headline": "{company} Tenant Bankruptcy Hits Vacancy Outlook", "description": "A top-20 {company} tenant files for bankruptcy, lifting near-term vacancy expectations in two markets.", "sector": "realestate", "impact": "negative", "magnitudeRange": [0.04, 0.08] }
+    ]
+  },
+  "amt": {
+    "positive": [
+      { "headline": "{company} Wins Carrier Densification Master Lease", "description": "{company} signs a master lease covering carrier densification in 12 metro markets.", "sector": "realestate", "impact": "positive", "magnitudeRange": [0.04, 0.08] },
+      { "headline": "{company} Raises Dividend on Strong Tower Demand", "description": "{company} raises its dividend on resilient tower leasing economics and lower-than-expected churn.", "sector": "realestate", "impact": "positive", "magnitudeRange": [0.03, 0.06] }
+    ],
+    "negative": [
+      { "headline": "Carrier Capex Cuts Threaten {company} Lease Bookings", "description": "A major carrier announces capex cuts that analysts say will dent {company}'s near-term lease bookings.", "sector": "realestate", "impact": "negative", "magnitudeRange": [0.04, 0.08] },
+      { "headline": "{company} International Markup Hit by FX Headwinds", "description": "FX headwinds in {company}'s international tower portfolios reduce reported AFFO for the quarter.", "sector": "realestate", "impact": "negative", "magnitudeRange": [0.03, 0.07] }
+    ]
+  },
+  "ba": {
+    "positive": [
+      { "headline": "{company} Lands Wide-Body Order From Flag Carrier", "description": "{company} books a firm wide-body order from a national flag carrier, valued in the high single-digit billions.", "sector": "industrial", "impact": "positive", "magnitudeRange": [0.06, 0.12] },
+      { "headline": "{company} Resumes Deliveries After Quality Pause", "description": "{company} resumes deliveries on a key program after closing out the quality issues that paused shipments.", "sector": "industrial", "impact": "positive", "magnitudeRange": [0.05, 0.1] }
+    ],
+    "negative": [
+      { "headline": "Regulator Holds {company} Production Cap in Place", "description": "Regulators decline to lift the production cap on {company}'s top program, citing unresolved manufacturing concerns.", "sector": "industrial", "impact": "negative", "magnitudeRange": [0.07, 0.14] },
+      { "headline": "{company} Whistleblower Testimony Goes Public", "description": "Whistleblower testimony naming {company}'s safety culture lapses goes public, drawing congressional attention.", "sector": "industrial", "impact": "negative", "magnitudeRange": [0.06, 0.12] }
+    ]
+  },
+  "lmt": {
+    "positive": [
+      { "headline": "{company} Wins Long-Range Missile Recompete", "description": "{company} retains a long-range missile recompete contract over a rival prime, securing multi-year revenue.", "sector": "industrial", "impact": "positive", "magnitudeRange": [0.04, 0.08] },
+      { "headline": "{company} Backlog Hits Record on Allied Orders", "description": "Allied government orders push {company}'s funded backlog to a record level for the quarter.", "sector": "industrial", "impact": "positive", "magnitudeRange": [0.03, 0.07] }
+    ],
+    "negative": [
+      { "headline": "Defense Budget Markup Trims {company} Program Funding", "description": "A defense authorization markup trims funding for a flagship {company} program, with downstream impact on margins.", "sector": "industrial", "impact": "negative", "magnitudeRange": [0.04, 0.08] },
+      { "headline": "Cost Overrun on {company} Fighter Program Disclosed", "description": "{company} discloses a cost overrun on a marquee fighter program, with charges expected next quarter.", "sector": "industrial", "impact": "negative", "magnitudeRange": [0.05, 0.09] }
+    ]
+  },
+  "lin": {
+    "positive": [
+      { "headline": "{company} Signs Decade-Long Industrial Gas Supply Deal", "description": "{company} signs a decade-long industrial gas supply agreement with a major chip fabricator.", "sector": "materials", "impact": "positive", "magnitudeRange": [0.04, 0.07] },
+      { "headline": "{company} Hydrogen Pipeline Project Approved", "description": "Regulators approve {company}'s gulf-coast hydrogen pipeline project, enabling new long-term offtake contracts.", "sector": "materials", "impact": "positive", "magnitudeRange": [0.03, 0.07] }
+    ],
+    "negative": [
+      { "headline": "Hospital Cost Pressure Squeezes {company} Medical Gas Margin", "description": "Renegotiated hospital contracts pressure {company}'s medical gas margins for the back half of the year.", "sector": "materials", "impact": "negative", "magnitudeRange": [0.03, 0.07] },
+      { "headline": "{company} Plant Outage Tightens Industrial Supply", "description": "An unplanned outage at a {company} air-separation plant tightens regional industrial supply and dings volumes.", "sector": "materials", "impact": "negative", "magnitudeRange": [0.04, 0.08] }
+    ]
+  },
+  "nem": {
+    "positive": [
+      { "headline": "{company} Exploration Hits Best Drill Result in a Decade", "description": "{company} reports its best drill result in a decade at a brownfield exploration site, lifting reserve life.", "sector": "materials", "impact": "positive", "magnitudeRange": [0.06, 0.12] },
+      { "headline": "{company} Restarts Idle Mine on Cost Improvements", "description": "{company} restarts a previously idled mine after engineering changes restore positive operating margins.", "sector": "materials", "impact": "positive", "magnitudeRange": [0.05, 0.1] }
+    ],
+    "negative": [
+      { "headline": "{company} Mine Suspended After Tailings Incident", "description": "Authorities order a temporary suspension at a {company} mine following a tailings incident under investigation.", "sector": "materials", "impact": "negative", "magnitudeRange": [0.06, 0.12] },
+      { "headline": "Royalty Dispute Threatens {company} Output Guidance", "description": "A royalty dispute with a host government puts a portion of {company}'s output guidance at risk.", "sector": "materials", "impact": "negative", "magnitudeRange": [0.05, 0.1] }
+    ]
+  },
+  "t": {
+    "positive": [
+      { "headline": "{company} Fiber Build Reaches Subscriber Milestone", "description": "{company} reports its fiber build crossed a closely watched subscriber milestone with churn at a multi-year low.", "sector": "telecom", "impact": "positive", "magnitudeRange": [0.04, 0.08] },
+      { "headline": "{company} Refinances Debt at Lower Spread", "description": "{company} refinances near-term maturities at a lower credit spread, easing dividend coverage worries.", "sector": "telecom", "impact": "positive", "magnitudeRange": [0.03, 0.06] }
+    ],
+    "negative": [
+      { "headline": "Lead Cable Liability Re-Emerges for {company}", "description": "Renewed regulatory focus on legacy lead-sheathed cable revives potential remediation liability for {company}.", "sector": "telecom", "impact": "negative", "magnitudeRange": [0.04, 0.09] },
+      { "headline": "{company} Postpaid Subscriber Adds Miss Forecast", "description": "{company} reports postpaid subscriber adds below sell-side forecasts, a slowdown that pressures the dividend story.", "sector": "telecom", "impact": "negative", "magnitudeRange": [0.04, 0.08] }
+    ]
+  },
+  "vz": {
+    "positive": [
+      { "headline": "{company} Wins Enterprise 5G Contract", "description": "{company} signs a high-profile enterprise 5G private-network contract with a major manufacturer.", "sector": "telecom", "impact": "positive", "magnitudeRange": [0.03, 0.07] },
+      { "headline": "{company} Premium Plan Mix Lifts ARPU", "description": "A higher mix shift to {company}'s premium plans lifts ARPU above guided levels.", "sector": "telecom", "impact": "positive", "magnitudeRange": [0.03, 0.07] }
+    ],
+    "negative": [
+      { "headline": "Network Outage at {company} Sparks Regulatory Inquiry", "description": "A multi-state network outage at {company} prompts an FCC inquiry into resilience and notification practices.", "sector": "telecom", "impact": "negative", "magnitudeRange": [0.04, 0.09] },
+      { "headline": "{company} Spectrum Auction Bid Strains Balance Sheet", "description": "{company}'s aggressive spectrum auction bid strains the balance sheet, with rating agencies signaling caution.", "sector": "telecom", "impact": "negative", "magnitudeRange": [0.04, 0.08] }
+    ]
+  }
+}

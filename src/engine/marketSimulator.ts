@@ -182,7 +182,10 @@ export function checkMarginCall(state: GameState) {
       const pnl = roundCurrency((short.entryPrice - stock.currentPrice) * short.shares);
       state.cash = roundCurrency(state.cash + short.marginUsed + pnl);
       state.marginUsed = roundCurrency(state.marginUsed - short.marginUsed);
-      state.transactionHistory.push({ id: `margin_call_${crypto.randomUUID()}`, date: new Date(state.currentDate), turn: state.currentTurn, stockId, type: 'margin_call', shares: short.shares, price: roundCurrency(stock.currentPrice), total: currentLiability, fee: 0 });
+      const maintenancePct = Math.round(config.marginMaintenance * 100);
+      const liquidationPrice = roundCurrency(stock.currentPrice);
+      const reason = `${stock.ticker} short force-liquidated at $${liquidationPrice.toFixed(2)} — equity fell below ${maintenancePct}% maintenance on a $${currentLiability.toLocaleString()} liability`;
+      state.transactionHistory.push({ id: `margin_call_${crypto.randomUUID()}`, date: new Date(state.currentDate), turn: state.currentTurn, stockId, type: 'margin_call', shares: short.shares, price: liquidationPrice, total: currentLiability, fee: 0, reason });
       delete state.shortPositions[stockId];
     }
   }

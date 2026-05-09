@@ -8,7 +8,7 @@ import { buildSeasonRecap } from '../engine/marketInsights';
 import { recordCompletedGame } from '../engine/completion';
 import { getCareerLeague } from '../engine/careerSystem';
 import { CHALLENGE_MODES, getCareerSeasonGoal, getCareerSeasonTurn, getCareerSeasonTurnLimit, getCareerUnlocks } from '../engine/careerSeasons';
-import { buildLegacyEnding, buildLegacyOffers } from '../engine/legacyStory';
+import { buildLegacyEnding, buildLegacyOffers, buildLossEpilogue } from '../engine/legacyStory';
 import { loadLegacyRecord, recordLegacyEnding } from '../engine/legacyStorage';
 import LegacyEpilogueCard from '../components/gameover/LegacyEpilogueCard';
 import NextChapterPicker from '../components/gameover/NextChapterPicker';
@@ -70,6 +70,12 @@ export default function GameOver() {
     () => (gameState && legacyEnding ? buildLegacyOffers(gameState, legacyEnding, legacyRecord) : []),
     [gameState, legacyEnding, legacyRecord],
   );
+  const lossEpilogue = useMemo(() => {
+    if (!gameState?.isGameOver) return null;
+    const goal = getCareerSeasonGoal(gameState);
+    if (getNetWorth(gameState) >= goal) return null;
+    return buildLossEpilogue(gameState);
+  }, [gameState]);
 
   useEffect(() => {
     if (legacyEnding) recordLegacyEnding(legacyEnding);
@@ -144,6 +150,23 @@ export default function GameOver() {
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.86 }}>
           <LegacyEpilogueCard ending={legacyEnding} />
         </motion.div>
+
+        {lossEpilogue && (
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.88 }}
+            className="bg-[linear-gradient(135deg,rgba(239,68,68,0.12),rgba(15,23,42,0.86))] border border-[rgba(239,68,68,0.3)] rounded-3xl p-5 mb-6 text-left">
+            <span className="text-[10px] uppercase tracking-[0.24em] text-[var(--loss-red)]">
+              {lossEpilogue.variant === 'bankruptcy' ? 'Bankruptcy Filing' : lossEpilogue.variant === 'missed_goal' ? 'Goal Missed' : 'A Photo Finish'}
+            </span>
+            <h2 className="mt-1 text-xl font-display font-bold text-[var(--text-primary)]">{lossEpilogue.headline}</h2>
+            <p className="mt-2 text-sm leading-relaxed text-[var(--text-secondary)]">{lossEpilogue.body}</p>
+            <p className="mt-3 text-sm italic leading-relaxed text-[var(--text-muted)]">{lossEpilogue.closer}</p>
+            {lossEpilogue.marginCallCount > 0 && (
+              <div className="mt-3 inline-flex items-center gap-2 rounded-full border border-[rgba(239,68,68,0.4)] bg-[rgba(239,68,68,0.1)] px-3 py-1 text-[10px] uppercase tracking-wide text-[var(--loss-red)]">
+                {lossEpilogue.marginCallCount} margin call{lossEpilogue.marginCallCount > 1 ? 's' : ''} this season
+              </div>
+            )}
+          </motion.div>
+        )}
 
         {/* Stats */}
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.9 }}
