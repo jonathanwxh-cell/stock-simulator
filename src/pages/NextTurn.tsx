@@ -5,7 +5,9 @@ import { useEffect } from 'react';
 import { getLatestTurnPerformance } from '../engine/turnPerformance';
 import { getCareerSeasonTurn } from '../engine/careerSeasons';
 import { buildPostTurnDigest, type PostTurnDigestTone } from '../engine/postTurnDigest';
+import { getPendingEarningsDecisions } from '../engine/catalystSystem';
 import MarginCallToast from '../components/gameover/MarginCallToast';
+import EarningsDecisionCard from '../components/gameover/EarningsDecisionCard';
 
 function pct(value: number) {
   return `${value >= 0 ? '+' : ''}${value.toFixed(1)}%`;
@@ -26,17 +28,23 @@ function digestToneClass(tone: PostTurnDigestTone) {
 }
 
 export default function NextTurn() {
-  const { gameState, navigateTo } = useGame();
+  const { gameState, navigateTo, buyStock, sellStock } = useGame();
+
+  // Suppress the auto-advance timer when there are pending earnings decisions
+  // so the player has time to commit to a stance before the catalyst fires.
+  const hasPendingEarnings = gameState ? getPendingEarningsDecisions(gameState).length > 0 : false;
 
   useEffect(() => {
+    if (hasPendingEarnings) return;
     const timer = setTimeout(() => {
       if (!gameState) return;
       navigateTo(buildPostTurnDigest(gameState).nextAction.screen);
     }, 4200);
     return () => clearTimeout(timer);
-  }, [gameState, navigateTo]);
+  }, [gameState, navigateTo, hasPendingEarnings]);
 
   if (!gameState) return null;
+  const pendingEarningsDecisions = getPendingEarningsDecisions(gameState);
 
   const currentSnapshot = gameState.netWorthHistory[gameState.netWorthHistory.length - 1];
   const previousSnapshot = gameState.netWorthHistory[gameState.netWorthHistory.length - 2];
@@ -70,6 +78,15 @@ export default function NextTurn() {
         </div>
 
         <MarginCallToast transactions={recentMarginCalls} />
+
+        {pendingEarningsDecisions.map((decision) => (
+          <EarningsDecisionCard
+            key={decision.catalyst.id}
+            decision={decision}
+            onTrim={sellStock}
+            onAdd={buyStock}
+          />
+        ))}
 
         {/* Net Worth Summary */}
         <div className="bg-[var(--surface-0)] border border-[var(--border)] rounded-2xl p-6 mb-4">

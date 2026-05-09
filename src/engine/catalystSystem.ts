@@ -1,4 +1,4 @@
-import type { CatalystEvent, CatalystType, GameState, NewsEvent, Sector } from './types';
+import type { CatalystEvent, CatalystType, GameState, NewsEvent, Sector, Stock, Position } from './types';
 import type { RNG } from './rng';
 import { defaultRNG } from './rng';
 
@@ -140,6 +140,32 @@ export function ensureUpcomingCatalysts(
   }
 
   return upcoming.sort(compareCatalysts);
+}
+
+export interface PendingEarningsDecision {
+  catalyst: CatalystEvent;
+  stock: Stock;
+  position: Position;
+}
+
+// Returns earnings catalysts scheduled to resolve next turn for stocks the
+// player currently holds long. Used by NextTurn to surface a pre-commitment
+// decision card (#36) — the player can trim, add, or hold before the result
+// is revealed. Excludes shorts (handled separately) and non-earnings types
+// to keep the agency moment scoped to the highest-stakes events.
+export function getPendingEarningsDecisions(state: GameState): PendingEarningsDecision[] {
+  const calendar = state.catalystCalendar || [];
+  const decisions: PendingEarningsDecision[] = [];
+  for (const catalyst of calendar) {
+    if (catalyst.type !== 'earnings') continue;
+    if (catalyst.scheduledTurn !== state.currentTurn + 1) continue;
+    const position = state.portfolio[catalyst.stockId];
+    if (!position || position.shares <= 0) continue;
+    const stock = state.stocks.find((s) => s.id === catalyst.stockId);
+    if (!stock) continue;
+    decisions.push({ catalyst, stock, position });
+  }
+  return decisions;
 }
 
 export function resolveDueCatalysts(
