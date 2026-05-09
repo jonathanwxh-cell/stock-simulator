@@ -2,6 +2,7 @@ import type { Sector, ActiveScenario, NewsEvent, GameState } from './types';
 import type { RNG } from './rng';
 import { defaultRNG } from './rng';
 import templatesData from './data/news-templates.json';
+import companyTemplatesData from './data/company-news-templates.json';
 
 function genId(prefix: string): string {
   return `${prefix}_${crypto.randomUUID()}`;
@@ -28,6 +29,16 @@ const TEMPLATES_BY_SECTOR = templatesData as unknown as Record<string, {
   positive: NewsTemplate[];
   negative: NewsTemplate[];
 }>;
+
+// Company-specific templates keyed by stock id (e.g. "aapl"). Selected with
+// 25% probability when a template exists for the primary affected stock; falls
+// back to the sector pool otherwise. See issue #31 for rationale and scope.
+const COMPANY_TEMPLATES_BY_ID = companyTemplatesData as unknown as Record<string, {
+  positive: NewsTemplate[];
+  negative: NewsTemplate[];
+}>;
+
+export const COMPANY_TEMPLATE_SELECTION_PROBABILITY = 0.25;
 
 // ── Scenario Titles ───────────────────────────────────────────────────
 
@@ -131,18 +142,37 @@ export function generateNewsEvent(
   }
 
   const impact = forcedImpact || (rng.next() < 0.45 ? 'positive' : rng.next() < 0.9 ? 'negative' : 'neutral');
-  const templateList = impact === 'positive'
+  const sectorTemplateList = impact === 'positive'
     ? sectorTemplates.positive
     : impact === 'negative'
     ? sectorTemplates.negative
     : [...sectorTemplates.positive, ...sectorTemplates.negative];
-  const template = rng.pick(templateList);
-  const magnitude = rng.range(template.magnitudeRange[0], template.magnitudeRange[1]);
+  const sectorTemplate = rng.pick(sectorTemplateList);
 
   const affectedStocks = rng.pickN(
     getStocksBySector(gameState, sector),
     rng.int(1, 3)
   );
+
+  // 25% chance to swap the sector template for a company-specific one when
+  // the primary affected stock has bespoke templates (#31). The check only
+  // consumes additional RNG when a company pool exists, keeping the seeded
+  // sequence identical for stocks without templates.
+  const primaryStockId = affectedStocks[0];
+  const companyPool = primaryStockId ? COMPANY_TEMPLATES_BY_ID[primaryStockId] : undefined;
+  let template = sectorTemplate;
+  if (companyPool && rng.next() < COMPANY_TEMPLATE_SELECTION_PROBABILITY) {
+    const companyList = impact === 'positive'
+      ? companyPool.positive
+      : impact === 'negative'
+      ? companyPool.negative
+      : [...companyPool.positive, ...companyPool.negative];
+    if (companyList.length > 0) {
+      template = rng.pick(companyList);
+    }
+  }
+
+  const magnitude = rng.range(template.magnitudeRange[0], template.magnitudeRange[1]);
 
   const stockName = affectedStocks.length > 0
     ? gameState.stocks.find(s => s.id === affectedStocks[0])?.name || 'the company'

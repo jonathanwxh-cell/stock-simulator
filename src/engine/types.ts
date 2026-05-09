@@ -151,6 +151,7 @@ export interface Transaction {
   price: number;
   total: number;
   fee: number;
+  reason?: string;
 }
 
 export interface NetWorthSnapshot { turn: number; date: Date; netWorth: number; cash: number; portfolioValue: number; shortLiability: number; marginUsed: number; }

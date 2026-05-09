@@ -5,6 +5,7 @@ import { useEffect } from 'react';
 import { getLatestTurnPerformance } from '../engine/turnPerformance';
 import { getCareerSeasonTurn } from '../engine/careerSeasons';
 import { buildPostTurnDigest, type PostTurnDigestTone } from '../engine/postTurnDigest';
+import MarginCallToast from '../components/gameover/MarginCallToast';
 
 function pct(value: number) {
   return `${value >= 0 ? '+' : ''}${value.toFixed(1)}%`;
@@ -45,6 +46,7 @@ export default function NextTurn() {
   const { marketMovePct, playerMovePct, turnAlphaPct } = getLatestTurnPerformance(gameState);
   const advisorFeedback = gameState.lastAdvisorFeedback || [];
   const recentNews = gameState.newsHistory.filter(n => n.turn === gameState.currentTurn);
+  const recentMarginCalls = gameState.transactionHistory.filter(t => t.type === 'margin_call' && t.turn === gameState.currentTurn);
   const latestBoardReview = gameState.career.boardReviews.find(review => review.turn === gameState.currentTurn);
   const seasonTurn = getCareerSeasonTurn(gameState);
   const digest = buildPostTurnDigest(gameState);
@@ -66,6 +68,8 @@ export default function NextTurn() {
             {gameState.currentDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
           </p>
         </div>
+
+        <MarginCallToast transactions={recentMarginCalls} />
 
         {/* Net Worth Summary */}
         <div className="bg-[var(--surface-0)] border border-[var(--border)] rounded-2xl p-6 mb-4">

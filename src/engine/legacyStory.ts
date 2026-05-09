@@ -1,3 +1,4 @@
+import { getCareerSeasonGoal } from './careerSeasons';
 import { getAlphaPct } from './marketIndex';
 import { getNetWorth } from './marketSimulator';
 import { getLatestRisk } from './riskSystem';
@@ -200,6 +201,63 @@ export function buildLegacyEnding(state: GameState): LegacyEnding {
       marginUsed: state.marginUsed,
       dividends: state.totalDividendsReceived,
     },
+  };
+}
+
+export type LossEpilogueVariant = 'bankruptcy' | 'missed_goal' | 'barely_missed';
+
+export interface LossEpilogue {
+  variant: LossEpilogueVariant;
+  headline: string;
+  body: string;
+  closer: string;
+  marginCallCount: number;
+  goalRatio: number;
+}
+
+export function buildLossEpilogue(state: GameState): LossEpilogue {
+  const netWorth = getNetWorth(state);
+  const goal = getCareerSeasonGoal(state);
+  const goalRatio = goal > 0 ? netWorth / goal : 0;
+  const marginCallCount = state.transactionHistory.filter((t) => t.type === 'margin_call').length;
+
+  if (netWorth <= 0) {
+    const liquidationLine = marginCallCount > 0
+      ? ` after ${marginCallCount} forced liquidation${marginCallCount > 1 ? 's' : ''}`
+      : '';
+    return {
+      variant: 'bankruptcy',
+      headline: 'The Fund Goes Dark',
+      body: `Your equity reached zero${liquidationLine}. One concentrated position turned against the clock and the margin calls compounded faster than the recovery could. By the time the dust settled there was nothing left to work with.`,
+      closer: "The market doesn't remember the fund's thesis — only that there was a fund, and then there wasn't. That distinction will outlast any single trade.",
+      marginCallCount,
+      goalRatio,
+    };
+  }
+
+  if (goalRatio < 0.6) {
+    const marginLine = marginCallCount > 0
+      ? ` ${marginCallCount} margin call${marginCallCount > 1 ? 's' : ''} during the run cost both capital and confidence at the worst possible moments.`
+      : ' The positions moved, but not enough, and not fast enough.';
+    return {
+      variant: 'missed_goal',
+      headline: 'Out of Turns, Well Short',
+      body: `The season clock ran out at ${Math.round(goalRatio * 100)}% of the target. The thesis was there but the timeline wasn't.${marginLine}`,
+      closer: 'Every fund manager has this loss — the one that teaches them conviction without timing is just stubbornness. Now you have yours.',
+      marginCallCount,
+      goalRatio,
+    };
+  }
+
+  // 0.6 ≤ goalRatio < 1.0 — the most poignant variant per #30
+  const gapAmount = Math.max(0, Math.round(goal - netWorth));
+  return {
+    variant: 'barely_missed',
+    headline: 'The Wall You Almost Scaled',
+    body: `You finished ${Math.round((1 - goalRatio) * 100)}% short — $${gapAmount.toLocaleString()} from the target. The thesis was sound, the position sizing reasonable, the executions clean. The market simply didn't cooperate with the calendar.`,
+    closer: 'Of all the loss variants, this one stings longest. Not because of what went wrong, but because of what almost went right. The next season will remember it.',
+    marginCallCount,
+    goalRatio,
   };
 }
 

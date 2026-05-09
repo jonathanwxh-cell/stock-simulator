@@ -8,6 +8,8 @@ All notable changes to this project are documented here. Format follows
 
 ### Added
 
+- **Loss narrative & margin-call drama.** The Game Over screen now branches on win/lose: losing runs render a tonal `LossEpilogue` card with three variants — `bankruptcy` (net worth ≤ 0, most dramatic), `missed_goal` (< 0.6× goal, F-grade), and `barely_missed` (0.6×–1.0× goal, the most poignant). Margin calls during a turn now surface as a `MarginCallToast` on the next-turn screen with reason text explaining what was force-liquidated and why (e.g. "TEC4 short force-liquidated at $42.10 — equity fell below 30% maintenance on a $5,300 liability"). `Transaction` gains an additive optional `reason?: string` field; existing saves remain valid. Closes #30.
+- **Company-specific news templates for 24 marquee stocks.** Anchor stocks across all 12 sectors (aapl, msft, nvda, tsm, jnj, unh, mrna, vrtx, xom, enph, amzn, tsla, jpm, v, dis, nflx, pld, amt, ba, lmt, lin, nem, t, vz) now have 4 bespoke headlines each (96 total) covering company-locked beats: product launches, lawsuits, regulatory probes, exec moves, plant outages, etc. The scenario engine swaps to a company-specific template with 25% probability when the primary affected stock has a custom pool, falling back to the sector pool otherwise. Closes #31.
 - Doubled the news template library from 132 to 260 entries (≥10 per sector per polarity), reducing intra-run headline repetition. New templates broaden the verb set (acquires, divests, refinances, buys back, settles) and add macro, M&A, refinancing, and operational scenarios across all 13 sector buckets. Closes #26.
 
 ### Changed
